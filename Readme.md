@@ -1,5 +1,5 @@
 
-# Tutorial Corre proyecto 
+# Tutorial correr proyecto 
 
 
 Este proyecto incluye dos comandos principales para iniciar la aplicación backend:
