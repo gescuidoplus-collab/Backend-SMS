@@ -1,0 +1,47 @@
+[
+  {
+    "invoiceID": "507f1f77bcf86cd799439011",
+    "userID": "507f1f77bcf86cd799439012",
+    "createdAt": "2023-10-01T10:00:00Z",
+    "updatedAt": "2023-10-02T11:00:00Z",
+    "reason": "",
+    "target": "+34681263254",
+    "status": "success"
+  },
+  {
+    "invoiceID": "507f1f77bcf86cd799439013",
+    "userID": "507f1f77bcf86cd799439014",
+    "createdAt": "2023-10-03T12:00:00Z",
+    "updatedAt": "2023-10-04T13:00:00Z",
+    "reason": "Numero invalido",
+    "target": "+34681263254",
+    "status": "failure"
+  },
+  {
+    "invoiceID": "507f1f77bcf86cd799439015",
+    "userID": "507f1f77bcf86cd799439016",
+    "createdAt": "2023-10-05T14:00:00Z",
+    "updatedAt": "2023-10-06T15:00:00Z",
+    "reason": "",
+    "target": "+34681263254",
+    "status": "pending"
+  },
+  {
+    "invoiceID": "507f1f77bcf86cd799439017",
+    "userID": "507f1f77bcf86cd799439018",
+    "createdAt": "2023-10-07T16:00:00Z",
+    "updatedAt": "2023-10-08T17:00:00Z",
+    "reason": "",
+    "target": "+34681263254",
+    "status": "success"
+  },
+  {
+    "invoiceID": "507f1f77bcf86cd799439019",
+    "userID": "507f1f77bcf86cd799439020",
+    "createdAt": "2023-10-09T18:00:00Z",
+    "updatedAt": "2023-10-10T19:00:00Z",
+    "reason": "Error Saldo insuficiente",
+    "target": "+34681263254",
+    "status": "failure"
+  }
+]
