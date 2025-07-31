@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { encrypt, decrypt } from '../utils/cipher.js'; 
+import { encrypt, decrypt } from "../utils/cipher.js";
 
 const { Schema } = mongoose;
 
@@ -8,12 +8,12 @@ const SmsDeliveryLogSchema = new Schema(
     invoiceID: {
       type: String,
       required: true,
-      match: /^[0-9a-fA-F]{24}$/,
+      //match: /^[0-9a-fA-F]{24}$/,
     },
     userID: {
       type: String,
       required: true,
-      match: /^[0-9a-fA-F]{24}$/,
+      //match: /^[0-9a-fA-F]{24}$/,
     },
     createdAt: {
       type: Date,
@@ -23,6 +23,14 @@ const SmsDeliveryLogSchema = new Schema(
     reason: {
       type: String,
       required: false,
+    },
+    mes: {
+      type: Number,
+      require: false,
+    },
+    ano: {
+      type: Number,
+      require: false,
     },
     target: {
       type: String,
@@ -47,16 +55,13 @@ const SmsDeliveryLogSchema = new Schema(
   }
 );
 
-// Hook para CIFRAR antes de guardar (save)
 SmsDeliveryLogSchema.pre("save", function (next) {
-  // Esta lógica ahora funcionará correctamente
   if (!this.isModified("sensitiveData") || !this.sensitiveData) {
     return next();
   }
 
-  // Asegúrate que estás cifrando un objeto
-  if (typeof this.sensitiveData !== 'object' || this.sensitiveData === null) {
-      return next(); // Si ya es un string (u otro tipo), no hagas nada
+  if (typeof this.sensitiveData !== "object" || this.sensitiveData === null) {
+    return next();
   }
 
   try {
@@ -67,18 +72,16 @@ SmsDeliveryLogSchema.pre("save", function (next) {
   }
 });
 
-// El método de descifrado no necesita cambios
 SmsDeliveryLogSchema.methods.getDecryptedData = function () {
   try {
-    // Si sensitiveData está vacío o no es un string, no se puede descifrar.
-    if (!this.sensitiveData || typeof this.sensitiveData !== 'string') {
-        return this.sensitiveData;
+    if (!this.sensitiveData || typeof this.sensitiveData !== "string") {
+      return this.sensitiveData;
     }
-    const resp =  decrypt(this.sensitiveData)
+    const resp = decrypt(this.sensitiveData);
     return resp;
   } catch (error) {
     console.error("Error al descifrar:", error);
-    return null; // O devuelve el dato original cifrado: this.sensitiveData
+    return null;
   }
 };
 

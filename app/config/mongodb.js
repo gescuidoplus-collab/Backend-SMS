@@ -10,7 +10,7 @@ const connectDB = async () => {
     try {
       await mongoose.connect(mongoURI);
       console.log("🗄️ Conexión a MongoDB exitosa");
-      return; // Si la conexión es exitosa, salir del bucle
+      return;
     } catch (error) {
       console.error(
         `❌ Error al conectar a MongoDB (intento ${i + 1}/${maxRetries}):`,
@@ -18,7 +18,7 @@ const connectDB = async () => {
       );
       if (i < maxRetries - 1) {
         console.log(`Reintentando en ${retryDelay / 1000} segundos...`);
-        await new Promise((resolve) => setTimeout(resolve, retryDelay)); // Espera antes de reintentar
+        await new Promise((resolve) => setTimeout(resolve, retryDelay));
       } else {
         console.error(
           "No se pudo conectar a MongoDB después de varios intentos."

@@ -3,12 +3,10 @@ import { CookieJar } from "tough-cookie";
 import { wrapper } from "axios-cookiejar-support";
 import { envConfig } from "../config/index.js";
 
-const CLOUDNAVIS_BASE_URL = envConfig.cloudNavisUrl
+const CLOUDNAVIS_BASE_URL = envConfig.cloudNavisUrl;
 
-// 1. Crea un nuevo CookieJar
 const cookieJar = new CookieJar();
 
-// 2. Envuelve la instancia de axios con el soporte para cookies
 const axiosInstance = wrapper(
   axios.create({
     withCredentials: true,
@@ -21,14 +19,19 @@ const axiosInstance = wrapper(
   })
 );
 
-export async function loginCloudnavis() {
+export async function setCookieCloudnavis() {
   try {
-    // 1. Primera llamada GET para obtener la cookie inicial.
-    await axiosInstance.get(`${CLOUDNAVIS_BASE_URL}/login/home`, {
+    const resp = await axiosInstance.get(`${CLOUDNAVIS_BASE_URL}/login/home`, {
       jar: cookieJar,
     });
+    return resp.status;
+  } catch (error) {
+    return 500;
+  }
+}
 
-    // 2. Autenticación con POST.
+export async function loginCloudnavis() {
+  try {
     const params = new URLSearchParams();
     params.append("j_username", envConfig.cloudNavisUsername);
     params.append("j_password", envConfig.cloudNavisPassword);
@@ -46,21 +49,15 @@ export async function loginCloudnavis() {
         jar: cookieJar,
       }
     );
-
-    // Limitar la información que se muestra en logs
-    console.log("Status de la respuesta:", response.status);
     if (response.headers.location) {
-      console.log(`Login exitoso, redirigido a: ${response.headers.location}`);
-      return "¡Autenticación exitosa! 🎉";
+      return 200;
     }
-
-    // Verificar presencia de la cookie de sesión
     const sessionCookie = cookieJar.getCookiesSync(`${CLOUDNAVIS_BASE_URL}/`);
     const jSessionId = sessionCookie.find((c) => c.key === "JSESSIONID");
     if (jSessionId) {
-      return "¡Autenticación exitosa! 🎉";
+      return 200;
     }
-    throw new Error("No se encontró la cookie de sesión");
+    return 400;
   } catch (error) {
     if (
       axios.isAxiosError(error) &&
@@ -68,19 +65,16 @@ export async function loginCloudnavis() {
       error.response.status === 302
     ) {
       console.log("Login exitoso, redirigido.");
-      return "¡Autenticación exitosa! 🎉";
+      return 200;
     }
-    // Mejorar manejo de errores: no exponer detalles internos
+
     console.error("Error durante el login:", error.message);
-    throw new Error(
-      "Error en el proceso de login. Por favor intente de nuevo."
-    );
+    return 400;
   }
 }
 
 export async function listInvoicesCloudnavis(year, month) {
   try {
-    // Validar que year y month sean números válidos antes de la solicitud.
     const yearNum = parseInt(year, 10);
     const monthNum = parseInt(month, 10);
 
@@ -97,7 +91,6 @@ export async function listInvoicesCloudnavis(year, month) {
     );
     return response.data;
   } catch (error) {
-    // Mejorar manejo de errores para no exponer información sensible
     console.error("Error obteniendo facturas:", error.message);
     throw new Error("Error al obtener las facturas.");
   }
@@ -116,6 +109,8 @@ export async function logoutCloudnavis() {
     return "¡Sesión cerrada exitosamente! 👋";
   } catch (error) {
     console.error("Error durante el cierre de sesión:", error.message);
-    throw new Error("Error en el proceso de cierre de sesión. Por favor intente de nuevo.");
+    throw new Error(
+      "Error en el proceso de cierre de sesión. Por favor intente de nuevo."
+    );
   }
 }

@@ -16,8 +16,11 @@ const confEnvSchema = Joi.object({
   CLOUD_NAVIS_USERNAME: Joi.string() || "",
   CLOUD_NAVIS_PASSWORD: Joi.string() || "",
   CLOUD_NAVIS_URL: Joi.string() || "",
-  CLOUD_SECRET_KEY : Joi.string() || "",
-  CLOUD_SECRET_IV : Joi.string() || "",
+  CLOUD_SECRET_KEY: Joi.string() || "",
+  CLOUD_SECRET_IV: Joi.string() || "",
+  TWILIO_ACCOUNT_SID: Joi.string() || "",
+  TWILIO_AUTH_TOKEN: Joi.string() || "",
+  TWILIO_WHATSAPP_NUMBER: Joi.string() || "",
 })
   .unknown()
   .required();
@@ -39,8 +42,11 @@ const config = {
   cloudNavisUsername: confEnv.CLOUD_NAVIS_USERNAME,
   cloudNavisPassword: confEnv.CLOUD_NAVIS_PASSWORD,
   cloudNavisUrl: confEnv.CLOUD_NAVIS_URL,
-  cloudSecretKey : confEnv.CLOUD_SECRET_KEY,
-  cloudSecretKeyIv : confEnv.CLOUD_SECRET_IV
+  cloudSecretKey: confEnv.CLOUD_SECRET_KEY,
+  cloudSecretKeyIv: confEnv.CLOUD_SECRET_IV,
+  twilioAccountSid: confEnv.TWILIO_ACCOUNT_SID,
+  twilioAuthToken: confEnv.TWILIO_AUTH_TOKEN,
+  twilioWhatsappNumber: confEnv.TWILIO_WHATSAPP_NUMBER,
 };
 
 export default config;
