@@ -26,13 +26,6 @@ export const monthlyTask = () => {
   //     //   console.error('❌ Fallo en el envío masivo:', error);
   //     // }
   // });
-
-  loginCloudnavis()
-    .then((resp) => {
-      console.log(resp);
-    })
-    .catch((e) => console.error(e));
-
   cron.schedule("* * * * *", async () => {
     console.log("🤖 Iniciando tarea mensual...");
 

@@ -3,7 +3,7 @@ import { CookieJar } from "tough-cookie";
 import { wrapper } from "axios-cookiejar-support";
 import { envConfig } from "../config/index.js";
 
-const CLOUDNAVIS_BASE_URL = "https://www.cloudnavis.com";
+const CLOUDNAVIS_BASE_URL = envConfig.cloudNavisUrl
 
 // 1. Crea un nuevo CookieJar
 const cookieJar = new CookieJar();

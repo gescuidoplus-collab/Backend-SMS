@@ -13,8 +13,11 @@ const confEnvSchema = Joi.object({
   MONGO_URI: Joi.string() || "",
   EMAIL_USER: Joi.string() || "",
   PASSWORD_USER: Joi.string() || "",
-  CLOUD_NAVIS_USERNAME : Joi.string() || "",
-  CLOUD_NAVIS_PASSWORD :Joi.string() || "",
+  CLOUD_NAVIS_USERNAME: Joi.string() || "",
+  CLOUD_NAVIS_PASSWORD: Joi.string() || "",
+  CLOUD_NAVIS_URL: Joi.string() || "",
+  CLOUD_SECRET_KEY : Joi.string() || "",
+  CLOUD_SECRET_IV : Joi.string() || "",
 })
   .unknown()
   .required();
@@ -33,8 +36,11 @@ const config = {
   jwtSecretKey: confEnv.JWT_SECRET_KEY,
   emailUser: confEnv.EMAIL_USER,
   passwordUser: confEnv.PASSWORD_USER,
-  cloudNavisUsername : confEnv.CLOUD_NAVIS_USERNAME,
-  cloudNavisPassword : confEnv.CLOUD_NAVIS_PASSWORD,
+  cloudNavisUsername: confEnv.CLOUD_NAVIS_USERNAME,
+  cloudNavisPassword: confEnv.CLOUD_NAVIS_PASSWORD,
+  cloudNavisUrl: confEnv.CLOUD_NAVIS_URL,
+  cloudSecretKey : confEnv.CLOUD_SECRET_KEY,
+  cloudSecretKeyIv : confEnv.CLOUD_SECRET_IV
 };
 
 export default config;
