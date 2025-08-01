@@ -10,7 +10,6 @@ router.post('/login', [
 ], login);
 
 router.post('/change-password', [
-  //body('email').isEmail().withMessage('Correo inválido'),
   body('oldPassword').notEmpty().withMessage('Clave actual requerida'),
   body('newPassword').isLength({ min: 6 }).withMessage('Nueva clave débil'),
   body('confirmPassword').notEmpty().withMessage('Confirmación requerida'),

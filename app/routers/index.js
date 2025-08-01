@@ -7,7 +7,7 @@ const router = express.Router();
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const cleanFileName = (fileName) => {
-    const clean = fileName.split('.').shift(); // Elimina la extensión
+    const clean = fileName.split('.').shift();
     return clean;
 };
 

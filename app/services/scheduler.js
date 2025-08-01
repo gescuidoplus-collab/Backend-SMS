@@ -4,7 +4,7 @@ import {
   loginCloudnavis,
   listInvoicesCloudnavis,
   logoutCloudnavis,
-} from "../services/cloudnavis.js"; // Ajusta la ruta según la ubicación del archivo
+} from "../services/cloudnavis.js";
 
 import {
   sendWhatsAppMessage,
@@ -61,52 +61,47 @@ export const monthlyTask = () => {
   // cron.schedule('0 9 1 * *',
   // cron.schedule("* * * * *", async () => {
   //   console.log("Tarea de Guarda Datos");
+  //   await saveInvoceCloudNavis();
   // });
   // cron.schedule("* * * * *", async () => {
-  // });
+  //   console.log("Tarea para enviar la Factura");
+  //   const message = "Mensaje enviado desde Node js";
+  //   // llamar a los modelos para las facturas
+  //   const now = new Date();
+  //   const monthActualy = now.getMonth() + 1;
+  //   const yearActualy = now.getFullYear();
+  //   const logs = await SmsDeliveryLog.find({
+  //     mes: monthActualy,
+  //     ano: yearActualy,
+  //     status: "pending",
+  //   });
+  //   if (logs.length > 0) {
+  //     for (let i = 0; i < logs.length; i++) {
+  //       const log = logs[i];
+  //       const invoce = logs[i].getDecryptedData();
+  //       const pdf = await generatePDF(invoce);
+  //       if (pdf == null || pdf == undefined) {
+  //         log.status = "failure";
+  //         log.reason = "No se pudo generar la URL del PDF";
+  //         await log.save();
+  //       } else {
+  //         const formattedNumber = formatWhatsAppNumber("+58" + log.target);
+  //         const result = await sendWhatsAppMessageWithPDF(
+  //           formattedNumber,
+  //           message,
+  //           pdf.publicUrl
+  //         );
+  //         if (result.success == false) {
+  //           log.status = "failure";
+  //           log.reason = result.error;
+  //           await log.save();
+  //         } else {
+  //           log.status = "success";
+  //           log.pdfUrl = pdf.publicUrl;
+  //           await log.save();
+  //         }
+  //       } // fin logica envio twilio
+  //     }
+  //   }
+  // }); // end cron enviar facturas
 };
-
-(async () => {
-  console.log("Tarea para enviar la Factura");
-  const message = "Mensaje enviado desde Node js";
-
-  // llamar a los modelos para las facturas
-  const now = new Date();
-  const monthActualy = now.getMonth() + 1;
-  const yearActualy = now.getFullYear();
-
-  const logs = await SmsDeliveryLog.find({
-    mes: monthActualy,
-    ano: yearActualy,
-    status: "pending",
-  });
-
-  if (logs.length > 0) {
-    for (let i = 0; i < logs.length; i++) {
-      const log = logs[i];
-      const invoce = logs[i].getDecryptedData();
-      const pdf = await generatePDF(invoce);
-      if (pdf == null || pdf == undefined) {
-        log.status = "failure";
-        log.reason = "No se pudo generar la URL del PDF";
-        await log.save();
-      } else {
-        const formattedNumber = formatWhatsAppNumber("+58" + log.target);
-        const result = await sendWhatsAppMessageWithPDF(
-          formattedNumber,
-          message
-        );
-        if (result.success == false) {
-          log.status = "failure";
-          log.reason = result.error;
-          await log.save();
-        } else {
-          log.status = "success";
-          log.pdfUrl = `https://739f47c3aec7.ngrok-free.app${pdf.test}`;
-          await log.save();
-        }
-      } // fin logica envio twilio
-
-    }
-  }
-})();

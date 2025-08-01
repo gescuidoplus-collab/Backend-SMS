@@ -2,7 +2,7 @@ import Redis from "ioredis";
 import { SmsDeliveryLog } from "../schemas/index.js";
 
 const redisClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-const CACHE_EXPIRATION_TIME = 300; 
+const CACHE_EXPIRATION_TIME = 150; 
 
 export const createLog = async (req, res) => {
   try {
@@ -29,7 +29,16 @@ export const getLogs = async (req, res) => {
     }
 
     let [results, total] = await Promise.all([
-      SmsDeliveryLog.find().skip(skip).limit(limit),
+      SmsDeliveryLog.find({},{
+        _id : 1,
+        userID : 1,
+        invoiceID : 1,
+        createdAt : 1 ,
+        reason : 1,
+        status : 1,
+        pdfUrl: 1,
+        target : 1
+      }).skip(skip).limit(limit),
       SmsDeliveryLog.countDocuments()
     ]);
 
@@ -51,13 +60,27 @@ export const getLogs = async (req, res) => {
 
 export const getLogById = async (req, res) => {
   try {
-    const log = await SmsDeliveryLog.findById(req.params.id);
+    const log = await SmsDeliveryLog.findById(
+      req.params.id,
+      {
+        _id: 1,
+        userID: 1,
+        invoiceID: 1,
+        createdAt: 1,
+        reason: 1,
+        status: 1,
+        pdfUrl: 1,
+        target: 1,
+        sensitiveData: 1
+      }
+    );
     if (!log) return res.status(404).json({ error: "Registro no encontrado" });
-    const invoce = log.getDecryptedData()
+    const invoce = log.getDecryptedData ? log.getDecryptedData() : null;
+    const { sensitiveData, ...logWithoutSensitive } = log.toObject();
     const payload = {
-      log,
+      log: logWithoutSensitive,
       invoce
-    }
+    };
     res.json(payload);
   } catch (error) {
     res.status(500).json({ error: error.message });
