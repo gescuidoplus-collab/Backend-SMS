@@ -1,5 +1,5 @@
 {
-  "name": "backend",
+  "name": "cuido-farm",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -7,7 +7,7 @@
     "start:prod": "node index.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Alberto156",
   "license": "ISC",
   "description": "",
   "dependencies": {
