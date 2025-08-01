@@ -36,6 +36,10 @@ const SmsDeliveryLogSchema = new Schema(
       type: String,
       required: true,
     },
+    pdfUrl: {
+      type: String,
+      require: false,
+    },
     sensitiveData: {
       type: Schema.Types.Mixed,
       required: false,

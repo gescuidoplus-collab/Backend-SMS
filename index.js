@@ -1,4 +1,5 @@
 import express from "express";
+import path from 'path';
 import {envConfig , mongoClient} from './app/config/index.js'
 import {router} from "./app/routers/index.js"
 import {createUser} from "./app/utils/create-auth.js"
@@ -27,6 +28,8 @@ const limiter = rateLimit({
 app.use(limiter);
 
 mongoClient();
+
+app.use('/public', express.static(path.join(process.cwd(), 'public')));
 
 createUser({
     email: envConfig.emailUser,

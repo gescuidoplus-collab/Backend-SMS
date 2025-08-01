@@ -1,8 +1,11 @@
 import PDFDocument from "pdfkit-table";
 import QRCode from "qrcode";
 import fs from "fs";
+import path from "path";
+import { finished } from "stream/promises";
+import { v4 as uuidv4 } from "uuid";
 
-const x = async () => {
+export const generatePDF = async (payload) => {
   const data = {
     header: {
       textoIzquierda: "Empresa XYZ\nDirección: Calle 123\nTel: 555-1234",
@@ -31,75 +34,78 @@ const x = async () => {
     infoQR: "https://google.com",
   };
 
-  const doc = new PDFDocument({ margin: 30, size: "A4" });
+  try {
+    const doc = new PDFDocument({ margin: 30, size: "A4" });
 
-  const numeroFactura = data.header.textoDerecha
-    .split("N°: ")[1]
-    .split("\n")[0];
-  const filePath = `factura-${numeroFactura}.pdf`; // Se guardará en la raíz del proyecto
+    // 1. DEFINIR RUTA DE GUARDADO
+    const folderPath = path.join(process.cwd(), "public", "media", "pdfs");
+    const fileName = `factura_${payload.serie}_${uuidv4()}.pdf`; // Nombre único
+    const filePath = path.join(folderPath, fileName);
 
-  // Creamos un stream de escritura hacia el archivo
-  const writeStream = fs.createWriteStream(filePath);
+    // Crear carpeta si no existe
+    if (!fs.existsSync(folderPath)) {
+      fs.mkdirSync(folderPath, { recursive: true });
+    }
 
-  // Dirigimos el PDF al archivo en lugar de a la respuesta (res)
-  doc.pipe(writeStream);
+    // 2. CREAR STREAM DE ESCRITURA
+    const writeStream = fs.createWriteStream(filePath);
+    doc.pipe(writeStream);
 
-  // --- FIN DE CAMBIOS ---
+    // Generar contenido del PDF
+    generateHeader(doc, data.header);
+    generateCustomerInformation(doc, data.infoCliente);
+    generateInvoiceTable(doc, data.tablaItems);
+    await generateFooter(doc, data.footer, data.infoQR);
 
-  // El resto del código para generar el contenido es el mismo
-  generateHeader(doc, data.header);
-  generateCustomerInformation(doc, data.infoCliente);
-  generateInvoiceTable(doc, data.tablaItems);
-  await generateFooter(doc, data.footer, data.infoQR);
+    // Finalizar documento
+    doc.end();
 
-  // Finalizamos el documento
-  doc.end();
+    // 3. ESPERAR A QUE TERMINE LA ESCRITURA
+    await finished(writeStream);
 
-  // 3. ESCUCHA EL EVENTO 'FINISH' PARA ENVIAR LA RESPUESTA
-  // Esto asegura que respondemos solo cuando el archivo se ha guardado por completo.
-  writeStream.on("finish", () => {
-    console.log(filePath)
-    return filePath
-    // Enviamos una respuesta JSON confirmando el éxito
-    // res.status(200).json({
-    //   message: "PDF generado y guardado exitosamente.",
-    //   filePath: filePath,
-    // });
-  });
+    // 4. GENERAR URL PÚBLICA
+    const baseUrl = process.env.BASE_URL || "http://localhost:3000";
+    const publicUrl = `${baseUrl}/public/media/pdfs/${fileName}`;
 
-  // Opcional: Manejo de errores en la escritura del archivo
-  writeStream.on("error", (err) => {
-    console.error("Error al escribir el PDF:", err);
-    // res.status(500).json({
-    //   message: "Error al guardar el archivo PDF.",
-    //   error: err,
-    // });
-  });
+    return {
+      localPath: filePath,
+      publicUrl: publicUrl,
+      test: `/public/media/pdfs/${fileName}`,
+    };
+  } catch (e) {
+    console.log(e)
+    return null
+  }
 };
 
 function generateHeader(doc, headerData) {
-  // Cargamos el logo. Asegúrate de tener un archivo 'logo.png' en tu proyecto.
-  // Por ejemplo, en una carpeta 'public/images/logo.png'
-  doc
-    .image("../public/images/bard.png", {
-      fit: [80, 80], // Ancho y alto máximo
-      align: "center",
-      valign: "center",
-    })
-    .moveDown(0.5);
+  // Definir la ruta absoluta al logo en la carpeta 'public/images/logo.png' desde la raíz del proyecto
+  const logoPath = path.join(process.cwd(), "public", "images", "bard.png");
+
+  if (fs.existsSync(logoPath)) {
+    doc
+      .image(logoPath, {
+        fit: [80, 80],
+        align: "center",
+        valign: "center",
+      })
+      .moveDown(0.5);
+  } else {
+    doc
+      .fontSize(8)
+      .fillColor("red")
+      .text("Logo no encontrado", { align: "center" })
+      .moveDown(0.5);
+  }
 
   // Textos del encabezado usando posiciones para crear columnas
-  const headerY = doc.y; // Guardamos la posición Y para alinear los textos
+  const headerY = doc.y;
   doc
     .fontSize(10)
     .text(headerData.textoIzquierda, 10, headerY, { align: "left", width: 250 })
-    .text(headerData.textoDerecha, 20, headerY, {
-      align: "right",
-      width: 250,
-    });
+    .text(headerData.textoDerecha, 100, headerY, { align: "right", width: 250 });
 
   doc.moveDown(3);
-  // Dibuja la línea horizontal
   doc.lineCap("butt").moveTo(30, doc.y).lineTo(565, doc.y).stroke();
   doc.moveDown(2);
 }
@@ -160,7 +166,3 @@ async function generateFooter(doc, footerData, qrData) {
     align: "right",
   });
 }
-
-x().then((resp)=>{
-    console.log(resp)
-});
