@@ -23,15 +23,15 @@ if (envConfig.env === "development") {
   app.use(morgan("dev"));
 }
 
-app.use(helmet());
+// app.use(helmet());
 
-const limiter = rateLimit({
-  windowMs: 5 * 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use(limiter);
+// const limiter = rateLimit({
+//   windowMs: 5 * 60 * 1000,
+//   max: 100,
+//   standardHeaders: true,
+//   legacyHeaders: false,
+// });
+// app.use(limiter);
 
 app.use(express.json({ limit: "1kb" }));
 app.use(express.urlencoded({ extended: true, limit: "1kb" }));

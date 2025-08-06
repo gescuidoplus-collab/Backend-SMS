@@ -16,7 +16,7 @@ export const sendWhatsAppMessage = async (to, message) => {
       body: message,
     });
 
-    console.log(`Mensaje enviado exitosamente: ${result.sid}`);
+    // console.log(`Mensaje enviado exitosamente: ${result.sid}`);
     return {
       success: true,
       messageId: result.sid,
@@ -47,7 +47,7 @@ export const sendWhatsAppPDF = async (to, mediaUrl, caption = "") => {
       mediaUrl: [mediaUrl],
     });
 
-    console.log(`PDF enviado exitosamente: ${result.sid}`);
+     // console.log(`PDF enviado exitosamente: ${result.sid}`);
     return {
       success: true,
       messageId: result.sid,
@@ -78,7 +78,7 @@ export const sendWhatsAppMessageWithPDF = async (to, message, mediaUrl) => {
       mediaUrl: [mediaUrl],
     });
 
-    console.log(`Mensaje con PDF enviado exitosamente: ${result.sid}`);
+    // console.log(`Mensaje con PDF enviado exitosamente: ${result.sid}`);
     return {
       success: true,
       messageId: result.sid,

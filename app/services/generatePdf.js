@@ -90,7 +90,7 @@ export const generatePDF = async (payload) => {
     await finished(writeStream);
 
     // --- GENERAR URL PÚBLICA (Ajusta la URL base según tu entorno) ---
-    const baseUrl = "http://localhost:3000";
+    const baseUrl = "https://e4b189adb4f8.ngrok-free.app";
     const publicUrl = `${baseUrl}/media/pdfs/${fileName}`;
 
     return {

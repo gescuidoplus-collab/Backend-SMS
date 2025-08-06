@@ -7,7 +7,6 @@ const CLOUDNAVIS_BASE_URL = envConfig.cloudNavisUrl;
 
 const cookieJar = new CookieJar();
 
-
 const axiosInstance = wrapper(
   axios.create({
     withCredentials: true,
@@ -87,6 +86,26 @@ export async function listInvoicesCloudnavis(year, month) {
       `${CLOUDNAVIS_BASE_URL}/edades/cuidofam/api/facturacion/listado`,
       {
         params: { year: yearNum, month: monthNum },
+        jar: cookieJar,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error obteniendo facturas:", error.message);
+    throw new Error("Error al obtener las facturas.");
+  }
+}
+
+export async function getUserCloudnavis(userID) {
+  try {
+    if (!userID) {
+      throw new Error("Parámetro inválido userID");
+    }
+
+    const response = await axiosInstance.get(
+      `${CLOUDNAVIS_BASE_URL}/edades/cuidofam/api/usuarios/edit?`,
+      {
+        params: { uuid: userID },
         jar: cookieJar,
       }
     );
