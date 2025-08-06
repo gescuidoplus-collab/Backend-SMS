@@ -24,6 +24,8 @@ export const login = async (req, res) => {
     const token = jwt.sign({ sub: user.id }, envConfig.jwtSecretKey, {
       expiresIn: "5h",
       algorithm: "HS256",
+      audience : "IsOuSEMiatHA",
+      issuer : "4j:lNHtZ89-1"
     });
 
     res.json({ message: "Login exitoso", accessToken: token });

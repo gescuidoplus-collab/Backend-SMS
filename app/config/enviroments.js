@@ -21,6 +21,8 @@ const confEnvSchema = Joi.object({
   TWILIO_ACCOUNT_SID: Joi.string() || "",
   TWILIO_AUTH_TOKEN: Joi.string() || "",
   TWILIO_WHATSAPP_NUMBER: Joi.string() || "",
+  TELEGRAM_APP_ID: Joi.string() || "",
+  TELEGRAM_TOKEN_SECRET: Joi.string() || "",
 })
   .unknown()
   .required();
@@ -47,6 +49,8 @@ const config = {
   twilioAccountSid: confEnv.TWILIO_ACCOUNT_SID,
   twilioAuthToken: confEnv.TWILIO_AUTH_TOKEN,
   twilioWhatsappNumber: confEnv.TWILIO_WHATSAPP_NUMBER,
+  telegramAppID: confEnv.TELEGRAM_APP_ID,
+  telegramTokenSecret: confEnv.TELEGRAM_TOKEN_SECRET,
 };
 
 export default config;

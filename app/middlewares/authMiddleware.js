@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import { envConfig } from "../config/index.js"
 
 export const verifyToken = (req, res, next) => {
-  const authHeader = req.headers.authorization;
+  const authHeader = req.headers.authorization?.trim();
 
   if (!authHeader || !authHeader.startsWith('Bearer '))
     return res.status(401).json({ error: 'Token no proporcionado' });
@@ -10,7 +10,27 @@ export const verifyToken = (req, res, next) => {
   const token = authHeader.split(' ')[1];
 
   try {
-    const decoded = jwt.verify(token, envConfig.jwtSecretKey);
+    // Decodifica el token sin verificar para revisar el header
+    const decodedHeader = jwt.decode(token, { complete: true })?.header;
+    if (!decodedHeader)
+      return res.status(403).json({ error: 'Token mal formado' });
+
+    // Validar algoritmo y tipo
+    if (decodedHeader.alg !== 'HS256' || decodedHeader.typ !== 'JWT')
+      return res.status(403).json({ error: 'Algoritmo o tipo de token inválido' });
+
+    // // Validar la audiencia
+    // if (decoded.aud !== audienciaEsperada) {
+    //   throw new Error('Token inválido: audiencia incorrecta');
+    // }
+
+    // Verifica el token con opciones estrictas
+    const decoded = jwt.verify(token, envConfig.jwtSecretKey, {
+      algorithms: ['HS256'],
+      audience : "IsOuSEMiatHA",
+      issuer: "4j:lNHtZ89-1"
+    });
+
     req.user = decoded;
     next();
   } catch (error) {

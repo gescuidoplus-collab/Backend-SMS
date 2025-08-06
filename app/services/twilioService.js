@@ -10,7 +10,6 @@ const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
  */
 export const sendWhatsAppMessage = async (to, message) => {
   try {
-    console.log( envConfig.twilioWhatsappNumber)
     const result = await client.messages.create({
       from: envConfig.twilioWhatsappNumber,
       to,

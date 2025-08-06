@@ -8,12 +8,10 @@ const SmsDeliveryLogSchema = new Schema(
     invoiceID: {
       type: String,
       required: true,
-      //match: /^[0-9a-fA-F]{24}$/,
     },
     userID: {
       type: String,
       required: true,
-      //match: /^[0-9a-fA-F]{24}$/,
     },
     createdAt: {
       type: Date,

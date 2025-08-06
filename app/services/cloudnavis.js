@@ -7,6 +7,7 @@ const CLOUDNAVIS_BASE_URL = envConfig.cloudNavisUrl;
 
 const cookieJar = new CookieJar();
 
+
 const axiosInstance = wrapper(
   axios.create({
     withCredentials: true,

@@ -1,9 +1,7 @@
 import express from "express";
 import {
-  createLog,
   getLogs,
   getLogById,
-  updateLog,
   deleteLog,
 } from "../controllers/smsDeliveryController.js";
 

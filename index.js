@@ -26,8 +26,8 @@ if (envConfig.env === "development") {
 app.use(helmet());
 
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // límite de peticiones
+  windowMs: 5 * 60 * 1000,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
 });
