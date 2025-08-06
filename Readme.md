@@ -24,13 +24,18 @@ Backend para la aplicación Cuido-Fam, un servicio robusto. Este proyecto propor
 
 Este repositorio contiene el código fuente del servidor backend para Cuido-Fam. El servidor está construido con Node.js y Express, y utiliza MongoDB como base de datos. Entre sus funcionalidades se incluyen:
 
-- Autenticación y autorización mediante JWT.
-- Gestión de recursos a través de una API RESTful bajo la ruta `/api/v1/`.
-- Seguridad mejorada con Helmet y limitación de peticiones.
-- Validación de datos de entrada.
-- Notificaciones a través de Twilio (WhatsApp).
-- Integración con servicios externos como CloudNavis.
-- Generación de reportes en PDF y códigos QR.
+- **Cron Jobs**: 
+  - Un cron job se ejecuta el primer día de cada mes a las 9:00 AM, recopila información de una API externa y la almacena en MongoDB.
+  - Otro cron job encola mensajes que son enviados a través de Twilio a WhatsApp de los clientes.
+- **Notificaciones**:
+  - Se utiliza Redis con la técnica pub/sub para la gestión de eventos y notificaciones internas.
+  - Se integra con la API de Telegram para enviar mensajes a un bot cuando se ejecutan los cron jobs y si ocurre algún fallo.
+- **API RESTful** bajo la ruta `/api/v1/`.
+- **Autenticación y autorización** mediante JWT.
+- **Seguridad** mejorada con Helmet y limitación de peticiones.
+- **Validación de datos** de entrada.
+- **Integración con servicios externos** como CloudNavis.
+- **Generación de reportes** en PDF y códigos QR.
 
 ---
 
@@ -44,6 +49,10 @@ Este proyecto fue desarrollado utilizando las siguientes tecnologías principale
 - JSON Web Token (JWT)
 - Twilio
 - Axios
+- Redis (ioredis)
+- Telegram Bot API
+- Nodemon (desarrollo)
+- Helmet, Express-rate-limit, Express-validator
 
 ---
 
@@ -128,35 +137,48 @@ En el archivo `package.json`, encontrarás los siguientes scripts:
 
 ## 🔑 Variables de Entorno
 
-Crea un archivo `.env` en la raíz del proyecto y pega el siguiente contenido, ajustando los valores según tus necesidades.
+Crea un archivo `.env` en la raíz del proyecto y configura las siguientes variables:
+
+| Variable                  | Descripción                                                                 |
+|---------------------------|-----------------------------------------------------------------------------|
+| NODE_ENV                  | Entorno de ejecución (`development` o `production`).                        |
+| PORT                      | Puerto en el que se ejecuta el servidor.                                    |
+| URL_PATH                  | Ruta base para la API (ej: `/api/v1/`).                                     |
+| MONGO_URI                 | URI de conexión a la base de datos MongoDB.                                 |
+| EMAIL_USER                | Email del usuario administrador por defecto.                                |
+| PASSWORD_USER             | Contraseña del usuario administrador por defecto.                           |
+| JWT_SECRET_KEY            | Clave secreta para la firma de JWT.                                         |
+| CLOUD_NAVIS_USERNAME      | Usuario para el servicio externo CloudNavis.                                |
+| CLOUD_NAVIS_PASSWORD      | Contraseña para CloudNavis.                                                 |
+| CLOUD_NAVIS_URL           | URL del servicio CloudNavis.                                                |
+| CLOUD_SECRET_KEY          | Clave secreta para cifrado de CloudNavis.                                   |
+| CLOUD_SECRET_IV           | Vector de inicialización para cifrado de CloudNavis.                        |
+| TWILIO_ACCOUNT_SID        | SID de la cuenta de Twilio para envío de mensajes.                          |
+| TWILIO_AUTH_TOKEN         | Token de autenticación de Twilio.                                           |
+| TWILIO_WHATSAPP_NUMBER    | Número de WhatsApp habilitado en Twilio.                                    |
+| TELEGRAM_APP_ID           | ID de la aplicación de Telegram para el bot de notificaciones.              |
+| TELEGRAM_TOKEN_SECRET     | Token secreto del bot de Telegram.                                          |
+
+Ejemplo de archivo `.env`:
 
 ```env
-# Configuración del Servidor
 NODE_ENV=development
 PORT=3000
 URL_PATH="/api/v1/"
-
-# Base de Datos MongoDB
-MONGO_URI=""
-
-# Credenciales de Usuario Administrador por defecto
+MONGO_URI=
 EMAIL_USER=
 PASSWORD_USER=
-
-# Autenticación JWT
 JWT_SECRET_KEY=
-
-# Servicio Externo: CloudNavis
 CLOUD_NAVIS_USERNAME=
 CLOUD_NAVIS_PASSWORD=
 CLOUD_NAVIS_URL=
 CLOUD_SECRET_KEY=
 CLOUD_SECRET_IV=
-
-# Servicio de Mensajería: Twilio
 TWILIO_ACCOUNT_SID=
 TWILIO_AUTH_TOKEN=
 TWILIO_WHATSAPP_NUMBER=
+TELEGRAM_APP_ID=
+TELEGRAM_TOKEN_SECRET=
 ```
 
 ---
@@ -180,5 +202,4 @@ Este proyecto está distribuido bajo la Licencia ISC.
 ---
 
 ## 📧 Contacto
-
 lm5708144@gmail.com
