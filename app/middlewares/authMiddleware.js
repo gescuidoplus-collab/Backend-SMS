@@ -19,11 +19,6 @@ export const verifyToken = (req, res, next) => {
     if (decodedHeader.alg !== 'HS256' || decodedHeader.typ !== 'JWT')
       return res.status(403).json({ error: 'Algoritmo o tipo de token inválido' });
 
-    // // Validar la audiencia
-    // if (decoded.aud !== audienciaEsperada) {
-    //   throw new Error('Token inválido: audiencia incorrecta');
-    // }
-
     // Verifica el token con opciones estrictas
     const decoded = jwt.verify(token, envConfig.jwtSecretKey, {
       algorithms: ['HS256'],

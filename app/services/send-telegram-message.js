@@ -25,7 +25,6 @@ export const send_telegram_message = async (message) => {
     });
     return response.data;
   } catch (error) {
-    //console.error("Error al enviar mensaje a Telegram:", error);
     return null;
   }
 };

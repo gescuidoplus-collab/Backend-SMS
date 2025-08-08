@@ -1,9 +1,9 @@
 import {
-  setCookieCloudnavis,
+  setCookie,
   loginCloudnavis,
-  listInvoicesCloudnavis,
-  logoutCloudnavis,
-  getUserCloudnavis,
+  listInvoices,
+  logout,
+  getUsers,
 } from "../services/api-cloudnavis.js";
 
 import { send_telegram_message } from "./send-telegram-message.js";
@@ -16,7 +16,7 @@ function esperar(ms) {
 
 export const saveInvoceCloudNavis = async () => {
   try {
-    const status_code = await setCookieCloudnavis();
+    const status_code = await setCookie();
     if (status_code == 200) {
       const maxRetries = 3;
       let login_status = null;
@@ -37,14 +37,14 @@ export const saveInvoceCloudNavis = async () => {
         const now = new Date();
         const monthActualy = now.getMonth() + 1;
         const yearActualy = now.getFullYear();
-        const invoces = await listInvoicesCloudnavis(
+        const invoces = await listInvoices(
           yearActualy,
           monthActualy - 1
         );
         if (invoces && invoces.facturas.length > 0) {
           try {
             invoces.facturas.map(async (invoce) => {
-              // const user = await getUserCloudnavis(invoce.idUsuario);
+              // const user = await getUsers(invoce.idUsuario);
               let log = new SmsDeliveryLog({
                 invoiceID: invoce.id,
                 userID: invoce.idUsuario,
@@ -68,7 +68,7 @@ export const saveInvoceCloudNavis = async () => {
         );
       }
     }
-    await logoutCloudnavis();
+    await logout();
   } catch (err) {
     send_telegram_message(`Fallo al Guarda las Facturas Error: ${err.message}`);
   }

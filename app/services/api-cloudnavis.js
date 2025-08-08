@@ -19,7 +19,7 @@ const axiosInstance = wrapper(
   })
 );
 
-export async function setCookieCloudnavis() {
+export async function setCookie() {
   try {
     const resp = await axiosInstance.get(`${CLOUDNAVIS_BASE_URL}/login/home`, {
       jar: cookieJar,
@@ -73,7 +73,7 @@ export async function loginCloudnavis() {
   }
 }
 
-export async function listInvoicesCloudnavis(year, month) {
+export async function listInvoices(year, month) {
   try {
     const yearNum = parseInt(year, 10);
     const monthNum = parseInt(month, 10);
@@ -96,7 +96,7 @@ export async function listInvoicesCloudnavis(year, month) {
   }
 }
 
-export async function getUserCloudnavis(userID) {
+export async function getUsers(userID) {
   try {
     if (!userID) {
       throw new Error("Parámetro inválido userID");
@@ -116,7 +116,70 @@ export async function getUserCloudnavis(userID) {
   }
 }
 
-export async function logoutCloudnavis() {
+export async function getListPayrolls(year, month) {
+  try {
+    const yearNum = parseInt(year, 10);
+    const monthNum = parseInt(month, 10);
+
+    if (isNaN(yearNum) || isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
+      throw new Error("Parámetros inválidos para year o month.");
+    }
+
+    const response = await axiosInstance.get(
+      `${CLOUDNAVIS_BASE_URL}/edades/cuidofam/api/nominas/listado`,
+      {
+        params: { year: yearNum, month: monthNum },
+        jar: cookieJar,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error obteniendo facturas:", error.message);
+    throw new Error("Error al obtener las facturas.");
+  }
+}
+
+export async function downloadInvoce(invoceID) {
+  try {
+    if (!userID) {
+      throw new Error("Parámetro inválido invoceID");
+    }
+
+    const response = await axiosInstance.get(
+      `${CLOUDNAVIS_BASE_URL}/edades/cuidofam/api/facturacion/download?`,
+      {
+        params: { uuid: invoceID },
+        jar: cookieJar,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error obteniendo facturas:", error.message);
+    throw new Error("Error al obtener las facturas.");
+  }
+}
+
+export async function downloadPayrolls(payRollID) {
+  try {
+    if (!userID) {
+      throw new Error("Parámetro inválido payRollID");
+    }
+
+    const response = await axiosInstance.get(
+      `${CLOUDNAVIS_BASE_URL}/edades/cuidofam/api/nominas/download?`,
+      {
+        params: { uuid: payRollID },
+        jar: cookieJar,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error obteniendo facturas:", error.message);
+    throw new Error("Error al obtener las facturas.");
+  }
+}
+
+export async function logout() {
   try {
     const response = await axiosInstance.get(
       `${CLOUDNAVIS_BASE_URL}/login/logout`,
@@ -128,7 +191,6 @@ export async function logoutCloudnavis() {
     cookieJar.removeAllCookiesSync();
     return "¡Sesión cerrada exitosamente! 👋";
   } catch (error) {
-    console.error("Error durante el cierre de sesión:", error.message);
     throw new Error(
       "Error en el proceso de cierre de sesión. Por favor intente de nuevo."
     );
