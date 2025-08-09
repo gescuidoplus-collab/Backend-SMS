@@ -7,8 +7,11 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
-import { processInvoicesTask } from "./app/tasks/processInvoicesTask.js";
-import { processPayRollsTask } from "./app/tasks/processPayRollsTask.js";
+import {
+  processInvoicesTask,
+  processMessageQueue,
+  processPayRollsTask,
+} from "./app/tasks/index.js";
 
 const app = express();
 
@@ -60,5 +63,6 @@ app.use(envConfig.urlPath, router);
 app.listen(envConfig.port, () => {
   processInvoicesTask();
   processPayRollsTask();
+  processMessageQueue();
   console.log(`Running in proyect port : ${envConfig.port}`);
 });

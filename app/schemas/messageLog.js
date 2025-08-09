@@ -5,11 +5,11 @@ const { Schema } = mongoose;
 
 const MessageLogSchema = new Schema(
   {
-    source: {
+    source: { // registro factura o nomina
       type: String,
       required: true,
     },
-    recipient: {
+    recipient: { // usuario
       type: String,
       required: true,
     },
@@ -38,7 +38,11 @@ const MessageLogSchema = new Schema(
       type: String,
       required: true,
     },
-    sensitiveData: {
+    phoneNumberTwo: {
+      type: String,
+      required: true,
+    },
+    sensitiveData: { // informacion encriptada del source
       type: Schema.Types.Mixed,
       required: false,
     },
@@ -49,6 +53,10 @@ const MessageLogSchema = new Schema(
     messageType: {
       type: String,
       required: false,
+    },
+    fileUrl : {
+      type : String ,
+      required : false
     },
     status: {
       type: String,

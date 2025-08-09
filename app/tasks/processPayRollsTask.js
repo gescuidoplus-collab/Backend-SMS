@@ -31,8 +31,6 @@ function isFullMonthPeriod(inicio, fin) {
   if (y1 !== y2 || m1 !== m2) return false; // Deben ser el mismo mes y año
   if (d1 !== 1) return false; // Debe iniciar el día 1
   const lastDay = new Date(y2, m2, 0).getDate(); // Último día del mes (m es 1-12)
-  console.log(lastDay);
-  console.log(d2);
   return d2 === lastDay;
 }
 
@@ -78,6 +76,7 @@ const savePayRollsTask = async () => {
                 recipient: payRoll.idEmpleador,
                 employe: payRoll.idTrabajador,
                 phoneNumber: "4247548770",
+                phoneNumberTwo: "4247548770",
                 status: "pending",
                 mes: payRoll.mes,
                 ano: payRoll.ano,
