@@ -4,6 +4,7 @@ import {
   loginCloudnavis,
   ListPayRolls,
   logout,
+  downloadPayrolls,
   getUsers,
 } from "../services/apiCloudnavis.js";
 import { send_telegram_message } from "../services/sendMessageTelegram.js";
@@ -71,14 +72,16 @@ const savePayRollsTask = async () => {
                 continue;
               }
 
+              let pdf = await downloadPayrolls(payRoll.id);
               let log = new MessageLog({
                 source: payRoll.id,
                 recipient: payRoll.idEmpleador,
                 employe: payRoll.idTrabajador,
                 phoneNumber: "4247548770",
                 phoneNumberTwo: "4247548770",
+                fileUrl: pdf.publicUrl || null,
                 status: "pending",
-                mes: payRoll.mes,
+                mes: payRoll.mes + 1 , // temporal
                 ano: payRoll.ano,
                 messageType: "payRool", // Considera corregir a "payRoll" si aplica
                 sensitiveData: payRoll,

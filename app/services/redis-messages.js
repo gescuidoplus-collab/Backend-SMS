@@ -16,7 +16,7 @@ const MESSAGES_INVOCES = [
   "Adjuntamos tu factura correspondiente. ¡Gracias por confiar en nosotros!",
   "Te enviamos tu factura solicitada. No dudes en contactarnos si necesitas algo más.",
   "Factura disponible. ¡Gracias por tu preferencia!",
-  "Aquí está tu factura. ¡Que tengas un excelente día!"
+  "Aquí está tu factura. ¡Que tengas un excelente día!",
 ];
 
 const MESSAGES_PAYROOL = [
@@ -24,19 +24,14 @@ const MESSAGES_PAYROOL = [
   "Adjuntamos tu recibo de pago. Si tienes preguntas, estamos a tu disposición.",
   "Aquí tienes tu comprobante de nómina. ¡Gracias por tu trabajo!",
   "Recibo de nómina enviado. ¡Que tengas un gran día!",
-  "Te compartimos tu recibo de pago. ¡Gracias por ser parte del equipo!"
+  "Te compartimos tu recibo de pago. ¡Gracias por ser parte del equipo!",
 ];
 
 subscriber.subscribe("whatsapp_invoice_channel");
 
 subscriber.on("message", async (channel, message) => {
-  const {
-    logId,
-    recipient,
-    phoneNumber,
-    phoneNumberTwo,
-    messageType,
-  } = JSON.parse(message);
+  const { logId, recipient, phoneNumber, phoneNumberTwo, messageType } =
+    JSON.parse(message);
 
   const log = await MessageLog.findById(logId);
 
@@ -52,7 +47,7 @@ subscriber.on("message", async (channel, message) => {
   const msg =
     messagesArray.length > 0
       ? messagesArray[Math.floor(Math.random() * messagesArray.length)]
-      : `Toma tu Factura con ID:${log.invoiceID}`;
+      : `Toma tu Factura con ID:${logId}`;
 
   let success = true;
   let errorMsg = "";
@@ -60,12 +55,15 @@ subscriber.on("message", async (channel, message) => {
   // Función para enviar mensaje y actualizar log
   async function sendAndLog(number) {
     const formattedNumber = formatWhatsAppNumber("+58" + number);
-    console.log(`Mensaje a enviar : ${msg}`)
-    // const result = await sendWhatsAppMessage(formattedNumber, msg);
-    // if (!result.success) {
-    //   success = false;
-    //   errorMsg = result.error;
-    // }
+    const result = await sendWhatsAppMessageWithPDF(
+      formattedNumber,
+      msg,
+      log.fileUrl
+    );
+    if (!result.success) {
+      success = false;
+      errorMsg = result.error;
+    }
   }
 
   if (messageType === "payRool") {
@@ -107,6 +105,7 @@ export const enqueueWhatsAppMessage = async () => {
     status: "pending",
   });
 
+  console.log("Cantidad de logs :", logs.length);
   if (logs.length > 0) {
     const chunks = chunkArray(logs, BATCH_SIZE);
 

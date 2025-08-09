@@ -5,6 +5,8 @@ import {
   listInvoices,
   logout,
   getUsers,
+  downloadInvoce,
+  downloadPayrolls,
 } from "../services/apiCloudnavis.js";
 import { send_telegram_message } from "../services/sendMessageTelegram.js";
 import { MessageLog } from "../schemas/index.js";
@@ -42,6 +44,7 @@ const saveInvocesTask = async () => {
             try {
               if (invoce.tipoPago == "Remesa") {
                 // const user = await getUsers(invoce.idUsuario);
+                const pdf = await downloadInvoce(invoce.id);
                 let log = new MessageLog({
                   source: invoce.id,
                   recipient: invoce.idUsuario,
@@ -49,12 +52,14 @@ const saveInvocesTask = async () => {
                   status: "pending",
                   mes: invoce.mes,
                   ano: invoce.ano,
+                  fileUrl: pdf.publicUrl || null,
                   messageType: "invoce",
                   sensitiveData: invoce,
                 });
                 await log.save();
               }
             } catch (error) {
+              console.log(error);
               send_telegram_message(
                 `Fallo al guarda la factura : ${invoce.id} error : ${error.message}`
               );

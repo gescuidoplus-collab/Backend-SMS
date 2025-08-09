@@ -10,7 +10,3 @@ export const processMessageQueue = () => {
   //   await enqueueWhatsAppMessage();
   // });
 };
-
-setTimeout(async () => {
-  await enqueueWhatsAppMessage();
-}, 30000);

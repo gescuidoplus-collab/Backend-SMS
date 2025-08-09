@@ -2,6 +2,9 @@ import axios from "axios";
 import { CookieJar } from "tough-cookie";
 import { wrapper } from "axios-cookiejar-support";
 import { envConfig } from "../config/index.js";
+import fs from "fs";
+import path from "path";
+import { v4 as uuidv4 } from "uuid";
 
 const CLOUDNAVIS_BASE_URL = envConfig.cloudNavisUrl;
 
@@ -141,7 +144,7 @@ export async function ListPayRolls(year, month) {
 
 export async function downloadInvoce(invoceID) {
   try {
-    if (!userID) {
+    if (!invoceID) {
       throw new Error("Parámetro inválido invoceID");
     }
 
@@ -150,18 +153,38 @@ export async function downloadInvoce(invoceID) {
       {
         params: { uuid: invoceID },
         jar: cookieJar,
+        responseType: "arraybuffer", // Aseguramos que el contenido sea tratado como un archivo binario
       }
     );
-    return response.data;
+
+    // --- RUTA DE GUARDADO ---
+    const folderPath = path.join(process.cwd(), "public", "media", "pdfs");
+    const fileName = `factura_${uuidv4()}.pdf`;
+    const filePath = path.join(folderPath, fileName);
+
+    if (!fs.existsSync(folderPath)) {
+      fs.mkdirSync(folderPath, { recursive: true });
+    }
+
+    // Guardar el archivo PDF en el sistema de archivos
+    fs.writeFileSync(filePath, response.data);
+
+    // --- GENERAR URL PÚBLICA (Ajusta la URL base según tu entorno) ---
+    const baseUrl = "https://524de5c4849a.ngrok-free.app/public";
+    const publicUrl = `${baseUrl}/media/pdfs/${fileName}`;
+    return {
+      localPath: filePath,
+      publicUrl: publicUrl,
+    };
   } catch (error) {
-    console.error("Error obteniendo facturas:", error.message);
-    throw new Error("Error al obtener las facturas.");
+    console.error("Error al descargar y guardar la factura:", error.message);
+    throw new Error("Error al descargar y guardar la factura.");
   }
 }
 
 export async function downloadPayrolls(payRollID) {
   try {
-    if (!userID) {
+    if (!payRollID) {
       throw new Error("Parámetro inválido payRollID");
     }
 
@@ -170,12 +193,31 @@ export async function downloadPayrolls(payRollID) {
       {
         params: { uuid: payRollID },
         jar: cookieJar,
+        responseType: "arraybuffer", // Aseguramos que el contenido sea tratado como un archivo binario
       }
     );
-    return response.data;
+
+    // --- RUTA DE GUARDADO ---
+    const folderPath = path.join(process.cwd(), "public", "media", "payrolls");
+    const fileName = `nomina_${uuidv4()}.pdf`;
+    const filePath = path.join(folderPath, fileName);
+
+    if (!fs.existsSync(folderPath)) {
+      fs.mkdirSync(folderPath, { recursive: true });
+    }
+
+    // Guardar el archivo PDF en el sistema de archivos
+    fs.writeFileSync(filePath, response.data);
+    // --- GENERAR URL PÚBLICA (Ajusta la URL base según tu entorno) ---
+    const baseUrl = "https://524de5c4849a.ngrok-free.app/public";
+    const publicUrl = `${baseUrl}/media/payrolls/${fileName}`;
+    return {
+      localPath: filePath,
+      publicUrl: publicUrl,
+    };
   } catch (error) {
-    console.error("Error obteniendo facturas:", error.message);
-    throw new Error("Error al obtener las facturas.");
+    console.error("Error al descargar y guardar la nómina:", error.message);
+    throw new Error("Error al descargar y guardar la nómina.");
   }
 }
 

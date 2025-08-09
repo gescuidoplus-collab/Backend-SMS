@@ -40,7 +40,7 @@ const MessageLogSchema = new Schema(
     },
     phoneNumberTwo: {
       type: String,
-      required: true,
+      required: false,
     },
     sensitiveData: { // informacion encriptada del source
       type: Schema.Types.Mixed,
