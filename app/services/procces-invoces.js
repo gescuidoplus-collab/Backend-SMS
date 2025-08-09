@@ -4,10 +4,10 @@ import {
   listInvoices,
   logout,
   getUsers,
-} from "../services/api-cloudnavis.js";
+} from "./apiCloudnavis.js";
 
-import { send_telegram_message } from "./send-telegram-message.js";
-import { SmsDeliveryLog } from "../schemas/index.js";
+import { send_telegram_message } from "./sendMessageTelegram.js";
+import { MessageLog } from "../schemas/index.js";
 
 // Función para esperar una cantidad de milisegundos
 function esperar(ms) {
@@ -45,10 +45,10 @@ export const saveInvoceCloudNavis = async () => {
           try {
             invoces.facturas.map(async (invoce) => {
               // const user = await getUsers(invoce.idUsuario);
-              let log = new SmsDeliveryLog({
+              let log = new MessageLog({
                 invoiceID: invoce.id,
                 userID: invoce.idUsuario,
-                target: "4247548770",
+                recipient: "4247548770",
                 status: "pending",
                 mes: invoce.mes,
                 ano: invoce.ano,

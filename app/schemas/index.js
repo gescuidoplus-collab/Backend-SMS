@@ -1,5 +1,5 @@
-import SmsDeliveryLog from "./sms-delivery.js";
+import MessageLog from "./messageLog.js";
 
 export  {
-  SmsDeliveryLog,
+  MessageLog,
 };

@@ -7,7 +7,8 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
-import { monthlyTask } from "./app/services/scheduler.js";
+import { processInvoicesTask } from "./app/tasks/processInvoicesTask.js";
+import { processPayRollsTask } from "./app/tasks/processPayRollsTask.js";
 
 const app = express();
 
@@ -57,6 +58,7 @@ app.get(`${envConfig.urlPath}healtcheck`, (req, res) => {
 app.use(envConfig.urlPath, router);
 
 app.listen(envConfig.port, () => {
-  monthlyTask();
+  processInvoicesTask();
+  processPayRollsTask();
   console.log(`Running in proyect port : ${envConfig.port}`);
 });

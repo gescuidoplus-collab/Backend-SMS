@@ -1,0 +1,84 @@
+import cron from "node-cron";
+import {
+  setCookie,
+  loginCloudnavis,
+  listInvoices,
+  logout,
+  getUsers,
+} from "../services/apiCloudnavis.js";
+import { send_telegram_message } from "../services/sendMessageTelegram.js";
+import { MessageLog } from "../schemas/index.js";
+
+function esperar(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+const saveInvocesTask = async () => {
+  try {
+    const status_code = await setCookie();
+    if (status_code == 200) {
+      const maxRetries = 3;
+      let login_status = null;
+      let attempt = 0;
+
+      while (attempt < maxRetries) {
+        login_status = await loginCloudnavis();
+        if (login_status == 200) {
+          break; // Login exitoso, salimos del ciclo
+        }
+        attempt++;
+        if (attempt < maxRetries) {
+          console.log("Esperando 3 segundos antes del siguiente intento...");
+          await esperar(3000); // Espera 3 segundos antes del próximo intento
+        }
+      }
+      if (login_status == 200) {
+        const now = new Date();
+        const monthActualy = now.getMonth() + 1;
+        const yearActualy = now.getFullYear();
+        const invoces = await listInvoices(yearActualy, monthActualy - 1);
+        if (invoces && invoces.facturas.length > 0) {
+          invoces.facturas.map(async (invoce) => {
+            try {
+              if (invoce.tipoPago == "Remesa") {
+                // const user = await getUsers(invoce.idUsuario);
+                let log = new MessageLog({
+                  source: invoce.id,
+                  recipient: invoce.idUsuario,
+                  phoneNumber: "4247548770",
+                  status: "pending",
+                  mes: invoce.mes,
+                  ano: invoce.ano,
+                  messageType: "invoce",
+                  sensitiveData: invoce,
+                });
+                await log.save();
+              }
+            } catch (error) {
+              send_telegram_message(
+                `Fallo al guarda la factura : ${invoce.id} error : ${error.message}`
+              );
+            }
+          });
+        }
+      } else {
+        send_telegram_message(
+          "No se pudo hacer login después de varios intentos."
+        );
+      }
+    }
+    await logout();
+  } catch (err) {
+    send_telegram_message(`Fallo al Guarda las Facturas Error: ${err.message}`);
+    await logout();
+  }
+};
+
+export const processInvoicesTask = () => {
+  cron.schedule("0 9 1 * *", async () => {
+    await saveInvocesTask();
+    send_telegram_message(
+      "Cron de Guardado de facturas por WhatsApp Compleado 🎉"
+    );
+  });
+};

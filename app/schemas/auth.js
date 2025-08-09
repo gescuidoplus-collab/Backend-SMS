@@ -25,7 +25,7 @@ const AuthSchema = new Schema({
     default: false,
   },
 }, {
-  timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' }
+  timestamps: {   sentAt: '  sentAt', updatedAt: 'updatedAt' }
 });
 
 const Auth = mongoose.model('Auth', AuthSchema);

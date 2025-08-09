@@ -15,8 +15,6 @@ export const sendWhatsAppMessage = async (to, message) => {
       to,
       body: message,
     });
-
-    // console.log(`Mensaje enviado exitosamente: ${result.sid}`);
     return {
       success: true,
       messageId: result.sid,
@@ -46,8 +44,6 @@ export const sendWhatsAppPDF = async (to, mediaUrl, caption = "") => {
       body: caption,
       mediaUrl: [mediaUrl],
     });
-
-     // console.log(`PDF enviado exitosamente: ${result.sid}`);
     return {
       success: true,
       messageId: result.sid,
@@ -77,8 +73,6 @@ export const sendWhatsAppMessageWithPDF = async (to, message, mediaUrl) => {
       body: message,
       mediaUrl: [mediaUrl],
     });
-
-    // console.log(`Mensaje con PDF enviado exitosamente: ${result.sid}`);
     return {
       success: true,
       messageId: result.sid,
@@ -93,46 +87,8 @@ export const sendWhatsAppMessageWithPDF = async (to, message, mediaUrl) => {
   }
 };
 
-/**
- * Validar y formatear número de teléfono para WhatsApp
- * @param {string} phoneNumber - Número de teléfono
- * @returns {string} Número formateado para WhatsApp
- */
-export const formatWhatsAppNumber = (phoneNumber) => {
-  // Usando template literals y operador ternario
-  const isWhatsAppFormat = phoneNumber.startsWith("whatsapp:");
-  const hasPlus = phoneNumber.startsWith("+");
-
-  return isWhatsAppFormat
-    ? phoneNumber
-    : hasPlus
-    ? `whatsapp:${phoneNumber}`
-    : `whatsapp:+57${phoneNumber}`;
-};
-
-/**
- * Enviar mensaje masivo a múltiples destinatarios
- * @param {Array<string>} phoneNumbers - Array de números de teléfono
- * @param {string} message - Mensaje a enviar
- * @returns {Promise<Array>} Array con resultados de envío
- */
-export const sendBulkWhatsAppMessages = async (phoneNumbers, message) => {
-  // Usando Promise.all con async/await y map
-  const results = await Promise.all(
-    phoneNumbers.map(async (number) => {
-      const formattedNumber = formatWhatsAppNumber(number);
-      return await sendWhatsAppMessage(formattedNumber, message);
-    })
-  );
-
-  return results;
-};
-
-// Exportación por defecto con todas las funciones
 export default {
   sendWhatsAppMessage,
   sendWhatsAppPDF,
-  sendWhatsAppMessageWithPDF,
-  formatWhatsAppNumber,
-  sendBulkWhatsAppMessages,
+  sendWhatsAppMessageWithPDF
 };

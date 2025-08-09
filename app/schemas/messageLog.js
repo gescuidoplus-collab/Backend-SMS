@@ -3,17 +3,21 @@ import { encrypt, decrypt } from "../utils/cipher.js";
 
 const { Schema } = mongoose;
 
-const SmsDeliveryLogSchema = new Schema(
+const MessageLogSchema = new Schema(
   {
-    invoiceID: {
+    source: {
       type: String,
       required: true,
     },
-    userID: {
+    recipient: {
       type: String,
       required: true,
     },
-    createdAt: {
+    employe: {
+      type: String,
+      required: false,
+    },
+    sentAt: {
       type: Date,
       default: () => new Date(),
       immutable: true,
@@ -30,13 +34,9 @@ const SmsDeliveryLogSchema = new Schema(
       type: Number,
       require: false,
     },
-    target: {
+    phoneNumber: {
       type: String,
       required: true,
-    },
-    pdfUrl: {
-      type: String,
-      require: false,
     },
     sensitiveData: {
       type: Schema.Types.Mixed,
@@ -46,6 +46,10 @@ const SmsDeliveryLogSchema = new Schema(
       type: Date,
       default: () => new Date(),
     },
+    messageType: {
+      type: String,
+      required: false,
+    },
     status: {
       type: String,
       enum: ["success", "failure", "pending"],
@@ -53,11 +57,11 @@ const SmsDeliveryLogSchema = new Schema(
     },
   },
   {
-    timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" },
+    timestamps: { sentAt: "sentAt", updatedAt: "updatedAt" },
   }
 );
 
-SmsDeliveryLogSchema.pre("save", function (next) {
+MessageLogSchema.pre("save", function (next) {
   if (!this.isModified("sensitiveData") || !this.sensitiveData) {
     return next();
   }
@@ -74,7 +78,7 @@ SmsDeliveryLogSchema.pre("save", function (next) {
   }
 });
 
-SmsDeliveryLogSchema.methods.getDecryptedData = function () {
+MessageLogSchema.methods.getDecryptedData = function () {
   try {
     if (!this.sensitiveData || typeof this.sensitiveData !== "string") {
       return this.sensitiveData;
@@ -87,6 +91,6 @@ SmsDeliveryLogSchema.methods.getDecryptedData = function () {
   }
 };
 
-const SmsDeliveryLog = mongoose.model("SmsDeliveryLog", SmsDeliveryLogSchema);
+const MessageLog = mongoose.model("MessageLog", MessageLogSchema);
 
-export default SmsDeliveryLog;
+export default MessageLog;

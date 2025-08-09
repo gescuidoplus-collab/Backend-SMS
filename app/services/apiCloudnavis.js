@@ -116,7 +116,7 @@ export async function getUsers(userID) {
   }
 }
 
-export async function getListPayrolls(year, month) {
+export async function ListPayRolls(year, month) {
   try {
     const yearNum = parseInt(year, 10);
     const monthNum = parseInt(month, 10);
