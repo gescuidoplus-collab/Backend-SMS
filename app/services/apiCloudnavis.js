@@ -170,7 +170,7 @@ export async function downloadInvoce(invoceID) {
     fs.writeFileSync(filePath, response.data);
 
     // --- GENERAR URL PÚBLICA (Ajusta la URL base según tu entorno) ---
-    const baseUrl = "https://524de5c4849a.ngrok-free.app/public";
+    const baseUrl = "http://localhost:3000/public";
     const publicUrl = `${baseUrl}/media/pdfs/${fileName}`;
     return {
       localPath: filePath,
@@ -209,7 +209,7 @@ export async function downloadPayrolls(payRollID) {
     // Guardar el archivo PDF en el sistema de archivos
     fs.writeFileSync(filePath, response.data);
     // --- GENERAR URL PÚBLICA (Ajusta la URL base según tu entorno) ---
-    const baseUrl = "https://524de5c4849a.ngrok-free.app/public";
+    const baseUrl = "http://localhost:3000/public";
     const publicUrl = `${baseUrl}/media/payrolls/${fileName}`;
     return {
       localPath: filePath,

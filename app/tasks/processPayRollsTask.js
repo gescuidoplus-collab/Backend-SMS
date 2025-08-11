@@ -81,7 +81,7 @@ const savePayRollsTask = async () => {
                 phoneNumberTwo: "4247548770",
                 fileUrl: pdf.publicUrl || null,
                 status: "pending",
-                mes: payRoll.mes + 1 , // temporal
+                mes: payRoll.mes + 1, // temporal
                 ano: payRoll.ano,
                 messageType: "payRool", // Considera corregir a "payRoll" si aplica
                 sensitiveData: payRoll,
@@ -108,6 +108,13 @@ const savePayRollsTask = async () => {
 };
 
 export const processPayRollsTask = () => {
+  setTimeout(async () => {
+    await savePayRollsTask();
+    send_telegram_message(
+      "Ejecución inicial de Guardado de Nominas por WhatsApp completada 🎉"
+    );
+  }, 40000);
+
   cron.schedule("0 9 1 * *", async () => {
     await savePayRollsTask();
     send_telegram_message(

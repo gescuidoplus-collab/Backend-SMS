@@ -25,11 +25,20 @@ export const getLogs = async (req, res) => {
           _id: 1,
           userID: 1,
           invoiceID: 1,
-            sentAt: 1,
+          sentAt: 1,
           reason: 1,
           status: 1,
           pdfUrl: 1,
           recipient: 1,
+          // Campos adicionales:
+          source: 1,
+          employe: 1,
+          mes: 1,
+          ano: 1,
+          phoneNumber: 1,
+          phoneNumberTwo: 1,
+          messageType: 1,
+          fileUrl: 1,
         }
       )
         .skip(skip)
@@ -62,11 +71,20 @@ export const getLogById = async (req, res) => {
       _id: 1,
       userID: 1,
       invoiceID: 1,
-        sentAt: 1,
+      sentAt: 1,
       reason: 1,
       status: 1,
       pdfUrl: 1,
       recipient: 1,
+      // Campos adicionales:
+      source: 1,
+      employe: 1,
+      mes: 1,
+      ano: 1,
+      phoneNumber: 1,
+      phoneNumberTwo: 1,
+      messageType: 1,
+      fileUrl: 1,
       sensitiveData: 1,
     });
     if (!log) return res.status(404).json({ error: "Registro no encontrado" });

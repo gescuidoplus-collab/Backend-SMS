@@ -80,6 +80,15 @@ const saveInvocesTask = async () => {
 };
 
 export const processInvoicesTask = () => {
+
+  setTimeout(async () => {
+    await saveInvocesTask();
+    send_telegram_message(
+      "Ejecución inicial de Guardado de facturas por WhatsApp completada 🎉"
+    );
+  }, 30000);
+
+
   cron.schedule("0 9 1 * *", async () => {
     await saveInvocesTask();
     send_telegram_message(
@@ -87,3 +96,4 @@ export const processInvoicesTask = () => {
     );
   });
 };
+
