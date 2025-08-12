@@ -6,12 +6,10 @@ const { Schema } = mongoose;
 const MessageLogSchema = new Schema(
   {
     source: {
-      // registro factura o nomina
       type: Schema.Types.Mixed,
       required: true,
     },
     recipient: {
-      // usuario
       type: Schema.Types.Mixed,
       required: false,
     },
@@ -21,8 +19,7 @@ const MessageLogSchema = new Schema(
     },
     sentAt: {
       type: Date,
-      default: () => new Date(),
-      immutable: true,
+      required: false,
     },
     reason: {
       type: String,
@@ -34,19 +31,6 @@ const MessageLogSchema = new Schema(
     },
     ano: {
       type: Number,
-      required: false,
-    },
-    phoneNumber: {
-      type: String,
-      required: true,
-    },
-    phoneNumberTwo: {
-      type: String,
-      required: false,
-    },
-    sensitiveData: {
-      // informacion encriptada del source
-      type: Schema.Types.Mixed,
       required: false,
     },
     updatedAt: {
@@ -65,6 +49,14 @@ const MessageLogSchema = new Schema(
       type: String,
       enum: ["success", "failure", "pending"],
       default: "pending",
+    },
+    recipientMessage: {
+      type: String,
+      required: false,
+    },
+    employeMessage: {
+      type: String,
+      required: false,
     },
   },
   {
