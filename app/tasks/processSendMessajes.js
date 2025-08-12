@@ -1,6 +1,6 @@
 import cron from "node-cron";
 import {send_telegram_message} from "../services/sendMessageTelegram.js"
-import { enqueueWhatsAppMessage } from "../services/redis-messages.js";
+// import { enqueueWhatsAppMessage } from "../services/redis-messages.js";
 
 export const processMessageQueue = () => {
   console.log('Ejecucion envio Masivo')
