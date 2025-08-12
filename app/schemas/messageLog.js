@@ -5,16 +5,18 @@ const { Schema } = mongoose;
 
 const MessageLogSchema = new Schema(
   {
-    source: { // registro factura o nomina
-      type: String,
+    source: {
+      // registro factura o nomina
+      type: Schema.Types.Mixed,
       required: true,
     },
-    recipient: { // usuario
-      type: String,
-      required: true,
+    recipient: {
+      // usuario
+      type: Schema.Types.Mixed,
+      required: false,
     },
     employe: {
-      type: String,
+      type: Schema.Types.Mixed,
       required: false,
     },
     sentAt: {
@@ -28,11 +30,11 @@ const MessageLogSchema = new Schema(
     },
     mes: {
       type: Number,
-      require: false,
+      required: false,
     },
     ano: {
       type: Number,
-      require: false,
+      required: false,
     },
     phoneNumber: {
       type: String,
@@ -42,7 +44,8 @@ const MessageLogSchema = new Schema(
       type: String,
       required: false,
     },
-    sensitiveData: { // informacion encriptada del source
+    sensitiveData: {
+      // informacion encriptada del source
       type: Schema.Types.Mixed,
       required: false,
     },
@@ -54,9 +57,9 @@ const MessageLogSchema = new Schema(
       type: String,
       required: false,
     },
-    fileUrl : {
-      type : String ,
-      required : false
+    fileUrl: {
+      type: String,
+      required: false,
     },
     status: {
       type: String,
@@ -69,35 +72,35 @@ const MessageLogSchema = new Schema(
   }
 );
 
-MessageLogSchema.pre("save", function (next) {
-  if (!this.isModified("sensitiveData") || !this.sensitiveData) {
-    return next();
-  }
+// MessageLogSchema.pre("save", function (next) {
+//   if (!this.isModified("sensitiveData") || !this.sensitiveData) {
+//     return next();
+//   }
 
-  if (typeof this.sensitiveData !== "object" || this.sensitiveData === null) {
-    return next();
-  }
+//   if (typeof this.sensitiveData !== "object" || this.sensitiveData === null) {
+//     return next();
+//   }
 
-  try {
-    this.sensitiveData = encrypt(this.sensitiveData);
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
+//   try {
+//     this.sensitiveData = encrypt(this.sensitiveData);
+//     next();
+//   } catch (error) {
+//     next(error);
+//   }
+// });
 
-MessageLogSchema.methods.getDecryptedData = function () {
-  try {
-    if (!this.sensitiveData || typeof this.sensitiveData !== "string") {
-      return this.sensitiveData;
-    }
-    const resp = decrypt(this.sensitiveData);
-    return resp;
-  } catch (error) {
-    console.error("Error al descifrar:", error);
-    return null;
-  }
-};
+// MessageLogSchema.methods.getDecryptedData = function () {
+//   try {
+//     if (!this.sensitiveData || typeof this.sensitiveData !== "string") {
+//       return this.sensitiveData;
+//     }
+//     const resp = decrypt(this.sensitiveData);
+//     return resp;
+//   } catch (error) {
+//     console.error("Error al descifrar:", error);
+//     return null;
+//   }
+// };
 
 const MessageLog = mongoose.model("MessageLog", MessageLogSchema);
 

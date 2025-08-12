@@ -149,11 +149,11 @@ export async function downloadInvoce(invoceID) {
     }
 
     const response = await axiosInstance.get(
-      `${CLOUDNAVIS_BASE_URL}/edades/cuidofam/api/facturacion/download?`,
+      `${CLOUDNAVIS_BASE_URL}/edades/cuidofam/api/facturacion/download`, // <- quitado el ?
       {
         params: { uuid: invoceID },
         jar: cookieJar,
-        responseType: "arraybuffer", // Aseguramos que el contenido sea tratado como un archivo binario
+        responseType: "arraybuffer",
       }
     );
 
@@ -189,11 +189,11 @@ export async function downloadPayrolls(payRollID) {
     }
 
     const response = await axiosInstance.get(
-      `${CLOUDNAVIS_BASE_URL}/edades/cuidofam/api/nominas/download?`,
+      `${CLOUDNAVIS_BASE_URL}/edades/cuidofam/api/nominas/download`, // <- quitado el ?
       {
         params: { uuid: payRollID },
         jar: cookieJar,
-        responseType: "arraybuffer", // Aseguramos que el contenido sea tratado como un archivo binario
+        responseType: "arraybuffer",
       }
     );
 

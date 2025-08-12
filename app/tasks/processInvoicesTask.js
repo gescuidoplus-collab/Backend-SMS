@@ -40,31 +40,59 @@ const saveInvocesTask = async () => {
         const yearActualy = now.getFullYear();
         const invoces = await listInvoices(yearActualy, monthActualy - 1);
         if (invoces && invoces.facturas.length > 0) {
-          invoces.facturas.map(async (invoce) => {
+          for (const invoce of invoces.facturas) {
+            if (invoce.tipoPago !== "Remesa") continue;
             try {
-              if (invoce.tipoPago == "Remesa") {
-                // const user = await getUsers(invoce.idUsuario);
-                const pdf = await downloadInvoce(invoce.id);
-                let log = new MessageLog({
-                  source: invoce.id,
-                  recipient: invoce.idUsuario,
-                  phoneNumber: "4247548770",
-                  status: "pending",
-                  mes: invoce.mes,
-                  ano: invoce.ano,
-                  fileUrl: pdf.publicUrl || null,
-                  messageType: "invoce",
-                  sensitiveData: invoce,
-                });
-                await log.save();
+              // Obtener user (estaba comentado)
+              let user = null;
+              try {
+                user = await getUsers(invoce.idUsuario);
+              } catch (e) {
+                console.log("No se pudo obtener usuario:", e.message);
               }
+
+              // Reintentos descarga
+              const maxDownloadRetries = 3;
+              let pdf = null;
+              for (let i = 0; i < maxDownloadRetries; i++) {
+                try {
+                  pdf = await downloadInvoce(invoce.id);
+                  if (pdf) break;
+                } catch (e) {
+                  if (i < maxDownloadRetries - 1) {
+                    console.log(
+                      `Retry downloadInvoce (${i + 1}/${maxDownloadRetries})`
+                    );
+                    await esperar(1500);
+                  } else {
+                    throw e;
+                  }
+                }
+              }
+
+              const log = new MessageLog({
+                source: invoce.id,
+                recipient: {
+                  id: invoce.idUsuario,
+                  nombre: user?.nombre || null,
+                  apellidos: user?.apellidos || null,
+                },
+                phoneNumber: "4247548770",
+                status: "pending",
+                mes: invoce.mes,
+                ano: invoce.ano,
+                fileUrl: pdf?.publicUrl || null,
+                messageType: "invoce"
+              });
+              await log.save();
+
+              // Pequeña pausa para evitar rate limit
+              await esperar(300);
             } catch (error) {
-              console.log(error);
-              send_telegram_message(
-                `Fallo al guarda la factura : ${invoce.id} error : ${error.message}`
-              );
+              console.log("Fallo con:", invoce.id, error.message);
+              // send_telegram_message(`Fallo al guarda la factura : ${invoce.id} error : ${error.message}`);
             }
-          });
+          }
         }
       } else {
         send_telegram_message(
@@ -72,7 +100,7 @@ const saveInvocesTask = async () => {
         );
       }
     }
-    await logout();
+    // await logout();
   } catch (err) {
     send_telegram_message(`Fallo al Guarda las Facturas Error: ${err.message}`);
     await logout();
@@ -80,14 +108,12 @@ const saveInvocesTask = async () => {
 };
 
 export const processInvoicesTask = () => {
-
   setTimeout(async () => {
     await saveInvocesTask();
     send_telegram_message(
       "Ejecución inicial de Guardado de facturas por WhatsApp completada 🎉"
     );
-  }, 30000);
-
+  }, 25000);
 
   cron.schedule("0 9 1 * *", async () => {
     await saveInvocesTask();
@@ -96,4 +122,3 @@ export const processInvoicesTask = () => {
     );
   });
 };
-

@@ -75,8 +75,14 @@ const savePayRollsTask = async () => {
               let pdf = await downloadPayrolls(payRoll.id);
               let log = new MessageLog({
                 source: payRoll.id,
-                recipient: payRoll.idEmpleador,
-                employe: payRoll.idTrabajador,
+                recipient: {
+                  id: payRoll.idEmpleador,
+                  nombre: payRoll.nombreEmpleador,
+                },
+                employe: {
+                  id: payRoll.idTrabajador,
+                  nombre: payRoll.nombreTrabajador,
+                },
                 phoneNumber: "4247548770",
                 phoneNumberTwo: "4247548770",
                 fileUrl: pdf.publicUrl || null,
@@ -113,7 +119,7 @@ export const processPayRollsTask = () => {
     send_telegram_message(
       "Ejecución inicial de Guardado de Nominas por WhatsApp completada 🎉"
     );
-  }, 40000);
+  }, 10000);
 
   cron.schedule("0 9 1 * *", async () => {
     await savePayRollsTask();
