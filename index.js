@@ -63,6 +63,6 @@ app.use(envConfig.urlPath, router);
 app.listen(envConfig.port, () => {
   processInvoicesTask();
   processPayRollsTask();
-  processMessageQueue();
+  // processMessageQueue();
   console.log(`Running in proyect port : ${envConfig.port}`);
 });
