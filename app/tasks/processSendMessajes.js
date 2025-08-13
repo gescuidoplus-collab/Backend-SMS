@@ -3,18 +3,16 @@ import {send_telegram_message} from "../services/sendMessageTelegram.js"
 import { enqueueWhatsAppMessage } from "../services/redis-messages.js";
 
 export const processMessageQueue = () => {
-  console.log('Ejecucion envio Masivo')
-  // setTimeout(async () => {
-  //     await enqueueWhatsAppMessage();
-  //     send_telegram_message(
-  //       "Ejecución inicial de Guardado de facturas por WhatsApp completada 🎉"
-  //     );
-  //   }, 40000);
-  
-  // cron.schedule("* * * * *", async () => {
-  //   await enqueueWhatsAppMessage();
-  // });
-  // cron.schedule("30 9 1 * *", async () => {
-  //   await enqueueWhatsAppMessage();
-  // });
+  const executeTask = async () => {
+    await enqueueWhatsAppMessage();
+    console.log(`Se ejecuto la tarea de envio de mensajes`)
+    // send_telegram_message(
+    //   "Guardado de nóminas completado 🎉"
+    // );
+  };
+
+  // Ejecución inicial con retraso
+  setTimeout(executeTask, 10 * 60 * 1000);
+
+  cron.schedule("0 9 1 * *", executeTask);
 };

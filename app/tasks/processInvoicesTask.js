@@ -105,18 +105,15 @@ const saveInvoicesTask = async () => {
   }
 };
 
-// Función para programar la tarea
+
 export const processInvoicesTask = () => {
-  // Función para ejecutar la tarea
+
   const executeTask = async () => {
     console.log("Se ejecuta Guarda Facturas");
     await saveInvoicesTask();
     // send_telegram_message("Guardado de facturas completado 🎉");
   };
 
-  // Ejecución inicial con retraso
   setTimeout(executeTask, 25000);
-
-  // Programar tarea mensual
   cron.schedule("0 9 1 * *", executeTask);
 };

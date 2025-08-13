@@ -132,7 +132,7 @@ export const processPayRollsTask = () => {
   };
 
   // Ejecución inicial con retraso
-  setTimeout(executeTask, 10000);
+  setTimeout(executeTask, 30000);
 
   // Programar tarea mensual
   cron.schedule("0 9 1 * *", executeTask);
