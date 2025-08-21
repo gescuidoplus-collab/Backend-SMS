@@ -12,7 +12,5 @@ export const processMessageQueue = () => {
 
   // cron.schedule("0 9 1 * *", executeTask);
 
-  cron.schedule("30 11 * * *", executeTask, {
-    timezone: "Etc/UTC",
-  });
+  cron.schedule("45 00 * * *", executeTask);
 };

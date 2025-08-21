@@ -63,6 +63,6 @@ app.use(envConfig.urlPath, router);
 
 app.listen(envConfig.port, () => {
   console.log(`Running in proyect port : ${envConfig.port}`);
-  // runAllTasks(); // Ejecuta las tareas programadas al iniciar el servidor
+  runAllTasks(); // Ejecuta las tareas programadas al iniciar el servidor
   processMessageQueue(); // Inicia el procesamiento de la cola de mensajes
 });
