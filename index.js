@@ -17,7 +17,7 @@ app.use(
     origin: [
       "http://localhost:3000",
       "http://localhost:3032",
-      "https://073cc9dd579e.ngrok-free.app",
+      "https://frontend-sms.vercel.app",
     ],
     allowedHeaders: ["Content-Type", "Authorization"],
     optionsSuccessStatus: 200,
