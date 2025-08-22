@@ -25,6 +25,7 @@ const confEnvSchema = Joi.object({
   TELEGRAM_TOKEN_SECRET: Joi.string() || "",
   API_URL : Joi.string() || "",
   REDIRECT_NUMBER : Joi.string() || "",
+  CRON_SECRET: Joi.string().optional()
 })
   .unknown()
   .required();
@@ -55,6 +56,7 @@ const config = {
   telegramTokenSecret: confEnv.TELEGRAM_TOKEN_SECRET,
   apiUrl: confEnv.API_URL,
   redirectNumber: confEnv.REDIRECT_NUMBER,
+  cronSecret: confEnv.CRON_SECRET,
 };
 
 export default config;

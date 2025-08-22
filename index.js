@@ -61,8 +61,31 @@ app.get(`${envConfig.urlPath}healtcheck`, (req, res) => {
 });
 app.use(envConfig.urlPath, router);
 
+// Endpoint invocado por Vercel Cron Job (GET)
+app.get('/api/cron', async (req, res) => {
+  try {
+    // Verifica user-agent de Vercel o un token opcional
+    const ua = (req.headers['user-agent'] || '').toLowerCase();
+    const isVercel = ua.includes('vercel-cron');
+    const provided = req.headers['x-cron-secret'];
+    if (!isVercel && envConfig.cronSecret && provided !== envConfig.cronSecret) {
+      return res.status(401).json({ ok: false, error: 'unauthorized' });
+    }
+
+    await runAllTasks();
+    processMessageQueue();
+    res.json({ ok: true, runAt: new Date().toISOString() });
+  } catch (e) {
+    console.error('Cron endpoint error', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 app.listen(envConfig.port, () => {
   console.log(`Running in proyect port : ${envConfig.port}`);
-  runAllTasks(); // Ejecuta las tareas programadas al iniciar el servidor
-  processMessageQueue(); // Inicia el procesamiento de la cola de mensajes
+  // Solo ejecutar cron locales si estamos en desarrollo; en Vercel usaremos el endpoint /api/cron
+  if (envConfig.env === 'development') {
+    runAllTasks(); // Ejecuta las tareas programadas al iniciar el servidor
+    processMessageQueue(); // Inicia el procesamiento de la cola de mensajes
+  }
 });
