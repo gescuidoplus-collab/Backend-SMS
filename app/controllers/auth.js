@@ -13,7 +13,7 @@ export const login = async (req, res) => {
 
   const { username, password } = req.body;
   try {
-    const user = await Auth.findOne({ username });
+    const user = await Auth.findOne({ email: username });
     if (!user || user.isBlock)
       return res.status(401).json({ error: "Usuario no autorizado" });
 
