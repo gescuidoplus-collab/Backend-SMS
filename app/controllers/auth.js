@@ -11,8 +11,8 @@ export const login = async (req, res) => {
   if (!errors.isEmpty())
     return res.status(400).json({ errors: errors.array() });
 
-  const { email, password } = req.body;
-
+  const { username, password } = req.body;
+  email = username
   try {
     const user = await Auth.findOne({ email });
     if (!user || user.isBlock)
