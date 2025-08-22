@@ -12,10 +12,8 @@ export const login = async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
 
   const { username, password } = req.body;
-  email = username
   try {
-    console.log(email)
-    const user = await Auth.findOne({ email });
+    const user = await Auth.findOne({ username });
     if (!user || user.isBlock)
       return res.status(401).json({ error: "Usuario no autorizado" });
 
