@@ -71,8 +71,23 @@ app.get('/api/cron', async (req, res) => {
     if (!isVercel && envConfig.cronSecret && provided !== envConfig.cronSecret) {
       return res.status(401).json({ ok: false, error: 'unauthorized' });
     }
-
     await runAllTasks();
+    res.json({ ok: true, runAt: new Date().toISOString() });
+  } catch (e) {
+    console.error('Cron endpoint error', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get('/api/cron-send', async (req, res) => {
+  try {
+    // Verifica user-agent de Vercel o un token opcional
+    const ua = (req.headers['user-agent'] || '').toLowerCase();
+    const isVercel = ua.includes('vercel-cron');
+    const provided = req.headers['x-cron-secret'];
+    if (!isVercel && envConfig.cronSecret && provided !== envConfig.cronSecret) {
+      return res.status(401).json({ ok: false, error: 'unauthorized' });
+    }
     processMessageQueue();
     res.json({ ok: true, runAt: new Date().toISOString() });
   } catch (e) {
@@ -80,6 +95,8 @@ app.get('/api/cron', async (req, res) => {
     res.status(500).json({ ok: false, error: e.message });
   }
 });
+
+
 
 app.listen(envConfig.port, () => {
   console.log(`Running in proyect port : ${envConfig.port}`);

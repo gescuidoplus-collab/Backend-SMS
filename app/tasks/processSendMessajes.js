@@ -12,4 +12,6 @@ export const processMessageQueue = () => {
   if (envConfig.env === 'development') {
     cron.schedule("45 00 * * *", executeTask);
   }
+
+  executeTask();
 };
