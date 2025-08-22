@@ -5,7 +5,7 @@ import { verifyToken } from "../middlewares/authMiddleware.js";
 const router = express.Router();
 
 router.post('/login', [
-  body('email').isEmail().withMessage('Correo inválido'),
+  body('username').isEmail().withMessage('Correo inválido'),
   body('password').notEmpty().withMessage('La clave es requerida'),
 ], login);
 
