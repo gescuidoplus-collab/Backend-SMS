@@ -15,7 +15,7 @@
   "crons": [
     {
       "path": "/api/cron",
-      "schedule": "0 13 * * *"
+  "schedule": "12 13 * * *"
     },
     {
       "path": "/api/cron-send",

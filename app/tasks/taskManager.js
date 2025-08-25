@@ -19,11 +19,10 @@ async function runAllTasks() {
 }
 
 // Solo programar cron localmente (desarrollo). En producción Vercel llama /api/cron
-if (envConfig.env === 'development') {
-  // Cron job: ejecuta el manager el día 1 de cada mes a las 9:00
-  cron.schedule("0 9 1 * *", runAllTasks);
-
-  cron.schedule("30 0 * * *", runAllTasks);
+if (envConfig.env === "development") {
+  // Cron job: ejecuta el manager el día 1 de cada mes a las 9:00.
+  // cron.schedule("0 9 1 * *", runAllTasks, { timezone: "UTC" });
+  cron.schedule("03 13 * * *", runAllTasks, { timezone: "UTC" });
 }
 
 // Para pruebas manuales

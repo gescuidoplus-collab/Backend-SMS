@@ -10,7 +10,7 @@ export const processMessageQueue = () => {
   };
   // En producción, será invocado desde /api/cron para no duplicar
   if (envConfig.env === 'development') {
-    cron.schedule("45 00 * * *", executeTask);
+    cron.schedule("05 13 * * *", executeTask, { timezone: "UTC" });
   }
 
   executeTask();
