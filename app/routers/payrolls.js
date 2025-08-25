@@ -5,6 +5,6 @@ import { downloadPayrollPdf } from '../controllers/payrollsController.js';
 const router = express.Router();
 
 // GET /payrolls/:id -> devuelve el PDF de la nómina
-router.get('/:id', verifyToken, downloadPayrollPdf);
+router.get('/:id', downloadPayrollPdf);
 
 export default router;
