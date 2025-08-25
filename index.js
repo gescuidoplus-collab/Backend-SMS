@@ -99,8 +99,9 @@ app.get("/api/cron-send", async (req, res) => {
     ) {
       return res.status(401).json({ ok: false, error: "unauthorized" });
     }
-    processMessageQueue();
-    res.json({ ok: true, runAt: new Date().toISOString() });
+  await mongoClient(); // asegurar conexión antes de la cola
+  await processMessageQueue(); // esperar envío
+  res.json({ ok: true, runAt: new Date().toISOString(), processed: true });
   } catch (e) {
     console.error("Cron endpoint error", e);
     res.status(500).json({ ok: false, error: e.message });
