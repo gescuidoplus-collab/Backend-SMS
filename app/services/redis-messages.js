@@ -65,12 +65,13 @@ async function processSingleMessage({
       fileURL = envConfig.apiUrl + "/api/v1/invoces/" + log.id;
     }
 
-    // const result = await sendWhatsAppMessage(formattedNumber, personalizedMsg);
-    const result = await sendWhatsAppMessageWithPDF(
-      formattedNumber,
-      personalizedMsg,
-      fileURL
-    );
+    console.log(fileURL)
+    const result = await sendWhatsAppMessage(formattedNumber, personalizedMsg);
+    // const result = await sendWhatsAppMessageWithPDF(
+    //   formattedNumber,
+    //   personalizedMsg,
+    //   fileURL
+    // );
 
     if (!result.success) {
       success = false;
