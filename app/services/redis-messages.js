@@ -59,19 +59,17 @@ async function processSingleMessage({
     let fileURL = "";
     if (messageType === "payRoll") {
       //console.log(envConfig.apiUrl + "/api/v1/payrolls/" + log.id);
-      fileURL = envConfig.apiUrl + "/api/v1/payrolls/" + log.id;
+      fileURL = envConfig.apiUrl + "/api/v1/payrolls/" + log.source;
     } else {
       // console.log(envConfig.apiUrl + "/api/v1/invoces/" + log.id);
-      fileURL = envConfig.apiUrl + "/api/v1/invoces/" + log.id;
+      fileURL = envConfig.apiUrl + "/api/v1/invoices/" + log.source;
     }
-
-    console.log(fileURL)
-    const result = await sendWhatsAppMessage(formattedNumber, personalizedMsg);
-    // const result = await sendWhatsAppMessageWithPDF(
-    //   formattedNumber,
-    //   personalizedMsg,
-    //   fileURL
-    // );
+    //const result = await sendWhatsAppMessage(formattedNumber, personalizedMsg);
+    const result = await sendWhatsAppMessageWithPDF(
+      formattedNumber,
+      personalizedMsg,
+      fileURL
+    );
 
     if (!result.success) {
       success = false;
