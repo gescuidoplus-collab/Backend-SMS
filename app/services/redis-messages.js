@@ -1,4 +1,6 @@
 import { MessageLog } from "../schemas/index.js";
+import mongoose from "mongoose";
+import { mongoClient } from "../config/index.js";
 import { formatWhatsAppNumber } from "../utils/formatWhatsAppNumber.js";
 import {
   sendWhatsAppMessage,
@@ -33,6 +35,13 @@ const MESSAGES_PAYROLL_EMPLOYE = [
   "Te compartimos tu recibo de pago generado por nuestro sistema, {{name}}. ¡Gracias por ser parte del equipo!",
 ];
 
+// Asegura conexión a Mongo (evita buffering en entornos serverless)
+async function ensureDb() {
+  if (mongoose.connection.readyState !== 1) {
+    await mongoClient();
+  }
+}
+
 // Procesa un mensaje individual (antes era manejado por Redis subscriber)
 async function processSingleMessage({
   logId,
@@ -41,6 +50,7 @@ async function processSingleMessage({
   phoneNumberTwo,
   messageType,
 }) {
+  await ensureDb();
   const log = await MessageLog.findById(logId);
 
   let success = true;
@@ -134,6 +144,7 @@ function chunkArray(array, size) {
 }
 
 export const enqueueWhatsAppMessage = async () => {
+  await ensureDb();
   const BATCH_SIZE = 20; // Menos mensajes por lote para menor riesgo
   const MIN_DELAY = 2000; // 2 segundos mínimo
   const MAX_DELAY = 5000; // 5 segundos máximo
