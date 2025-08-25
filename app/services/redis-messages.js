@@ -152,6 +152,7 @@ export const enqueueWhatsAppMessage = async () => {
   const now = new Date();
   const monthActualy = now.getMonth() + 1;
   const yearActualy = now.getFullYear();
+  console.log('Antes de la consulta')
   const logs = await MessageLog.find({
     mes: 7, // monthActualy -1,
     ano: yearActualy,
