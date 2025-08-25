@@ -5,6 +5,7 @@ import {
   sendWhatsAppMessageWithPDF,
 } from "./twilioService.js";
 import { send_telegram_message } from "./sendMessageTelegram.js";
+import { envConfig } from "../config/index.js";
 
 const BATCH_DELAY = 5500; // Mayor retardo entre mensajes para evitar spam
 
@@ -55,13 +56,22 @@ async function processSingleMessage({
     } else {
       personalizedMsg = msg.replace(/{{name}}/g, "");
     }
-    // const result = await sendWhatsAppMessageWithPDF(
-    //   formattedNumber,
-    //   personalizedMsg,
-    //   log.fileUrl
-    // );
+    let fileURL = "";
+    if (messageType === "payRoll") {
+      console.log(envConfig.apiUrl + "/api/v1/payrolls/" + log.id);
+      fileURL = envConfig.apiUrl + "/api/v1/payrolls/" + log.id;
+    } else {
+      console.log(envConfig.apiUrl + "/api/v1/invoces/" + log.id);
+      fileURL = envConfig.apiUrl + "/api/v1/invoces/" + log.id;
+    }
 
-    const result = await sendWhatsAppMessage(formattedNumber, personalizedMsg);
+    // const result = await sendWhatsAppMessage(formattedNumber, personalizedMsg);
+    const result = await sendWhatsAppMessageWithPDF(
+      formattedNumber,
+      personalizedMsg,
+      fileURL
+    );
+
     if (!result.success) {
       success = false;
       errorMsg = result.error;

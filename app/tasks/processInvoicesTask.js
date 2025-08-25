@@ -82,12 +82,12 @@ const saveInvoicesTask = async () => {
             3000
           );
 
-          // Descargar factura con reintentos
-          const pdf = await withRetries(
-            () => downloadInvoce(invoice.id),
-            3,
-            3000
-          );
+          // // Descargar factura con reintentos
+          // const pdf = await withRetries(
+          //   () => downloadInvoce(invoice.id),
+          //   3,
+          //   3000
+          // );
 
           // Guardar registro en la base de datos
           const log = new MessageLog({
@@ -100,7 +100,7 @@ const saveInvoicesTask = async () => {
             status: "pending",
             mes: invoice.mes,
             ano: invoice.ano,
-            fileUrl: pdf?.publicUrl || null,
+            // fileUrl: pdf?.publicUrl || null,
             messageType: "invoice",
           });
           await log.save();

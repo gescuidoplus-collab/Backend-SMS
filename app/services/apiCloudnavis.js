@@ -186,8 +186,8 @@ export async function downloadInvoce(invoceID) {
       fs.mkdirSync(folderPath, { recursive: true });
     }
 
-    // Guardar el archivo PDF en el sistema de archivos
-    fs.writeFileSync(filePath, response.data);
+  // Guardar el archivo PDF en el sistema de archivos
+  fs.writeFileSync(filePath, response.data);
 
     // --- GENERAR URL PÚBLICA (Ajusta la URL base según tu entorno) ---
     const baseUrl = `${envConfig.apiUrl}/public`;
@@ -195,6 +195,7 @@ export async function downloadInvoce(invoceID) {
     return {
       localPath: filePath,
       publicUrl: publicUrl,
+      buffer: Buffer.from(response.data)
     };
   } catch (error) {
     console.error("Error al descargar y guardar la factura:", error.message);
@@ -226,18 +227,56 @@ export async function downloadPayrolls(payRollID) {
       fs.mkdirSync(folderPath, { recursive: true });
     }
 
-    // Guardar el archivo PDF en el sistema de archivos
-    fs.writeFileSync(filePath, response.data);
+  // Guardar el archivo PDF en el sistema de archivos
+  fs.writeFileSync(filePath, response.data);
     // --- GENERAR URL PÚBLICA (Ajusta la URL base según tu entorno) ---
     const baseUrl = `${envConfig.apiUrl}/public`;
     const publicUrl = `${baseUrl}/media/payrolls/${fileName}`;
     return {
       localPath: filePath,
       publicUrl: publicUrl,
+      buffer: Buffer.from(response.data)
     };
   } catch (error) {
     console.error("Error al descargar y guardar la nómina:", error.message);
     throw new Error("Error al descargar y guardar la nómina.");
+  }
+}
+
+// ==== NUEVAS FUNCIONES SIN GUARDAR EN DISCO (solo buffer) ====
+export async function fetchInvoiceBuffer(invoceID) {
+  try {
+    if (!invoceID) throw new Error('Parámetro inválido invoceID');
+    const response = await axiosInstance.get(
+      `${CLOUDNAVIS_BASE_URL}/edades/cuidofam/api/facturacion/download`,
+      {
+        params: { uuid: invoceID },
+        jar: cookieJar,
+        responseType: 'arraybuffer'
+      }
+    );
+    return Buffer.from(response.data);
+  } catch (error) {
+    console.error('Error fetchInvoiceBuffer:', error.message);
+    throw new Error('Error al descargar la factura.');
+  }
+}
+
+export async function fetchPayrollBuffer(payRollID) {
+  try {
+    if (!payRollID) throw new Error('Parámetro inválido payRollID');
+    const response = await axiosInstance.get(
+      `${CLOUDNAVIS_BASE_URL}/edades/cuidofam/api/nominas/download`,
+      {
+        params: { uuid: payRollID },
+        jar: cookieJar,
+        responseType: 'arraybuffer'
+      }
+    );
+    return Buffer.from(response.data);
+  } catch (error) {
+    console.error('Error fetchPayrollBuffer:', error.message);
+    throw new Error('Error al descargar la nómina.');
   }
 }
 

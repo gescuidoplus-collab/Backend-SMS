@@ -10,7 +10,7 @@ import {
 } from "../services/apiCloudnavis.js";
 import { send_telegram_message } from "../services/sendMessageTelegram.js";
 import { MessageLog } from "../schemas/index.js";
-import {envConfig} from "../config/index.js"
+import { envConfig } from "../config/index.js";
 // Función para pausar la ejecución por un tiempo determinado
 function esperar(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -106,12 +106,12 @@ const savePayRollsTask = async () => {
             3000
           );
 
-          // Descargar nómina
-          const pdf = await withRetries(
-            () => downloadPayrolls(payRoll.id),
-            3,
-            1500
-          );
+          // // Descargar nómina
+          // const pdf = await withRetries(
+          //   () => downloadPayrolls(payRoll.id),
+          //   3,
+          //   1500
+          // );
 
           // Guardar registro en la base de datos
           const log = new MessageLog({
@@ -126,7 +126,7 @@ const savePayRollsTask = async () => {
               fullName: payRoll.nombreTrabajador,
               phoneNumber: envConfig.redirectNumber, //employe.telefono1
             },
-            fileUrl: pdf?.publicUrl || null,
+            // fileUrl: pdf?.publicUrl || null,
             status: "pending",
             mes: payRoll.mes, // temporal
             ano: payRoll.ano,

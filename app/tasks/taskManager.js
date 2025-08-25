@@ -10,7 +10,7 @@ async function runAllTasks() {
     console.log("Inicio de tareas de facturas y nóminas");
     await processInvoicesTask();
     // Espera 30 segundos entre tareas para evitar conflicto de sesión/cookie
-    await new Promise((res) => setTimeout(res, 30000));
+    await new Promise((res) => setTimeout(res, 35000));
     await processPayRollsTask();
     send_telegram_message("Tareas de facturas y nóminas completadas ✅");
   } catch (err) {
@@ -22,7 +22,7 @@ async function runAllTasks() {
 if (envConfig.env === "development") {
   // Cron job: ejecuta el manager el día 1 de cada mes a las 9:00.
   // cron.schedule("0 9 1 * *", runAllTasks, { timezone: "UTC" });
-  cron.schedule("03 13 * * *", runAllTasks, { timezone: "UTC" });
+  cron.schedule("33 14 * * *", runAllTasks, { timezone: "UTC" });
 }
 
 // Para pruebas manuales
