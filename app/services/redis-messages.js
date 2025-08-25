@@ -58,10 +58,10 @@ async function processSingleMessage({
     }
     let fileURL = "";
     if (messageType === "payRoll") {
-      console.log(envConfig.apiUrl + "/api/v1/payrolls/" + log.id);
+      //console.log(envConfig.apiUrl + "/api/v1/payrolls/" + log.id);
       fileURL = envConfig.apiUrl + "/api/v1/payrolls/" + log.id;
     } else {
-      console.log(envConfig.apiUrl + "/api/v1/invoces/" + log.id);
+      // console.log(envConfig.apiUrl + "/api/v1/invoces/" + log.id);
       fileURL = envConfig.apiUrl + "/api/v1/invoces/" + log.id;
     }
 
