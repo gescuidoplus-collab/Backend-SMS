@@ -18,6 +18,7 @@ app.use(
       "http://localhost:3000",
       "http://localhost:3032",
       "https://frontend-sms.vercel.app",
+      "https://backend-sms-three.vercel.app"
     ],
     allowedHeaders: ["Content-Type", "Authorization"],
     optionsSuccessStatus: 200,
@@ -64,6 +65,7 @@ app.use(envConfig.urlPath, router);
 // Endpoint invocado por Vercel Cron Job (GET)
 app.get('/api/cron', async (req, res) => {
   try {
+    console.log('Cron job triggered');
     // Verifica user-agent de Vercel o un token opcional
     const ua = (req.headers['user-agent'] || '').toLowerCase();
     const isVercel = ua.includes('vercel-cron');
@@ -82,6 +84,7 @@ app.get('/api/cron', async (req, res) => {
 app.get('/api/cron-send', async (req, res) => {
   try {
     // Verifica user-agent de Vercel o un token opcional
+    console.log('Cron SEND job triggered');
     const ua = (req.headers['user-agent'] || '').toLowerCase();
     const isVercel = ua.includes('vercel-cron');
     const provided = req.headers['x-cron-secret'];

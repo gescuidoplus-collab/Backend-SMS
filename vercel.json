@@ -15,11 +15,11 @@
   "crons": [
     {
       "path": "/api/cron",
-  "schedule": "20 13 * * *"
+  "schedule": "27 13 * * *"
     },
     {
       "path": "/api/cron-send",
-      "schedule": "25 13 * * *"
+      "schedule": "29 13 * * *"
     }
   ]
 }
