@@ -65,12 +65,13 @@ async function processSingleMessage({
       fileURL = envConfig.apiUrl + "/api/v1/invoices/" + log.source;
     }
     //const result = await sendWhatsAppMessage(formattedNumber, personalizedMsg);
+    console.log(`Antes de enviar : ${fileURL}`)
     const result = await sendWhatsAppMessageWithPDF(
       formattedNumber,
       personalizedMsg,
       fileURL
     );
-
+    console.log(`Resultado de enviar a ${formattedNumber}:`, result);
     if (!result.success) {
       success = false;
       errorMsg = result.error;
