@@ -46,6 +46,14 @@ mongoClient();
 
 app.use("/public", express.static(path.join(process.cwd(), "public")));
 
+// Endpoint público para previsualizar la plantilla prueba.pdf sin autenticación
+app.get("/preview/prueba", (req, res) => {
+  const filePath = path.join(process.cwd(), "public", "prueba.pdf");
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", 'inline; filename="prueba.pdf"');
+  return res.sendFile(filePath);
+});
+
 createUser({
   email: envConfig.emailUser,
   password: envConfig.passwordUser,
