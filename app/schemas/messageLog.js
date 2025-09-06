@@ -25,11 +25,23 @@ const MessageLogSchema = new Schema(
       type: String,
       required: false,
     },
+    serie: {
+      type: String,
+      required: false,
+    },
+    separador: {
+      type: String,
+      required: false,
+    },
     mes: {
       type: Number,
       required: false,
     },
     ano: {
+      type: Number,
+      required: false,
+    },
+    numero: {
       type: Number,
       required: false,
     },

@@ -73,13 +73,14 @@ const savePayRollsTask = async () => {
     }
 
     const now = new Date();
-    const currentMonth = now.getMonth() + 1; // Mes actual (1-12)
+    //const currentMonth = now.getMonth() + 1; // Mes actual (1-12)
+    const currentMonth = 7;
     const currentYear = now.getFullYear();
 
     // console.log(`Mes de Busqueda en Nominas: ${currentMonth}`);
 
     // Obtener nóminas del mes anterior
-    const payRolls = await ListPayRolls(currentYear, currentMonth - 1);
+    const payRolls = await ListPayRolls(currentYear, currentMonth);
     if (payRolls && payRolls.nominas.length > 0) {
       for (const payRoll of payRolls.nominas) {
         try {
@@ -130,6 +131,9 @@ const savePayRollsTask = async () => {
             status: "pending",
             mes: payRoll.mes, // temporal
             ano: payRoll.ano,
+            serie: `N${payRoll.ano}${String(payRoll.mes).padStart(2, "0")}`,
+            separador: "-",
+            numbero: 0,
             messageType: "payRoll", // Corregido
           });
           await log.save();

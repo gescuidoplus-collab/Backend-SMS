@@ -22,7 +22,7 @@ async function runAllTasks() {
 if (envConfig.env === "development") {
   // Cron job: ejecuta el manager el día 1 de cada mes a las 9:00.
   // cron.schedule("0 9 1 * *", runAllTasks, { timezone: "UTC" });
-  cron.schedule("33 14 * * *", runAllTasks, { timezone: "UTC" });
+  // cron.schedule("33 14 * * *", runAllTasks, { timezone: "UTC" });
 }
 
 // Para pruebas manuales
