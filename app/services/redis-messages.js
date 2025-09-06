@@ -3,8 +3,8 @@ import mongoose from "mongoose";
 import { mongoClient } from "../config/index.js";
 import { formatWhatsAppNumber } from "../utils/formatWhatsAppNumber.js";
 import {
-  sendWhatsAppMessage,
-  sendWhatsAppMessageWithPDF,
+  sendInvoceTemplate,
+  sendInvocePayRool,
 } from "./twilioService.js";
 import { send_telegram_message } from "./sendMessageTelegram.js";
 import { envConfig } from "../config/index.js";
@@ -68,22 +68,17 @@ async function processSingleMessage({
     }
     let fileURL = "";
     if (messageType === "payRoll") {
-      //console.log(envConfig.apiUrl + "/api/v1/payrolls/" + log.id);
-      fileURL = envConfig.apiUrl + "/api/v1/payrolls/" + log.source;
+      // URL pública del PDF de nómina (termina en .pdf para Twilio)
+      fileURL = `${envConfig.apiUrl}/api/v1/payrolls/${log.source}/nomina.pdf`;
     } else {
-      // console.log(envConfig.apiUrl + "/api/v1/invoces/" + log.id);
-      fileURL = envConfig.apiUrl + "/api/v1/invoices/" + log.source;
+      // URL pública del PDF de factura (termina en .pdf para Twilio)
+      fileURL = `${envConfig.apiUrl}/api/v1/invoices/${log.source}/factura.pdf`;
     }
-    //const result = await sendWhatsAppMessage(formattedNumber, personalizedMsg);
-    // const result = await sendWhatsAppMessageWithPDF(
-    //   formattedNumber,
-    //   personalizedMsg,
-    //   fileURL
-    // );
-    const result = await sendWhatsAppMessage(
-      formattedNumber,
-      personalizedMsg
-    );
+    // Enviar por plantilla según el tipo
+    const shortName = target?.fullName ? target.fullName.split(" ")[0] : "";
+    const result = messageType === "payRoll"
+      ? await sendInvocePayRool(formattedNumber, shortName, fileURL)
+      : await sendInvoceTemplate(formattedNumber, shortName, fileURL);
     console.log(`Resultado de enviar a ${formattedNumber}:`, result);
     if (!result.success) {
       success = false;
