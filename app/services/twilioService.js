@@ -245,6 +245,7 @@ export const sendInvocePayRool = async (
       "Fallo al enviar por Content API, haciendo fallback a media estándar:",
       err.message
     );
+    return { success: false, error: error.message };
   }
 };
 
