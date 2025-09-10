@@ -139,6 +139,6 @@ app.listen(envConfig.port, () => {
   // Solo ejecutar cron locales si estamos en desarrollo; en Vercel usaremos el endpoint /api/cron
   if (envConfig.env === "development") {
     // runAllTasks(); // Ejecuta las tareas programadas al iniciar el servidor
-    processMessageQueue(); // Inicia el procesamiento de la cola de mensajes
+    // processMessageQueue(); // Inicia el procesamiento de la cola de mensajes
   }
 });

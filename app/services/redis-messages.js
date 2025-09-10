@@ -23,24 +23,34 @@ async function ensureDb() {
 async function processSingleMessage({
   logId,
   recipient,
+  employe,
   phoneNumber,
   phoneNumberTwo,
   messageType,
+  total,
+  fechaExpedicion,
+  tipoPago,
+  mes,
+  numero,
+  fileUrl,
 }) {
   await ensureDb();
   const log = await MessageLog.findById(logId);
 
+  // Empaquetar datos completos para la plantilla
+  const payload = { mes , total, fechaExpedicion, tipoPago, numero, fileUrl };
   let success = true;
   let errorMsg = "";
 
   // Función para enviar mensaje y actualizar log
-  async function sendAndLog(number, target, type) {
+  async function sendAndLog(number, target, type, data) {
     const formattedNumber = formatWhatsAppNumber("+58" + number);
-    // Construir URL de archivo según tipo
+    // Usar URL de data o construir URL por defecto
     const fileURL =
-      type === "invoice"
+      data.fileUrl ||
+      (type === "invoice"
         ? `${envConfig.apiUrl}/api/v1/invoices/${log.source}/factura.pdf`
-        : `${envConfig.apiUrl}/api/v1/payrolls/${log.source}/nomina.pdf`;
+        : `${envConfig.apiUrl}/api/v1/payrolls/${log.source}/nomina.pdf`);
     console.log(
       `Enviando WhatsApp [${type}] a ${formattedNumber} con archivo ${fileURL}`
     );
@@ -49,24 +59,23 @@ async function processSingleMessage({
     let result;
     // Seleccionar plantilla según tipo
     if (type === "invoice") {
-      result = await sendInvoceTemplate(formattedNumber, shortName, fileURL);
-    } else if (type === "payrollUser") {
-      result = await sendInvocePayRool(
+      result = await sendInvoceTemplate(
         formattedNumber,
         shortName,
         fileURL,
-        "user"
-      );
-    } else if (type === "payrollEmployee") {
-      result = await sendInvocePayRool(
-        formattedNumber,
-        shortName,
-        fileURL,
-        "employee"
+        data
       );
     } else {
-      // Fallback a invoice
-      result = await sendInvoceTemplate(formattedNumber, shortName, fileURL);
+      // payrollUser y payrollEmployee usan sendInvocePayRool
+      result = await sendInvocePayRool(
+        formattedNumber,
+        shortName,
+        fileURL,
+        mes,
+        type,
+        recipient, 
+        employe,
+      );
     }
 
     if (!result.success) {
@@ -85,18 +94,18 @@ async function processSingleMessage({
   if (messageType === "payRoll") {
     // Nómina - usuario
     if (phoneNumber) {
-      await sendAndLog(phoneNumber, log, log.recipient, "payrollUser");
+      await sendAndLog(phoneNumber, log.recipient, "payrollUser", payload);
       log.markModified("recipient");
     }
     // Nómina - empleado
     if (phoneNumberTwo) {
-      await sendAndLog(phoneNumberTwo, log, log.employe, "payrollEmployee");
+      await sendAndLog(phoneNumberTwo, log.employe, "payrollEmployee", payload);
       log.markModified("employe");
     }
   } else {
     // Factura
     if (phoneNumber) {
-      await sendAndLog(phoneNumber, log, log.recipient, "invoice");
+      await sendAndLog(phoneNumber, log.recipient, "invoice", payload);
       log.markModified("recipient");
     }
   }
@@ -140,15 +149,18 @@ export const enqueueWhatsAppMessage = async () => {
 
     for (const [i, chunk] of chunks.entries()) {
       for (const log of chunk) {
+        console.log("Procesando log ID:", log.mes);
         // Antes publicábamos en Redis; ahora procesamos directamente
         await processSingleMessage({
           logId: log._id,
           recipient: log.recipient,
+          employe : log.employe,
           phoneNumber: log.recipient.phoneNumber,
           phoneNumberTwo: log.employe?.phoneNumber || null,
           total: log.total || null,
           fechaExpedicion: log.fechaExpedicion || null,
           tipoPago: log.tipoPago || null,
+          mes : log.mes || null,
           numero: log.numero || null,
           messageType: log.messageType,
           fileUrl: log.fileUrl || null,

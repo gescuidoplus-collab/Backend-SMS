@@ -96,17 +96,37 @@ export const sendWhatsAppMessageWithPDF = async (to, message, mediaUrl) => {
  * @param {string} name - Nombre del destinatario para variables de plantilla
  * @param {string} mediaUrl - URL pública de la media (PDF/imagen)
  */
-export const sendInvoceTemplate = async (to, name, mediaUrl) => {
+export const sendInvoceTemplate = async (to, name, mediaUrl, data) => {
+  const { mes, numero, total, fechaExpedicion } = data || {};
   // Ejemplo de SID de plantilla de Twilio Content (reemplace por el real en producción)
   // Puede configurarse vía variable de entorno para producción: TWILIO_INVOICE_CONTENT_SID
   const contentSidExample =
     envConfig.twilioInvoiceContentSid || "HXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"; // ejemplo
 
+  // Convertir mes numérico a nombre en español
+  const monthNumber = parseInt(mes, 10);
+  const monthNames = [
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre",
+  ];
+  const monthName =
+    Number.isInteger(monthNumber) && monthNumber >= 1 && monthNumber <= 12
+      ? monthNames[monthNumber - 1]
+      : String(mes);
+
   // Asegurar prefijo whatsapp:
   const toWhatsApp = formatWhatsAppNumber(to);
-
   try {
-    // Intento con Content API (si el SID de ejemplo no ha sido reemplazado, Twilio lo rechazará)
     if (contentSidExample && !contentSidExample.startsWith("HX")) {
       const result = await client.messages.create({
         from: envConfig.twilioWhatsappNumber,
@@ -114,10 +134,10 @@ export const sendInvoceTemplate = async (to, name, mediaUrl) => {
         contentSid: contentSidExample,
         contentVariables: JSON.stringify({
           1: name,
-          2: "",
-          3: "",
-          4: "",
-          5: "",
+          2: monthName,
+          3: numero,
+          4: total,
+          5: fechaExpedicion,
         }),
         mediaUrl: [mediaUrl],
       });
@@ -128,20 +148,6 @@ export const sendInvoceTemplate = async (to, name, mediaUrl) => {
       "Fallo al enviar por Content API, haciendo fallback a media estándar:",
       err.message
     );
-  }
-
-  // Fallback moderno: mensaje con mediaUrl y copy usable
-  try {
-    const result = await client.messages.create({
-      from: envConfig.twilioWhatsappNumber,
-      to: toWhatsApp,
-      body: `Hola ${name}, aquí tienes tu factura en formato PDF.`,
-      mediaUrl: [mediaUrl],
-    });
-    return { success: true, messageId: result.sid, status: result.status };
-  } catch (error) {
-    console.error(`Error al enviar plantilla de factura: ${error.message}`);
-    return { success: false, error: error.message };
   }
 };
 
@@ -153,34 +159,83 @@ export const sendInvoceTemplate = async (to, name, mediaUrl) => {
  * @param {string} name - Nombre del destinatario para variables de plantilla
  * @param {string} mediaUrl - URL pública de la media (PDF/imagen)
  */
-export const sendInvocePayRool = async (to, name, mediaUrl, type) => {
+export const sendInvocePayRool = async (
+  to,
+  name,
+  mediaUrl,
+  mes,
+  type,
+  recipient,
+  employe
+) => {
+  const monthNumber = parseInt(mes, 10);
+  const monthNames = [
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre",
+  ];
+  const currentYear = new Date().getFullYear();
+  const monthName =
+    Number.isInteger(monthNumber) && monthNumber >= 1 && monthNumber <= 12
+      ? `${monthNames[monthNumber - 1]} ${currentYear}`
+      : `${String(mes)} ${currentYear}`;
+
   // Ejemplo de SID de plantilla de Twilio Content (reemplace por el real en producción)
   // Puede configurarse vía variable de entorno para producción: TWILIO_PAYROLL_CONTENT_SID
   let contentSidExample = null;
-  if (type === "user") {
+  let payload = {};
+  if (type === "payrollUser") {
     contentSidExample =
       envConfig.twilioPayrollContentSid || "HXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"; // ejemplo
-  } else if (type === "employee") {
+    payload = (() => {
+      const firstAndThird = (fullName) => {
+        if (!fullName) return "";
+        const parts = String(fullName).trim().split(/\s+/).filter(Boolean);
+        const first = parts[0] || "";
+        const third = parts[2] || "";
+        return [first, third].filter(Boolean).join(" ");
+      };
+      return {
+        1: firstAndThird(recipient?.fullName),
+        2: firstAndThird(employe?.fullName),
+        3: monthName,
+      };
+    })();
+  } else if (type === "payrollEmployee") {
     contentSidExample =
       envConfig.twilioPayrollContentSidEmploye ||
       "HXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"; // ejemplo
+    payload = (() => {
+      const firstAndThird = (fullName) => {
+        if (!fullName) return "";
+        const parts = String(fullName).trim().split(/\s+/).filter(Boolean);
+        const first = parts[0] || "";
+        const third = parts[2] || "";
+        return [first, third].filter(Boolean).join(" ");
+      };
+      return {
+        1: firstAndThird(employe?.fullName),
+        2: monthName,
+      };
+    })();
   }
-
   const toWhatsApp = formatWhatsAppNumber(to);
-
   try {
     if (contentSidExample && !contentSidExample.startsWith("HX")) {
       const result = await client.messages.create({
         from: envConfig.twilioWhatsappNumber,
         to: toWhatsApp,
-        contentSid: contentSidExample, // ejemplo de uso de plantilla (Content API)
-        contentVariables: JSON.stringify({
-          1: name,
-          2: "",
-          3: "",
-          4: "",
-          5: "",
-        }),
+        contentSid: contentSidExample,
+        contentVariables: JSON.stringify(payload),
         mediaUrl: [mediaUrl],
       });
       return { success: true, messageId: result.sid, status: result.status };
@@ -190,19 +245,6 @@ export const sendInvocePayRool = async (to, name, mediaUrl, type) => {
       "Fallo al enviar por Content API, haciendo fallback a media estándar:",
       err.message
     );
-  }
-
-  try {
-    const result = await client.messages.create({
-      from: envConfig.twilioWhatsappNumber,
-      to: toWhatsApp,
-      body: `Hola ${name}, aquí tienes tu comprobante de nómina en PDF.`,
-      mediaUrl: [mediaUrl],
-    });
-    return { success: true, messageId: result.sid, status: result.status };
-  } catch (error) {
-    console.error(`Error al enviar plantilla de nómina: ${error.message}`);
-    return { success: false, error: error.message };
   }
 };
 
