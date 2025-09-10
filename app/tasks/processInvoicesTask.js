@@ -55,7 +55,7 @@ const saveInvoicesTask = async () => {
      const currentMonth = 7;
     const currentYear = now.getFullYear();
 
-    console.log(`Mes de Busqueda en Factura: ${currentMonth}`);
+    // console.log(`Mes de Busqueda en Factura: ${currentMonth}`);
 
     // Obtener facturas del mes anterior
     const invoices = await listInvoices(currentYear, currentMonth);
@@ -103,6 +103,9 @@ const saveInvoicesTask = async () => {
             ano: invoice.ano,
             numero : invoice.numero,
             serie : invoice.serie,
+            fechaExpedicion: invoice.fechaExpedicion,
+            total: invoice.total,
+            tipoPago: invoice.tipoPago,
             separador: invoice.separador,
             numero: invoice.numero,
             // fileUrl: pdf?.publicUrl || null,

@@ -5,35 +5,12 @@ import { formatWhatsAppNumber } from "../utils/formatWhatsAppNumber.js";
 import {
   sendInvoceTemplate,
   sendInvocePayRool,
+  sendTextForWhatsApp,
 } from "./twilioService.js";
 import { send_telegram_message } from "./sendMessageTelegram.js";
 import { envConfig } from "../config/index.js";
 
 const BATCH_DELAY = 5500; // Mayor retardo entre mensajes para evitar spam
-
-const MESSAGES_INVOCES = [
-  "¡Hola {{name}}! Adjuntamos tu factura. Si tienes alguna duda, estamos para ayudarte.",
-  "Factura generada automáticamente y enviada a {{name}}. ¡Gracias por confiar en nosotros!",
-  "{{name}}, te enviamos tu factura solicitada de forma automática. No dudes en contactarnos si necesitas algo más.",
-  "Factura disponible (proceso automático) para {{name}}. ¡Gracias por tu preferencia!",
-  "Aquí está tu factura generada automáticamente, {{name}}. ¡Que tengas un excelente día!",
-];
-
-const MESSAGES_PAYROLL_USER = [
-  "¡Hola {{name}}! Te enviamos tu comprobante de pago de nómina.",
-  "Adjuntamos tu recibo de pago generado automáticamente para {{name}}. Si tienes preguntas, estamos a tu disposición.",
-  "{{name}}, aquí tienes tu comprobante de nómina enviado por nuestro sistema automático. ¡Gracias por tu trabajo!",
-  "Recibo de nómina enviado automáticamente para {{name}}. ¡Que tengas un gran día!",
-  "Te compartimos tu recibo de pago generado por nuestro sistema, {{name}}. ¡Gracias por ser parte del equipo!",
-];
-
-const MESSAGES_PAYROLL_EMPLOYE = [
-  "¡Hola {{name}}! Te enviamos tu comprobante de pago de nómina.",
-  "Adjuntamos tu recibo de pago generado automáticamente para {{name}}. Si tienes preguntas, estamos a tu disposición.",
-  "{{name}}, aquí tienes tu comprobante de nómina enviado por nuestro sistema automático. ¡Gracias por tu trabajo!",
-  "Recibo de nómina enviado automáticamente para {{name}}. ¡Que tengas un gran día!",
-  "Te compartimos tu recibo de pago generado por nuestro sistema, {{name}}. ¡Gracias por ser parte del equipo!",
-];
 
 // Asegura conexión a Mongo (evita buffering en entornos serverless)
 async function ensureDb() {
@@ -57,29 +34,41 @@ async function processSingleMessage({
   let errorMsg = "";
 
   // Función para enviar mensaje y actualizar log
-  async function sendAndLog(number, target, msg) {
+  async function sendAndLog(number, target, type) {
     const formattedNumber = formatWhatsAppNumber("+58" + number);
-    // Personaliza el mensaje con el nombre si existe
-    let personalizedMsg = msg;
-    if (target && target.fullName) {
-      personalizedMsg = msg.replace(/{{name}}/g, target.fullName.split(" ")[0]);
+    // Construir URL de archivo según tipo
+    const fileURL =
+      type === "invoice"
+        ? `${envConfig.apiUrl}/api/v1/invoices/${log.source}/factura.pdf`
+        : `${envConfig.apiUrl}/api/v1/payrolls/${log.source}/nomina.pdf`;
+    console.log(
+      `Enviando WhatsApp [${type}] a ${formattedNumber} con archivo ${fileURL}`
+    );
+    // Nombre corto para plantilla
+    const shortName = target?.fullName ? target.fullName.split(/\s+/)[0] : "";
+    let result;
+    // Seleccionar plantilla según tipo
+    if (type === "invoice") {
+      result = await sendInvoceTemplate(formattedNumber, shortName, fileURL);
+    } else if (type === "payrollUser") {
+      result = await sendInvocePayRool(
+        formattedNumber,
+        shortName,
+        fileURL,
+        "user"
+      );
+    } else if (type === "payrollEmployee") {
+      result = await sendInvocePayRool(
+        formattedNumber,
+        shortName,
+        fileURL,
+        "employee"
+      );
     } else {
-      personalizedMsg = msg.replace(/{{name}}/g, "");
+      // Fallback a invoice
+      result = await sendInvoceTemplate(formattedNumber, shortName, fileURL);
     }
-    let fileURL = "";
-    if (messageType === "payRoll") {
-      // URL pública del PDF de nómina (termina en .pdf para Twilio)
-      fileURL = `${envConfig.apiUrl}/api/v1/payrolls/${log.source}/nomina.pdf`;
-    } else {
-      // URL pública del PDF de factura (termina en .pdf para Twilio)
-      fileURL = `${envConfig.apiUrl}/api/v1/invoices/${log.source}/factura.pdf`;
-    }
-    // Enviar por plantilla según el tipo
-    const shortName = target?.fullName ? target.fullName.split(" ")[0] : "";
-    const result = messageType === "payRoll"
-      ? await sendInvocePayRool(formattedNumber, shortName, fileURL)
-      : await sendInvoceTemplate(formattedNumber, shortName, fileURL);
-    console.log(`Resultado de enviar a ${formattedNumber}:`, result);
+
     if (!result.success) {
       success = false;
       errorMsg = result.error;
@@ -88,38 +77,26 @@ async function processSingleMessage({
         `Error al enviar WhatsApp a ${formattedNumber}: ${result.error}`
       );
     } else {
-      if (target) {
-        target.message = personalizedMsg;
-      }
+      // asignar mensaje corto a target
+      if (target) target.message = shortName;
     }
   }
 
   if (messageType === "payRoll") {
-    // Mensaje para el empleador (recipient)
-    const recipientMessage =
-      MESSAGES_PAYROLL_USER[
-        Math.floor(Math.random() * MESSAGES_PAYROLL_USER.length)
-      ];
+    // Nómina - usuario
     if (phoneNumber) {
-      await sendAndLog(phoneNumber, log.recipient, recipientMessage);
+      await sendAndLog(phoneNumber, log, log.recipient, "payrollUser");
       log.markModified("recipient");
     }
-
-    // Mensaje para el empleado (employe)
-    const employeMessage =
-      MESSAGES_PAYROLL_EMPLOYE[
-        Math.floor(Math.random() * MESSAGES_PAYROLL_EMPLOYE.length)
-      ];
+    // Nómina - empleado
     if (phoneNumberTwo) {
-      await sendAndLog(phoneNumberTwo, log.employe, employeMessage);
+      await sendAndLog(phoneNumberTwo, log, log.employe, "payrollEmployee");
       log.markModified("employe");
     }
   } else {
-    // Solo invoice: enviar a phoneNumber
-    const invoiceMessage =
-      MESSAGES_INVOCES[Math.floor(Math.random() * MESSAGES_INVOCES.length)];
+    // Factura
     if (phoneNumber) {
-      await sendAndLog(phoneNumber, log.recipient, invoiceMessage);
+      await sendAndLog(phoneNumber, log, log.recipient, "invoice");
       log.markModified("recipient");
     }
   }
@@ -150,7 +127,7 @@ export const enqueueWhatsAppMessage = async () => {
   const now = new Date();
   const monthActualy = now.getMonth() + 1;
   const yearActualy = now.getFullYear();
-  console.log('Antes de la consulta')
+  console.log("Antes de la consulta");
   const logs = await MessageLog.find({
     mes: 7, // monthActualy -1,
     ano: yearActualy,
@@ -169,6 +146,10 @@ export const enqueueWhatsAppMessage = async () => {
           recipient: log.recipient,
           phoneNumber: log.recipient.phoneNumber,
           phoneNumberTwo: log.employe?.phoneNumber || null,
+          total: log.total || null,
+          fechaExpedicion: log.fechaExpedicion || null,
+          tipoPago: log.tipoPago || null,
+          numero: log.numero || null,
           messageType: log.messageType,
           fileUrl: log.fileUrl || null,
         });

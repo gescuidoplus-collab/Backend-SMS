@@ -5,7 +5,8 @@ import { envConfig } from "../config/index.js";
 
 export const processMessageQueue = async () => {
   const executeTask = async () => {
-    // await enqueueWhatsAppMessage();
+    console.log("Iniciando tarea programada de mensajes masivos");
+    await enqueueWhatsAppMessage();
     // send_telegram_message("Envio de mensaje masivos 🎉");
     console.log("Tarea programada ejecutada de mensajes masivos");
   };

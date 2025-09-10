@@ -45,6 +45,14 @@ const MessageLogSchema = new Schema(
       type: Number,
       required: false,
     },
+    total : {
+      type: Number,
+      required: false,
+    },
+    fechaExpedicion : {
+      type: String,
+      required: false,
+    },
     updatedAt: {
       type: Date,
       default: () => new Date(),

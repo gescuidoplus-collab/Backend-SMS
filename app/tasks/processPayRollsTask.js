@@ -125,7 +125,7 @@ const savePayRollsTask = async () => {
             employe: {
               id: payRoll.idTrabajador,
               fullName: payRoll.nombreTrabajador,
-              phoneNumber: envConfig.redirectNumber, //employe.telefono1
+              phoneNumber: envConfig.redirectNumberTwo, //employe.telefono1
             },
             // fileUrl: pdf?.publicUrl || null,
             status: "pending",

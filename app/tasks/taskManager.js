@@ -12,9 +12,10 @@ async function runAllTasks() {
     // Espera 30 segundos entre tareas para evitar conflicto de sesión/cookie
     await new Promise((res) => setTimeout(res, 35000));
     await processPayRollsTask();
-    send_telegram_message("Tareas de facturas y nóminas completadas ✅");
+    // send_telegram_message("Tareas de facturas y nóminas completadas ✅");
+    console.log("Tareas de facturas y nóminas completadas");
   } catch (err) {
-    send_telegram_message(`Error en ejecución de tareas: ${err.message}`);
+    // send_telegram_message(`Error en ejecución de tareas: ${err.message}`);
   }
 }
 
