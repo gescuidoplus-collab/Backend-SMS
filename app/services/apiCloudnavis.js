@@ -179,7 +179,7 @@ export async function downloadInvoce(invoceID) {
 
     // --- RUTA DE GUARDADO ---
     const folderPath = path.join(process.cwd(), "public", "media", "pdfs");
-    const fileName = `factura_${uuidv4()}.pdf`;
+    const fileName = `${uuidv4()}.pdf`;
     const filePath = path.join(folderPath, fileName);
 
     if (!fs.existsSync(folderPath)) {

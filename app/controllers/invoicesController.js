@@ -6,6 +6,27 @@ import {
 } from '../services/apiCloudnavis.js';
 import { MessageLog } from '../schemas/index.js';
 
+// Función para pausar la ejecución por un tiempo determinado
+function esperar(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Función genérica para manejar reintentos
+async function withRetries(task, maxRetries, delay) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await task();
+    } catch (error) {
+      if (attempt < maxRetries - 1) {
+        console.log(`Reintento ${attempt + 1}/${maxRetries} fallido. Esperando...`);
+        await esperar(delay);
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+
 // Descarga una factura puntual y retorna el PDF directamente
 export const downloadInvoicePdf = async (req, res) => {
   const { id } = req.params; // uuid de la factura
@@ -14,18 +35,20 @@ export const downloadInvoicePdf = async (req, res) => {
   }
 
   try {
-    const cookieStatus = await setCookie();
+    const cookieStatus = await withRetries(setCookie, 3, 3000);
     if (cookieStatus !== 200) {
       return res.status(500).json({ message: 'No se pudo establecer la cookie de sesión' });
     }
 
-    const loginStatus = await loginCloudnavis();
+    const loginStatus = await withRetries(loginCloudnavis, 3, 3000);
     if (loginStatus !== 200) {
       return res.status(500).json({ message: 'No se pudo iniciar sesión en CloudNavis' });
     }
 
   // Buscar metadata en MessageLog usando source = id
-  let filename = `factura_${id}.pdf`;
+  // Generar nombre por defecto con timestamp
+  const timestamp = new Date().toISOString().replace(/[:.\-]/g, '');
+  let filename = `factura_${timestamp}.pdf`;
   try {
     const log = await MessageLog.findOne(
       { source: id },
@@ -51,7 +74,7 @@ export const downloadInvoicePdf = async (req, res) => {
     // Si falla la consulta, continuamos con el nombre por defecto
   }
 
-  const buffer = await fetchInvoiceBuffer(id);
+  const buffer = await withRetries(() => fetchInvoiceBuffer(id), 3, 3000);
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
   return res.status(200).end(buffer);
