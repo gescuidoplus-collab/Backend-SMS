@@ -154,7 +154,7 @@ export const enqueueWhatsAppMessage = async () => {
     mes: 7, // monthActualy -1,
     ano: yearActualy,
     status: "pending",
-    messageType: { $in: ["payRoll", "invoice"] },
+    messageType: { $in: ["payRoll",] }, // "invoice"
   })
 
   console.log("🏠 Mensajes a Enviar:", logs.length);
