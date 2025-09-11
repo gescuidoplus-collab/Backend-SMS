@@ -38,7 +38,7 @@ async function processSingleMessage({
   const log = await MessageLog.findById(logId);
 
   // Empaquetar datos completos para la plantilla
-  const payload = { mes , total, fechaExpedicion, tipoPago, numero, fileUrl };
+  const payload = { mes: log.mes ?? null, numero, total, fechaExpedicion, fileUrl, recipient: log.recipient, employe: log.employe };
   let success = true;
   let errorMsg = "";
 
@@ -46,46 +46,44 @@ async function processSingleMessage({
   async function sendAndLog(number, target, type, data) {
     const formattedNumber = formatWhatsAppNumber("+58" + number);
     // Usar URL de data o construir URL por defecto
-    const fileURL =
-      data.fileUrl ||
-      (type === "invoice"
+    const fileURL = data.fileUrl
+      || (type === "invoice"
         ? `${envConfig.apiUrl}/api/v1/invoices/${log.source}/factura.pdf`
         : `${envConfig.apiUrl}/api/v1/payrolls/${log.source}/nomina.pdf`);
-    // console.log(
-    //   `🤠 Enviando WhatsApp [${type}] a ${formattedNumber} con archivo ${fileURL}`
-    // );
+    console.log(
+      `Enviando WhatsApp [${type}] a ${formattedNumber} con archivo ${fileURL}`
+    );
     // Nombre corto para plantilla
     const shortName = target?.fullName ? target.fullName.split(/\s+/)[0] : "";
     let result;
     // Seleccionar plantilla según tipo
-    if (type === "invoice") {
-      result = await sendInvoceTemplate(
-        formattedNumber,
-        shortName,
-        fileURL,
-        data
-      );
-    } else {
-      // payrollUser y payrollEmployee usan sendInvocePayRool
-      result = await sendInvocePayRool(
-        formattedNumber,
-        shortName,
-        fileURL,
-        mes,
-        type,
-        recipient, 
-        employe,
-      );
+    try {
+      if (type === "invoice") {
+        result = await sendInvoceTemplate(formattedNumber, shortName, fileURL, data);
+      } else if (type === 'payrollUser' || type === 'payrollEmployee') {
+        result = await sendInvocePayRool(
+          formattedNumber,
+          shortName,
+          fileURL,
+          data.mes ?? log.mes,
+          type,
+          data.recipient ?? log.recipient,
+          data.employe ?? log.employe
+        );
+      } else {
+        result = { success: false, error: 'Tipo de plantilla no soportado' };
+      }
+    } catch (err) {
+      console.error('Error enviando plantilla:', err);
+      result = { success: false, error: err?.message || String(err) };
     }
 
-    // console.log("❌ Resultado:", result);
-
-    if (!result.success) {
+    if (!result?.success) {
       success = false;
-      errorMsg = result.error;
+      errorMsg = result?.error || 'Unknown error';
       // Reportar el error a Telegram para monitoreo
       send_telegram_message(
-        `Error al enviar WhatsApp a ${formattedNumber}: ${result.error}`
+        `Error al enviar WhatsApp a ${formattedNumber}: ${errorMsg}`
       );
     } else {
       // asignar mensaje corto a target

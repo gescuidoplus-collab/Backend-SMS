@@ -97,14 +97,11 @@ export const sendWhatsAppMessageWithPDF = async (to, message, mediaUrl) => {
  * @param {string} mediaUrl - URL pública de la media (PDF/imagen)
  */
 export const sendInvoceTemplate = async (to, name, mediaUrl, data) => {
-  debugger;
   const { mes, numero, total, fechaExpedicion } = data || {};
-  // Ejemplo de SID de plantilla de Twilio Content (reemplace por el real en producción)
-  // Puede configurarse vía variable de entorno para producción: TWILIO_INVOICE_CONTENT_SID
   const contentSidExample =
     envConfig.twilioInvoiceContentSid || "HXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"; // ejemplo
 
-  // Convertir mes numérico a nombre en español
+  // Convertir mes numérico a nombre en español y capitalizar
   const monthNumber = parseInt(mes, 10);
   const monthNames = [
     "enero",
@@ -120,26 +117,51 @@ export const sendInvoceTemplate = async (to, name, mediaUrl, data) => {
     "noviembre",
     "diciembre",
   ];
-  const monthName =
-    Number.isInteger(monthNumber) && monthNumber >= 1 && monthNumber <= 12
-      ? monthNames[monthNumber - 1]
-      : String(mes);
+  let monthName = typeof mes === "string" ? mes : "";
+  if (Number.isInteger(monthNumber) && monthNumber >= 1 && monthNumber <= 12) {
+    monthName = monthNames[monthNumber - 1];
+  }
+  // Capitalizar primera letra (p.e. Septiembre)
+  monthName = monthName ? monthName.charAt(0).toUpperCase() + monthName.slice(1) : "";
 
-  // Asegurar prefijo whatsapp:
+  // Normalizar valores a string y formatos esperados por la plantilla
+  const safeName = String(name ?? "");
+  const safeNumero = numero != null && numero !== undefined ? String(numero) : "";
+  const safeTotal = (() => {
+    const n = Number(total);
+    return Number.isFinite(n) ? n.toFixed(2) : String(total ?? "");
+  })();
+  const safeFecha = (() => {
+    if (!fechaExpedicion) return "";
+    try {
+      const d = new Date(fechaExpedicion);
+      if (isNaN(d.getTime())) return String(fechaExpedicion);
+      return d.toISOString().slice(0, 10); // YYYY-MM-DD
+    } catch {
+      return String(fechaExpedicion);
+    }
+  })();
+
   const toWhatsApp = formatWhatsAppNumber(to);
   try {
     if (contentSidExample && contentSidExample.startsWith("HX")) {
+      const vars = {
+        1: safeName,
+        2: monthName,
+        3: safeNumero,
+        4: safeTotal,
+        5: safeFecha,
+      };
+      // Log de debug acotado
+      if (process.env.NODE_ENV !== 'production') {
+        console.log("Twilio Invoice ContentVars:", vars);
+        console.log("Twilio Invoice mediaUrl:", mediaUrl);
+      }
       const result = await client.messages.create({
         from: envConfig.twilioWhatsappNumber,
         to: toWhatsApp,
         contentSid: contentSidExample,
-        contentVariables: JSON.stringify({
-          1: name,
-          2: monthName,
-          3: numero,
-          4: total,
-          5: fechaExpedicion,
-        }),
+        contentVariables: JSON.stringify(vars),
         mediaUrl: [mediaUrl],
       });
       return { success: true, messageId: result.sid, status: result.status };
@@ -149,7 +171,8 @@ export const sendInvoceTemplate = async (to, name, mediaUrl, data) => {
   } catch (err) {
     console.warn(
       "Fallo al enviar por Content API, haciendo fallback a media estándar:",
-      err.message
+      err.message,
+      { to: toWhatsApp, contentSid: contentSidExample }
     );
     return { success: false, error: err.message };
   }
@@ -188,53 +211,44 @@ export const sendInvocePayRool = async (
     "diciembre",
   ];
   const currentYear = new Date().getFullYear();
-  const monthName =
-    Number.isInteger(monthNumber) && monthNumber >= 1 && monthNumber <= 12
-      ? `${monthNames[monthNumber - 1]} ${currentYear}`
-      : `${String(mes)} ${currentYear}`;
+  let monthName = typeof mes === 'string' ? mes : '';
+  if (Number.isInteger(monthNumber) && monthNumber >= 1 && monthNumber <= 12) {
+    monthName = `${monthNames[monthNumber - 1]} ${currentYear}`;
+  } else if (monthName) {
+    monthName = `${monthName} ${currentYear}`;
+  }
 
-  // Ejemplo de SID de plantilla de Twilio Content (reemplace por el real en producción)
-  // Puede configurarse vía variable de entorno para producción: TWILIO_PAYROLL_CONTENT_SID
   let contentSidExample = null;
   let payload = {};
+  const firstAndThird = (fullName) => {
+    if (!fullName) return "";
+    const parts = String(fullName).trim().split(/\s+/).filter(Boolean);
+    const first = parts[0] || "";
+    const third = parts[2] || "";
+    return [first, third].filter(Boolean).join(" ");
+  };
+
   if (type === "payrollUser") {
-    contentSidExample =
-      envConfig.twilioPayrollContentSid || "HXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"; // ejemplo
-    payload = (() => {
-      const firstAndThird = (fullName) => {
-        if (!fullName) return "";
-        const parts = String(fullName).trim().split(/\s+/).filter(Boolean);
-        const first = parts[0] || "";
-        const third = parts[2] || "";
-        return [first, third].filter(Boolean).join(" ");
-      };
-      return {
-        1: firstAndThird(recipient?.fullName),
-        2: firstAndThird(employe?.fullName),
-        3: monthName,
-      };
-    })();
+    contentSidExample = envConfig.twilioPayrollContentSid || "HXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+    payload = {
+      1: String(firstAndThird(recipient?.fullName)),
+      2: String(firstAndThird(employe?.fullName)),
+      3: String(monthName),
+    };
   } else if (type === "payrollEmployee") {
-    contentSidExample =
-      envConfig.twilioPayrollContentSidEmploye ||
-      "HXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"; // ejemplo
-    payload = (() => {
-      const firstAndThird = (fullName) => {
-        if (!fullName) return "";
-        const parts = String(fullName).trim().split(/\s+/).filter(Boolean);
-        const first = parts[0] || "";
-        const third = parts[2] || "";
-        return [first, third].filter(Boolean).join(" ");
-      };
-      return {
-        1: firstAndThird(employe?.fullName),
-        2: monthName,
-      };
-    })();
+    contentSidExample = envConfig.twilioPayrollContentSidEmploye || "HXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+    payload = {
+      1: String(firstAndThird(employe?.fullName)),
+      2: String(monthName),
+    };
   }
+
   const toWhatsApp = formatWhatsAppNumber(to);
   try {
     if (contentSidExample && contentSidExample.startsWith("HX")) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log("Twilio Payroll ContentVars:", payload, "type:", type);
+      }
       const result = await client.messages.create({
         from: envConfig.twilioWhatsappNumber,
         to: toWhatsApp,
@@ -249,7 +263,8 @@ export const sendInvocePayRool = async (
   } catch (err) {
     console.warn(
       "Fallo al enviar por Content API, haciendo fallback a media estándar:",
-      err.message
+      err.message,
+      { to: toWhatsApp, contentSid: contentSidExample, type }
     );
     return { success: false, error: err.message };
   }
