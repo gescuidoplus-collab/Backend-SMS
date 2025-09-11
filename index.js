@@ -116,29 +116,10 @@ app.get("/api/cron-send", async (req, res) => {
   }
 });
 
-// Endpoint opcional para limpieza de media (invocado por Vercel Cron si se desea)
-app.get("/api/cron-clean-media", async (req, res) => {
-  try {
-    console.log("Cron CLEAN MEDIA triggered");
-    const ua = (req.headers["user-agent"] || "").toLowerCase();
-    const isVercel = ua.includes("vercel-cron");
-    const provided = req.headers["x-cron-secret"];
-    if (!isVercel && envConfig.cronSecret && provided !== envConfig.cronSecret) {
-      return res.status(401).json({ ok: false, error: "unauthorized" });
-    }
-    await runCleanupMedia();
-    res.json({ ok: true, runAt: new Date().toISOString(), cleaned: true });
-  } catch (e) {
-    console.error("Cron clean media error", e);
-    res.status(500).json({ ok: false, error: e.message });
-  }
-});
-
 app.listen(envConfig.port, () => {
   console.log(`Running in proyect port : ${envConfig.port}`);
-  // Solo ejecutar cron locales si estamos en desarrollo; en Vercel usaremos el endpoint /api/cron
   if (envConfig.env === "development") {
     // runAllTasks(); // Ejecuta las tareas programadas al iniciar el servidor
-    // processMessageQueue(); // Inicia el procesamiento de la cola de mensajes
+    processMessageQueue(); // Inicia el procesamiento de la cola de mensajes
   }
 });

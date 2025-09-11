@@ -2,11 +2,8 @@ import { MessageLog } from "../schemas/index.js";
 import mongoose from "mongoose";
 import { mongoClient } from "../config/index.js";
 import { formatWhatsAppNumber } from "../utils/formatWhatsAppNumber.js";
-import {
-  sendInvoceTemplate,
-  sendInvocePayRool,
-  sendTextForWhatsApp,
-} from "./twilioService.js";
+import { sendInvoceTemplate } from "./send-template-invoce.js";
+import { sendInvocePayRool } from "./send-template-payroll.js";
 import { send_telegram_message } from "./sendMessageTelegram.js";
 import { envConfig } from "../config/index.js";
 
@@ -38,7 +35,15 @@ async function processSingleMessage({
   const log = await MessageLog.findById(logId);
 
   // Empaquetar datos completos para la plantilla
-  const payload = { mes: log.mes ?? null, numero, total, fechaExpedicion, fileUrl, recipient: log.recipient, employe: log.employe };
+  const payload = {
+    mes: log.mes ?? null,
+    numero,
+    total,
+    fechaExpedicion,
+    fileUrl,
+    recipient: log.recipient,
+    employe: log.employe,
+  };
   let success = true;
   let errorMsg = "";
 
@@ -46,8 +51,9 @@ async function processSingleMessage({
   async function sendAndLog(number, target, type, data) {
     const formattedNumber = formatWhatsAppNumber("+58" + number);
     // Usar URL de data o construir URL por defecto
-    const fileURL = data.fileUrl
-      || (type === "invoice"
+    const fileURL =
+      data.fileUrl ||
+      (type === "invoice"
         ? `${envConfig.apiUrl}/api/v1/invoices/${log.source}/factura.pdf`
         : `${envConfig.apiUrl}/api/v1/payrolls/${log.source}/nomina.pdf`);
     console.log(
@@ -59,8 +65,13 @@ async function processSingleMessage({
     // Seleccionar plantilla según tipo
     try {
       if (type === "invoice") {
-        result = await sendInvoceTemplate(formattedNumber, shortName, fileURL, data);
-      } else if (type === 'payrollUser' || type === 'payrollEmployee') {
+        result = await sendInvoceTemplate(
+          formattedNumber,
+          shortName,
+          fileURL,
+          data
+        );
+      } else if (type === "payrollUser" || type === "payrollEmployee") {
         result = await sendInvocePayRool(
           formattedNumber,
           shortName,
@@ -71,16 +82,16 @@ async function processSingleMessage({
           data.employe ?? log.employe
         );
       } else {
-        result = { success: false, error: 'Tipo de plantilla no soportado' };
+        result = { success: false, error: "Tipo de plantilla no soportado" };
       }
     } catch (err) {
-      console.error('Error enviando plantilla:', err);
+      console.error("Error enviando plantilla:", err);
       result = { success: false, error: err?.message || String(err) };
     }
 
     if (!result?.success) {
       success = false;
-      errorMsg = result?.error || 'Unknown error';
+      errorMsg = result?.error || "Unknown error";
       // Reportar el error a Telegram para monitoreo
       send_telegram_message(
         `Error al enviar WhatsApp a ${formattedNumber}: ${errorMsg}`
@@ -89,7 +100,9 @@ async function processSingleMessage({
       // asignar mensaje corto a target
       if (target) target.message = shortName;
     }
-  }
+  } // sendAndLog
+
+  // Enviar según tipo de mensaje
 
   if (messageType === "payRoll") {
     // Nómina - usuario
@@ -130,37 +143,38 @@ function chunkArray(array, size) {
 export const enqueueWhatsAppMessage = async () => {
   await ensureDb();
   const BATCH_SIZE = 20; // Menos mensajes por lote para menor riesgo
-  const MIN_DELAY = 2000; // 2 segundos mínimo
-  const MAX_DELAY = 5000; // 5 segundos máximo
+  const MIN_DELAY = 3000; // 2 segundos mínimo
+  const MAX_DELAY = 6500; // 5 segundos máximo
 
   const now = new Date();
   const monthActualy = now.getMonth() + 1;
   const yearActualy = now.getFullYear();
-  console.log("Antes de la consulta");
+
   const logs = await MessageLog.find({
     mes: 7, // monthActualy -1,
     ano: yearActualy,
     status: "pending",
-  }).limit(5);
+    messageType: { $in: ["payRoll", "invoice"] },
+  })
 
   console.log("🏠 Mensajes a Enviar:", logs.length);
+
   if (logs.length > 0) {
     const chunks = chunkArray(logs, BATCH_SIZE);
 
     for (const [i, chunk] of chunks.entries()) {
       for (const log of chunk) {
-        console.log("Procesando log ID:", log.mes);
-        // Antes publicábamos en Redis; ahora procesamos directamente
+        console.log(log.recipient.fullName)
         await processSingleMessage({
           logId: log._id,
           recipient: log.recipient,
-          employe : log.employe,
+          employe: log.employe,
           phoneNumber: log.recipient.phoneNumber,
           phoneNumberTwo: log.employe?.phoneNumber || null,
           total: log.total || null,
           fechaExpedicion: log.fechaExpedicion || null,
           tipoPago: log.tipoPago || null,
-          mes : log.mes || null,
+          mes: log.mes || null,
           numero: log.numero || null,
           messageType: log.messageType,
           fileUrl: log.fileUrl || null,
