@@ -148,6 +148,7 @@ export const sendInvoceTemplate = async (to, name, mediaUrl, data) => {
       "Fallo al enviar por Content API, haciendo fallback a media estándar:",
       err.message
     );
+    return { success: true, error: err.message};
   }
 };
 
@@ -245,7 +246,7 @@ export const sendInvocePayRool = async (
       "Fallo al enviar por Content API, haciendo fallback a media estándar:",
       err.message
     );
-    return { success: false, error: error.message };
+    return { success: false, error: err.message };
   }
 };
 
