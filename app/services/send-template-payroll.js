@@ -1,3 +1,8 @@
+import twilio from "twilio";
+import { envConfig } from "../config/index.js";
+import { formatWhatsAppNumber } from "../utils/formatWhatsAppNumber.js";
+const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
+
 /**
  * Enviar plantilla de WhatsApp (Nómina) con media.
  * Usa Content API si hay plantilla (contentSid) disponible; de lo contrario,
