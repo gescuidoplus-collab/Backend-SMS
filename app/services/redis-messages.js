@@ -144,7 +144,7 @@ export const enqueueWhatsAppMessage = async () => {
     ano: yearActualy,
     status: "pending",
     messageType: 'invoice',
-  }).limit(1);
+  }).limit(5);
 
   console.log("🏠 Mensajes a Enviar:", logs.length);
   if (logs.length > 0) {
