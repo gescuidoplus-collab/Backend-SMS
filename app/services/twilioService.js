@@ -97,6 +97,7 @@ export const sendWhatsAppMessageWithPDF = async (to, message, mediaUrl) => {
  * @param {string} mediaUrl - URL pública de la media (PDF/imagen)
  */
 export const sendInvoceTemplate = async (to, name, mediaUrl, data) => {
+  debugger;
   const { mes, numero, total, fechaExpedicion } = data || {};
   // Ejemplo de SID de plantilla de Twilio Content (reemplace por el real en producción)
   // Puede configurarse vía variable de entorno para producción: TWILIO_INVOICE_CONTENT_SID
@@ -127,7 +128,7 @@ export const sendInvoceTemplate = async (to, name, mediaUrl, data) => {
   // Asegurar prefijo whatsapp:
   const toWhatsApp = formatWhatsAppNumber(to);
   try {
-    if (contentSidExample && !contentSidExample.startsWith("HX")) {
+    if (contentSidExample && contentSidExample.startsWith("HX")) {
       const result = await client.messages.create({
         from: envConfig.twilioWhatsappNumber,
         to: toWhatsApp,
@@ -142,13 +143,15 @@ export const sendInvoceTemplate = async (to, name, mediaUrl, data) => {
         mediaUrl: [mediaUrl],
       });
       return { success: true, messageId: result.sid, status: result.status };
+    } else {
+      return { success: false, error: "Content SID no configurado" };
     }
   } catch (err) {
     console.warn(
       "Fallo al enviar por Content API, haciendo fallback a media estándar:",
       err.message
     );
-    return { success: true, error: err.message};
+    return { success: false, error: err.message };
   }
 };
 
@@ -231,7 +234,7 @@ export const sendInvocePayRool = async (
   }
   const toWhatsApp = formatWhatsAppNumber(to);
   try {
-    if (contentSidExample && !contentSidExample.startsWith("HX")) {
+    if (contentSidExample && contentSidExample.startsWith("HX")) {
       const result = await client.messages.create({
         from: envConfig.twilioWhatsappNumber,
         to: toWhatsApp,
@@ -240,6 +243,8 @@ export const sendInvocePayRool = async (
         mediaUrl: [mediaUrl],
       });
       return { success: true, messageId: result.sid, status: result.status };
+    } else {
+      return { success: false, error: "Content SID no configurado" };
     }
   } catch (err) {
     console.warn(

@@ -51,9 +51,9 @@ async function processSingleMessage({
       (type === "invoice"
         ? `${envConfig.apiUrl}/api/v1/invoices/${log.source}/factura.pdf`
         : `${envConfig.apiUrl}/api/v1/payrolls/${log.source}/nomina.pdf`);
-    console.log(
-      `Enviando WhatsApp [${type}] a ${formattedNumber} con archivo ${fileURL}`
-    );
+    // console.log(
+    //   `🤠 Enviando WhatsApp [${type}] a ${formattedNumber} con archivo ${fileURL}`
+    // );
     // Nombre corto para plantilla
     const shortName = target?.fullName ? target.fullName.split(/\s+/)[0] : "";
     let result;
@@ -77,6 +77,8 @@ async function processSingleMessage({
         employe,
       );
     }
+
+    // console.log("❌ Resultado:", result);
 
     if (!result.success) {
       success = false;
@@ -141,9 +143,10 @@ export const enqueueWhatsAppMessage = async () => {
     mes: 7, // monthActualy -1,
     ano: yearActualy,
     status: "pending",
-  });
+    messageType: 'invoice',
+  }).limit(1);
 
-  console.log("Logs a enviar:", logs.length);
+  console.log("🏠 Mensajes a Enviar:", logs.length);
   if (logs.length > 0) {
     const chunks = chunkArray(logs, BATCH_SIZE);
 
