@@ -5,14 +5,11 @@ import { envConfig } from "../config/index.js";
 
 export const processMessageQueue = async () => {
   const executeTask = async () => {
-    console.log("Iniciando tarea programada de mensajes masivos");
+    const now = new Date();
     await enqueueWhatsAppMessage();
-    // send_telegram_message("Envio de mensaje masivos 🎉");
-    console.log("Tarea programada ejecutada de mensajes masivos");
+    send_telegram_message(
+      `Envio de mensajes finalizado ✅ - Fecha: ${now.toLocaleDateString()} Hora: ${now.toLocaleTimeString()}`
+    );
   };
-  if (envConfig.env === 'development') {
-    // Programar solo en desarrollo
-    cron.schedule("27 14 * * *", executeTask, { timezone: "UTC" });
-  }
   return executeTask();
 };

@@ -120,6 +120,10 @@ app.listen(envConfig.port, () => {
   console.log(`Running in proyect port : ${envConfig.port}`);
   if (envConfig.env === "development") {
     // runAllTasks(); // Ejecuta las tareas programadas al iniciar el servidor
-    processMessageQueue(); // Inicia el procesamiento de la cola de mensajes
+    // {
+    //   "path": "/api/cron-send",
+    //   "schedule": "0 13 * * *"
+    // }
+    //processMessageQueue(); // Inicia el procesamiento de la cola de mensajes
   }
 });
