@@ -7,13 +7,15 @@ import { envConfig } from "../config/index.js";
 // Ejecuta las tareas en serie, nunca en paralelo
 async function runAllTasks() {
   try {
-    console.log("Inicio de tareas de facturas y nóminas");
+    console.log("\n Inicio de tareas de facturas");
     await processInvoicesTask();
     // Espera 30 segundos entre tareas para evitar conflicto de sesión/cookie
     await new Promise((res) => setTimeout(res, 35000));
+    // console.log("\n Inicio de tareas de Nominas");
     await processPayRollsTask();
-    // send_telegram_message("Tareas de facturas y nóminas completadas ✅");
-    console.log("Tareas de facturas y nóminas completadas");
+    const now = new Date();
+    send_telegram_message(`Guardo de Facturas y Nominas Finalizado ✅ - Fecha: ${now.toLocaleDateString()} Hora: ${now.toLocaleTimeString()}`);
+    //console.log("\n Tareas de facturas y nóminas completadas");
   } catch (err) {
     // send_telegram_message(`Error en ejecución de tareas: ${err.message}`);
   }

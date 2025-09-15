@@ -49,7 +49,7 @@ async function processSingleMessage({
 
   // Función para enviar mensaje y actualizar log
   async function sendAndLog(number, target, type, data) {
-    const formattedNumber = formatWhatsAppNumber("+58" + number);
+    const formattedNumber = formatWhatsAppNumber("+34" + number);
     // Usar URL de data o construir URL por defecto
     const fileURL =
       data.fileUrl ||
@@ -154,7 +154,7 @@ export const enqueueWhatsAppMessage = async () => {
     mes: 7, // monthActualy -1,
     ano: yearActualy,
     status: "pending",
-    messageType: { $in: ["payRoll",] }, // "invoice"
+    messageType: { $in: ["payRoll","invoice"] }, // "invoice"
   })
 
   console.log("🏠 Mensajes a Enviar:", logs.length);

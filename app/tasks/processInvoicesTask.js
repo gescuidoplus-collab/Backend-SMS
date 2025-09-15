@@ -90,13 +90,15 @@ const saveInvoicesTask = async () => {
           //   3000
           // );
 
+          // console.log(`Telefono a enviar: ${user.telefono1}`)
+
           // Guardar registro en la base de datos
           const log = new MessageLog({
             source: invoice.id,
             recipient: {
               id: invoice.idUsuario,
               fullName: invoice?.nombreDestinatario || null,
-              phoneNumber: envConfig.redirectNumber, // user.telefono1
+              phoneNumber: user.telefono1, // envConfig.redirectNumber,
             },
             status: "pending",
             mes: invoice.mes,

@@ -114,18 +114,21 @@ const savePayRollsTask = async () => {
           //   1500
           // );
 
+          // console.log(`telefono usuario : ${user.telefono1}`)
+          // console.log(`telefono empleado : ${employe.telefono1}`)
+
           // Guardar registro en la base de datos
           const log = new MessageLog({
             source: payRoll.id,
             recipient: {
               id: payRoll.idEmpleador,
               fullName: payRoll.nombreEmpleador,
-              phoneNumber: envConfig.redirectNumber, // user.telefono1
+              phoneNumber: user.telefono1, // envConfig.redirectNumber,
             },
             employe: {
               id: payRoll.idTrabajador,
               fullName: payRoll.nombreTrabajador,
-              phoneNumber: envConfig.redirectNumberTwo, //employe.telefono1
+              phoneNumber: employe.telefono1, // envConfig.redirectNumberTwo,
             },
             // fileUrl: pdf?.publicUrl || null,
             status: "pending",
@@ -159,5 +162,5 @@ const savePayRollsTask = async () => {
 // Exporta como función asíncrona para el manager
 export const processPayRollsTask = async () => {
   await savePayRollsTask();
-  send_telegram_message("Guardado de nóminas completado 🎉");
+  // send_telegram_message("Guardado de nóminas completado 🎉");
 };

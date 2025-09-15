@@ -61,6 +61,10 @@ export const sendInvoceTemplate = async (to, name, mediaUrl, data) => {
     }
   })();
 
+  if (to === undefined || to === null || String(to).trim() === "") {
+    return { success: false, error: "Número de destino 'to' no proporcionado" };
+  }
+
   const toWhatsApp = formatWhatsAppNumber(to);
   try {
     if (contentSidExample && contentSidExample.startsWith("HX")) {
