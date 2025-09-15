@@ -200,6 +200,3 @@ Las contribuciones son lo que hace que la comunidad de código abierto sea un lu
 Este proyecto está distribuido bajo la Licencia ISC.
 
 ---
-
-## 📧 Contacto
-lm5708144@gmail.com
