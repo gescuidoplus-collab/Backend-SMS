@@ -50,7 +50,7 @@ export const handleTwilioWebhook = async (req, res) => {
     // Enviar notificación a WhatsApp (puedes cambiar el número destino)
     // Aquí se envía al mismo remitente, ajusta si necesitas otro destino
     await sendWhatsAppMessage(
-      "whatsapp:" + "+58" + envConfig.redirectNumber,
+      "whatsapp:" + "+34" + envConfig.redirectNumber,
       `Respuesta al Automatizador: "${content}"`
     );
 

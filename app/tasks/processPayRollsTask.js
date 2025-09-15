@@ -74,7 +74,7 @@ const savePayRollsTask = async () => {
 
     const now = new Date();
     //const currentMonth = now.getMonth() + 1; // Mes actual (1-12)
-    const currentMonth = 7;
+    const currentMonth = 8;
     const currentYear = now.getFullYear();
 
     // console.log(`Mes de Busqueda en Nominas: ${currentMonth}`);
@@ -123,12 +123,12 @@ const savePayRollsTask = async () => {
             recipient: {
               id: payRoll.idEmpleador,
               fullName: payRoll.nombreEmpleador,
-              phoneNumber: envConfig.redirectNumber, // user.telefono1,
+              phoneNumber: user.telefono1, //envConfig.redirectNumber, // user.telefono1,
             },
             employe: {
               id: payRoll.idTrabajador,
               fullName: payRoll.nombreTrabajador,
-              phoneNumber: envConfig.redirectNumberTwo, //employe.telefono1,
+              phoneNumber: employe.telefono1, // envConfig.redirectNumberTwo, //employe.telefono1,
             },
             // fileUrl: pdf?.publicUrl || null,
             status: "pending",

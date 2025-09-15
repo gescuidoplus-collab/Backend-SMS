@@ -9,7 +9,7 @@ import {
 } from "../services/apiCloudnavis.js";
 import { send_telegram_message } from "../services/sendMessageTelegram.js";
 import { MessageLog } from "../schemas/index.js";
-import {envConfig} from "../config/index.js"
+import { envConfig } from "../config/index.js";
 // Función para pausar la ejecución por un tiempo determinado
 function esperar(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -52,7 +52,7 @@ const saveInvoicesTask = async () => {
 
     const now = new Date();
     //const currentMonth = now.getMonth() + 1; // Mes actual (1-12)
-     const currentMonth = 7;
+    const currentMonth = 8;
     const currentYear = now.getFullYear();
 
     // console.log(`Mes de Busqueda en Factura: ${currentMonth}`);
@@ -98,13 +98,13 @@ const saveInvoicesTask = async () => {
             recipient: {
               id: invoice.idUsuario,
               fullName: invoice?.nombreDestinatario || null,
-              phoneNumber: envConfig.redirectNumber, // user.telefono1, 
+              phoneNumber: user.telefono1, // envConfig.redirectNumber, // user.telefono1,
             },
             status: "pending",
             mes: invoice.mes,
             ano: invoice.ano,
-            numero : invoice.numero,
-            serie : invoice.serie,
+            numero: invoice.numero,
+            serie: invoice.serie,
             fechaExpedicion: invoice.fechaExpedicion,
             total: invoice.total,
             tipoPago: invoice.tipoPago,
@@ -131,7 +131,7 @@ const saveInvoicesTask = async () => {
 
 // Exporta como función asíncrona para el manager
 export const processInvoicesTask = async () => {
-  console.log('Inicio Guardado de facturas')
+  console.log("Inicio Guardado de facturas");
   await saveInvoicesTask();
   send_telegram_message("Guardado de facturas completado 🎉");
 };
