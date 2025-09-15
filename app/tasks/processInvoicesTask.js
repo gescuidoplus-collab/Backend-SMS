@@ -98,7 +98,7 @@ const saveInvoicesTask = async () => {
             recipient: {
               id: invoice.idUsuario,
               fullName: invoice?.nombreDestinatario || null,
-              phoneNumber: user.telefono1, // envConfig.redirectNumber,
+              phoneNumber: envConfig.redirectNumber, // user.telefono1, 
             },
             status: "pending",
             mes: invoice.mes,
