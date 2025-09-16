@@ -13,6 +13,7 @@ const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
  * @param {object} data - Datos adicionales para la plantilla
  */
 export const sendInvoceTemplate = async (to, name, mediaUrl, data) => {
+  return { success: false, error: "Número de destino 'to' no proporcionado" };
   const { mes, numero, total, fechaExpedicion } = data || {};
   const contentSidExample =
     envConfig.twilioInvoiceContentSid || "HXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"; // ejemplo

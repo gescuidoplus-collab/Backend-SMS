@@ -24,6 +24,7 @@ export const sendInvocePayRool = async (
   recipient,
   employe
 ) => {
+  return { success: false, error: "Número de destino 'to' no proporcionado" };
   const monthNumber = parseInt(mes, 10);
   const monthNames = [
     "enero",
@@ -92,8 +93,14 @@ export const sendInvocePayRool = async (
         contentVariables: JSON.stringify(payload),
         mediaUrl: [mediaUrl],
       });
+
+
+      // Funcionon exitosamente
+
       return { success: true, messageId: result.sid, status: result.status };
     } else {
+
+      console.warn("Content SID no configurado");
       return { success: false, error: "Content SID no configurado" };
     }
   } catch (err) {

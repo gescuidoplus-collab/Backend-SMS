@@ -124,6 +124,6 @@ app.listen(envConfig.port, () => {
     //   "path": "/api/cron-send",
     //   "schedule": "0 13 * * *"
     // }
-    //processMessageQueue(); // Inicia el procesamiento de la cola de mensajes
+    // processMessageQueue(); // Inicia el procesamiento de la cola de mensajes
   }
 });

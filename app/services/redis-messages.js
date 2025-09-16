@@ -6,6 +6,7 @@ import { sendInvoceTemplate } from "./send-template-invoce.js";
 import { sendInvocePayRool } from "./send-template-payroll.js";
 import { send_telegram_message } from "./sendMessageTelegram.js";
 import { envConfig } from "../config/index.js";
+import { updateWhatsappStatuses } from "./update-status-message.js";
 
 const BATCH_DELAY = 5500; // Mayor retardo entre mensajes para evitar spam
 
@@ -56,9 +57,9 @@ async function processSingleMessage({
       (type === "invoice"
         ? `${envConfig.apiUrl}/api/v1/invoices/${log.source}/factura.pdf`
         : `${envConfig.apiUrl}/api/v1/payrolls/${log.source}/nomina.pdf`);
-    console.log(
-      `Enviando WhatsApp [${type}] a ${formattedNumber} con archivo ${fileURL}`
-    );
+    // console.log(
+    //   `Enviando WhatsApp [${type}] a ${formattedNumber} con archivo ${fileURL}`
+    // );
     // Nombre corto para plantilla
     const shortName = target?.fullName ? target.fullName.split(/\s+/)[0] : "";
     let result;
@@ -126,10 +127,13 @@ async function processSingleMessage({
   // Actualizar el estado y sentAt
   log.status = success ? "success" : "failure";
   log.sentAt = new Date(); // Actualizar sentAt con la fecha y hora actual
-  if (!success) log.reason = errorMsg;
+  if (!success) {
+    log.reason = errorMsg;
+  }
 
   await log.save();
   await new Promise((res) => setTimeout(res, BATCH_DELAY));
+  return success;
 }
 
 function chunkArray(array, size) {
@@ -150,17 +154,12 @@ export const enqueueWhatsAppMessage = async () => {
   const monthActualy = now.getMonth() + 1;
   const yearActualy = now.getFullYear();
 
-
-  // Buscar mensajes pendientes de este mes y año
-  // console.log("📅 Mes Actual:", monthActualy);
-  // console.log("📅 Año Actual:", yearActualy);
-
+  let cloud_navis_logs = [];
   const logs = await MessageLog.find({
     mes: 8, // monthActualy -1,
     ano: yearActualy,
     status: "pending",
-    //messageType: { $in: ["payRoll","invoice"] }, // "invoice"
-  })
+  });
 
   console.log("🏠 Mensajes a Enviar:", logs.length);
 
@@ -169,8 +168,8 @@ export const enqueueWhatsAppMessage = async () => {
 
     for (const [i, chunk] of chunks.entries()) {
       for (const log of chunk) {
-        console.log(log.recipient.fullName)
-        await processSingleMessage({
+        console.log(log.recipient.fullName);
+        let resp = await processSingleMessage({
           logId: log._id,
           recipient: log.recipient,
           employe: log.employe,
@@ -184,6 +183,11 @@ export const enqueueWhatsAppMessage = async () => {
           messageType: log.messageType,
           fileUrl: log.fileUrl || null,
         });
+        cloud_navis_logs.push({
+          source: log.source,
+          response: resp,
+          messageType: log.messageType,
+        });
         // Retardo aleatorio entre mensajes
         const delay =
           Math.floor(Math.random() * (MAX_DELAY - MIN_DELAY + 1)) + MIN_DELAY;
@@ -194,6 +198,8 @@ export const enqueueWhatsAppMessage = async () => {
         await new Promise((res) => setTimeout(res, 5000)); // 5 segundos entre lotes
       }
     }
+
+    await updateWhatsappStatuses(cloud_navis_logs);
     send_telegram_message(`Mensajes enviados: ${logs.length}`);
   } else {
     send_telegram_message("⚠️ Mensajes no enviados logs == []");

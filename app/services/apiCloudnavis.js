@@ -243,7 +243,6 @@ export async function downloadPayrolls(payRollID) {
   }
 }
 
-// ==== NUEVAS FUNCIONES SIN GUARDAR EN DISCO (solo buffer) ====
 export async function fetchInvoiceBuffer(invoceID) {
   try {
     if (!invoceID) throw new Error('Parámetro inválido invoceID');
@@ -277,6 +276,48 @@ export async function fetchPayrollBuffer(payRollID) {
   } catch (error) {
     console.error('Error fetchPayrollBuffer:', error.message);
     throw new Error('Error al descargar la nómina.');
+  }
+}
+
+export async function setWhatsappInvoiceStatus(idFactura, status) {
+  try {
+    if (!idFactura || !status) {
+      throw new Error("Parámetros inválidos: idFactura y status son requeridos.");
+    }
+
+    const response = await axiosInstance.post(
+      `${CLOUDNAVIS_BASE_URL}/edades/cuidofam/api/facturacion/whatsapp_status`,
+      { idFactura, status },
+      {
+        headers: { "Content-Type": "application/json" },
+        jar: cookieJar,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error al actualizar el estado WhatsApp de la factura:", error.message);
+    throw new Error("Error al actualizar el estado WhatsApp de la factura.");
+  }
+}
+
+export async function setWhatsappPayrollStatus(idNomina, status) {
+  try {
+    if (!idNomina || !status) {
+      throw new Error("Parámetros inválidos: idNomina y status son requeridos.");
+    }
+
+    const response = await axiosInstance.post(
+      `${CLOUDNAVIS_BASE_URL}/edades/cuidofam/api/nominas/whatsapp_status`,
+      { idNomina, status },
+      {
+        headers: { "Content-Type": "application/json" },
+        jar: cookieJar,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error al actualizar el estado WhatsApp de la nómina:", error.message);
+    throw new Error("Error al actualizar el estado WhatsApp de la nómina.");
   }
 }
 
