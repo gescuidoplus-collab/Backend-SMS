@@ -9,17 +9,17 @@ import { processMessageQueue } from "./processSendMessajes.js";
 async function runAllTasks() {
   try {
     await processInvoicesTask();
-    // Espera 30 segundos entre tareas para evitar conflicto de sesión/cookie
-    await new Promise((res) => setTimeout(res, 35000));
+    // Espera 25 segundos entre tareas para evitar conflicto de sesión/cookie
+    await new Promise((res) => setTimeout(res, 25000));
     await processPayRollsTask();
     const now = new Date();
     send_telegram_message(
       `Guardo de Facturas y Nominas Finalizado ✅ - Fecha: ${now.toLocaleDateString()} Hora: ${now.toLocaleTimeString()}`
     );
 
-    // Espera 45 segundos entre tareas para evitar conflicto de sesión/cookie
-    await new Promise((res) => setTimeout(res, 45000));
-    await processMessageQueue();
+    // Espera 5 segundos entre tareas para evitar conflicto de sesión/cookie
+    await new Promise((res) => setTimeout(res, 5000));
+    // await processMessageQueue();
 
     //console.log("\n Tareas de facturas y nóminas completadas");
   } catch (err) {
