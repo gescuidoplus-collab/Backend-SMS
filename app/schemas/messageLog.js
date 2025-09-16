@@ -3,6 +3,28 @@ import { encrypt, decrypt } from "../utils/cipher.js";
 
 const { Schema } = mongoose;
 
+// Utilidades para cifrar/descifrar campos de tipo objeto
+function encryptIfObject(val) {
+  if (!val) return val;
+  if (typeof val === "object") {
+    return encrypt(val);
+  }
+  return val;
+}
+
+function decryptIfString(val) {
+  if (!val) return val;
+  if (typeof val === "string") {
+    try {
+      return decrypt(val);
+    } catch (e) {
+      // Si no se puede descifrar, devolver el valor original
+      return val;
+    }
+  }
+  return val;
+}
+
 const MessageLogSchema = new Schema(
   {
     source: {
@@ -84,35 +106,67 @@ const MessageLogSchema = new Schema(
   }
 );
 
-// MessageLogSchema.pre("save", function (next) {
-//   if (!this.isModified("sensitiveData") || !this.sensitiveData) {
-//     return next();
-//   }
+// Cifrar antes de guardar cuando los campos sean objetos y hayan cambiado
+MessageLogSchema.pre("save", function (next) {
+  try {
+    if (this.isModified("recipient")) {
+      this.recipient = encryptIfObject(this.recipient);
+    }
+    if (this.isModified("employe")) {
+      this.employe = encryptIfObject(this.employe);
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
-//   if (typeof this.sensitiveData !== "object" || this.sensitiveData === null) {
-//     return next();
-//   }
+// Manejar updates directos (findOneAndUpdate)
+MessageLogSchema.pre("findOneAndUpdate", function (next) {
+  try {
+    const update = this.getUpdate() || {};
+    const $set = update.$set || update;
+    if ($set.recipient) {
+      $set.recipient = encryptIfObject($set.recipient);
+    }
+    if ($set.employe) {
+      $set.employe = encryptIfObject($set.employe);
+    }
+    if (update.$set) this.setUpdate({ ...update, $set });
+    else this.setUpdate($set);
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
-//   try {
-//     this.sensitiveData = encrypt(this.sensitiveData);
-//     next();
-//   } catch (error) {
-//     next(error);
-//   }
-// });
+// Descifrar tras cargar desde BD
+MessageLogSchema.post("init", function (doc) {
+  doc.recipient = decryptIfString(doc.recipient);
+  doc.employe = decryptIfString(doc.employe);
+});
 
-// MessageLogSchema.methods.getDecryptedData = function () {
-//   try {
-//     if (!this.sensitiveData || typeof this.sensitiveData !== "string") {
-//       return this.sensitiveData;
-//     }
-//     const resp = decrypt(this.sensitiveData);
-//     return resp;
-//   } catch (error) {
-//     console.error("Error al descifrar:", error);
-//     return null;
-//   }
-// };
+// Asegurar que el documento en memoria quede descifrado después de guardar
+MessageLogSchema.post("save", function (doc) {
+  doc.recipient = decryptIfString(doc.recipient);
+  doc.employe = decryptIfString(doc.employe);
+});
+
+// Descifrar resultados de consultas múltiples si fuese necesario
+MessageLogSchema.post("find", function (docs) {
+  for (const doc of docs) {
+    doc.recipient = decryptIfString(doc.recipient);
+    doc.employe = decryptIfString(doc.employe);
+  }
+});
+
+MessageLogSchema.post("findOneAndUpdate", function (doc) {
+  if (doc) {
+    doc.recipient = decryptIfString(doc.recipient);
+    doc.employe = decryptIfString(doc.employe);
+  }
+});
+
 
 const MessageLog = mongoose.model("MessageLog", MessageLogSchema);
 

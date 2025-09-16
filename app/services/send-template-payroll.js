@@ -24,7 +24,6 @@ export const sendInvocePayRool = async (
   recipient,
   employe
 ) => {
-  return { success: false, error: "Número de destino 'to' no proporcionado" };
   const monthNumber = parseInt(mes, 10);
   const monthNames = [
     "enero",
