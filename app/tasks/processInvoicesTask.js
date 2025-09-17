@@ -127,7 +127,7 @@ const saveInvoicesTask = async () => {
   } finally {
     await logout(); // Asegurarse de cerrar sesión
   }
-};
+}; 
 
 // Exporta como función asíncrona para el manager
 export const processInvoicesTask = async () => {

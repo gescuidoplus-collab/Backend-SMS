@@ -8,7 +8,7 @@ import { send_telegram_message } from "./sendMessageTelegram.js";
 import { envConfig } from "../config/index.js";
 import { updateWhatsappStatuses } from "./update-status-message.js";
 
-const BATCH_DELAY = 5500; // Mayor retardo entre mensajes para evitar spam
+const BATCH_DELAY = 3500; // Mayor retardo entre mensajes para evitar spam
 
 // Asegura conexión a Mongo (evita buffering en entornos serverless)
 async function ensureDb() {
@@ -147,8 +147,8 @@ function chunkArray(array, size) {
 export const enqueueWhatsAppMessage = async () => {
   await ensureDb();
   const BATCH_SIZE = 20; // Menos mensajes por lote para menor riesgo
-  const MIN_DELAY = 3000; // 2 segundos mínimo
-  const MAX_DELAY = 6500; // 5 segundos máximo
+  const MIN_DELAY = 2000; // 2 segundos mínimo
+  const MAX_DELAY = 3500; // 3.5 segundos máximo
 
   const now = new Date();
   const monthActualy = now.getMonth() + 1;
