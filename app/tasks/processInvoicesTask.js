@@ -61,8 +61,13 @@ const saveInvoicesTask = async () => {
     const invoices = await listInvoices(currentYear, currentMonth);
     if (invoices && invoices.facturas.length > 0) {
       for (const invoice of invoices.facturas) {
-        // Solo procesar facturas tipo "Remesa"
-        if (invoice.tipoPago !== "Remesa") continue;
+        if (invoice.tipoPago !== "Remesa") {
+          continue;
+        }
+
+        if (invoice.whatsappStatus === "ENVIADO") {
+          continue;
+        }
 
         // No guardar si firma o codigoQr son null o contienen "PENDIENTE"
         const isPending = (val) =>
@@ -83,22 +88,12 @@ const saveInvoicesTask = async () => {
             3000
           );
 
-          // Descargar factura con reintentos
-          // const pdf = await withRetries(
-          //   () => downloadInvoce(invoice.id),
-          //   3,
-          //   3000
-          // );
-
-          // console.log(`Telefono a enviar: ${user.telefono1}`)
-
-          // Guardar registro en la base de datos
           const log = new MessageLog({
             source: invoice.id,
             recipient: {
               id: invoice.idUsuario,
               fullName: invoice?.nombreDestinatario || null,
-              phoneNumber: user.telefono1, // envConfig.redirectNumber, // user.telefono1,
+              phoneNumber: user.telefono1,
             },
             status: "pending",
             mes: invoice.mes,
@@ -127,7 +122,7 @@ const saveInvoicesTask = async () => {
   } finally {
     await logout(); // Asegurarse de cerrar sesión
   }
-}; 
+};
 
 // Exporta como función asíncrona para el manager
 export const processInvoicesTask = async () => {

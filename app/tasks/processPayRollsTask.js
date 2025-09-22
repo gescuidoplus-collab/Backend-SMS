@@ -94,6 +94,8 @@ const savePayRollsTask = async () => {
             continue;
           }
 
+          if (payRoll.whatsappStatus === "ENVIADO") continue;
+
           // Obtener información del usuario
           const user = await withRetries(
             () => getUsers(payRoll.idEmpleador),
@@ -107,28 +109,18 @@ const savePayRollsTask = async () => {
             3000
           );
 
-          // // Descargar nómina
-          // const pdf = await withRetries(
-          //   () => downloadPayrolls(payRoll.id),
-          //   3,
-          //   1500
-          // );
-
-          // console.log(`telefono usuario : ${user.telefono1}`)
-          // console.log(`telefono empleado : ${employe.telefono1}`)
-
           // Guardar registro en la base de datos
           const log = new MessageLog({
             source: payRoll.id,
             recipient: {
               id: payRoll.idEmpleador,
               fullName: payRoll.nombreEmpleador,
-              phoneNumber: user.telefono1, //envConfig.redirectNumber, // user.telefono1,
+              phoneNumber: user.telefono1,
             },
             employe: {
               id: payRoll.idTrabajador,
               fullName: payRoll.nombreTrabajador,
-              phoneNumber: employe.telefono1, // envConfig.redirectNumberTwo, //employe.telefono1,
+              phoneNumber: employe.telefono1,
             },
             // fileUrl: pdf?.publicUrl || null,
             status: "pending",
