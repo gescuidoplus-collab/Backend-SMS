@@ -45,7 +45,7 @@ export const updateWhatsappStatuses = async (items) => {
     // 2. Login con reintentos
     const login_status = await withRetries(loginCloudnavis, 3, 3000);
     if (login_status !== 200) {
-      throw new Error("No se pudo hacer login después de varios intentos.");
+      throw new Error("No se pudo hacer login después de varios intentos. llamada en updateWhatsappStatuses");
     }
     sessionReady = true;
 

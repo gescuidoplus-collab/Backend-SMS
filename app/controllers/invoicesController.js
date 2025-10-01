@@ -6,12 +6,10 @@ import {
 } from '../services/apiCloudnavis.js';
 import { MessageLog } from '../schemas/index.js';
 
-// Función para pausar la ejecución por un tiempo determinado
 function esperar(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Función genérica para manejar reintentos
 async function withRetries(task, maxRetries, delay) {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
@@ -27,9 +25,8 @@ async function withRetries(task, maxRetries, delay) {
   }
 }
 
-// Descarga una factura puntual y retorna el PDF directamente
 export const downloadInvoicePdf = async (req, res) => {
-  const { id } = req.params; // uuid de la factura
+  const { id } = req.params;
   if (!id) {
     return res.status(400).json({ message: 'Parámetro id es requerido' });
   }
@@ -45,8 +42,6 @@ export const downloadInvoicePdf = async (req, res) => {
       return res.status(500).json({ message: 'No se pudo iniciar sesión en CloudNavis' });
     }
 
-  // Buscar metadata en MessageLog usando source = id
-  // Generar nombre por defecto con timestamp
   const timestamp = new Date().toISOString().replace(/[:.\-]/g, '');
   let filename = `factura_${timestamp}.pdf`;
   try {
@@ -71,7 +66,6 @@ export const downloadInvoicePdf = async (req, res) => {
       }
     }
   } catch (e) {
-    // Si falla la consulta, continuamos con el nombre por defecto
   }
 
   const buffer = await withRetries(() => fetchInvoiceBuffer(id), 3, 3000);

@@ -31,28 +31,20 @@ if (envConfig.env === "development") {
 
 // app.use(helmet());
 
-// const limiter = rateLimit({
-//   windowMs: 5 * 60 * 1000,
-//   max: 100,
-//   standardHeaders: true,
-//   legacyHeaders: false,
-// });
-// app.use(limiter);
+const limiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 150,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use(limiter);
 
 app.use(express.json({ limit: "1kb" }));
 app.use(express.urlencoded({ extended: true, limit: "1kb" }));
 
 mongoClient();
 
-app.use("/public", express.static(path.join(process.cwd(), "public")));
-
-// Endpoint público para previsualizar la plantilla prueba.pdf sin autenticación
-app.get("/preview/prueba", (req, res) => {
-  const filePath = path.join(process.cwd(), "public", "prueba.pdf");
-  res.setHeader("Content-Type", "application/pdf");
-  res.setHeader("Content-Disposition", 'inline; filename="prueba.pdf"');
-  return res.sendFile(filePath);
-});
+// app.use("/public", express.static(path.join(process.cwd(), "public")));
 
 createUser({
   email: envConfig.emailUser,
@@ -65,16 +57,19 @@ createUser({
     console.log("❌ User Admin was not created:", error.message);
   });
 
+
 app.get(`${envConfig.urlPath}healtcheck`, (req, res) => {
   res.status(200).json({ message: "version 1.0.0" });
 });
+
+
 app.use(envConfig.urlPath, router);
 
-// Endpoint invocado por Vercel Cron Job (GET)
+
 app.get("/api/cron", async (req, res) => {
   try {
     console.log("Cron job triggered");
-    // Verifica user-agent de Vercel o un token opcional
+
     const ua = (req.headers["user-agent"] || "").toLowerCase();
     const isVercel = ua.includes("vercel-cron");
     const provided = req.headers["x-cron-secret"];
@@ -95,7 +90,7 @@ app.get("/api/cron", async (req, res) => {
 
 app.get("/api/cron-send", async (req, res) => {
   try {
-    // Verifica user-agent de Vercel o un token opcional
+
     console.log("Cron SEND job triggered");
     const ua = (req.headers["user-agent"] || "").toLowerCase();
     const isVercel = ua.includes("vercel-cron");
@@ -107,8 +102,8 @@ app.get("/api/cron-send", async (req, res) => {
     ) {
       return res.status(401).json({ ok: false, error: "unauthorized" });
     }
-    await mongoClient(); // asegurar conexión antes de la cola
-    await processMessageQueue(); // esperar envío
+    await mongoClient(); 
+    await processMessageQueue();
     res.json({ ok: true, runAt: new Date().toISOString(), processed: true });
   } catch (e) {
     console.error("Cron endpoint error", e);

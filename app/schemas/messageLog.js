@@ -3,7 +3,6 @@ import { encrypt, decrypt } from "../utils/cipher.js";
 
 const { Schema } = mongoose;
 
-// Utilidades para cifrar/descifrar campos de tipo objeto
 function encryptIfObject(val) {
   if (!val) return val;
   if (typeof val === "object") {
@@ -18,7 +17,6 @@ function decryptIfString(val) {
     try {
       return decrypt(val);
     } catch (e) {
-      // Si no se puede descifrar, devolver el valor original
       return val;
     }
   }
@@ -67,11 +65,11 @@ const MessageLogSchema = new Schema(
       type: Number,
       required: false,
     },
-    total : {
+    total: {
       type: Number,
       required: false,
     },
-    fechaExpedicion : {
+    fechaExpedicion: {
       type: String,
       required: false,
     },
@@ -106,7 +104,6 @@ const MessageLogSchema = new Schema(
   }
 );
 
-// Cifrar antes de guardar cuando los campos sean objetos y hayan cambiado
 MessageLogSchema.pre("save", function (next) {
   try {
     if (this.isModified("recipient")) {
@@ -121,7 +118,6 @@ MessageLogSchema.pre("save", function (next) {
   }
 });
 
-// Manejar updates directos (findOneAndUpdate)
 MessageLogSchema.pre("findOneAndUpdate", function (next) {
   try {
     const update = this.getUpdate() || {};
@@ -140,19 +136,16 @@ MessageLogSchema.pre("findOneAndUpdate", function (next) {
   }
 });
 
-// Descifrar tras cargar desde BD
 MessageLogSchema.post("init", function (doc) {
   doc.recipient = decryptIfString(doc.recipient);
   doc.employe = decryptIfString(doc.employe);
 });
 
-// Asegurar que el documento en memoria quede descifrado después de guardar
 MessageLogSchema.post("save", function (doc) {
   doc.recipient = decryptIfString(doc.recipient);
   doc.employe = decryptIfString(doc.employe);
 });
 
-// Descifrar resultados de consultas múltiples si fuese necesario
 MessageLogSchema.post("find", function (docs) {
   for (const doc of docs) {
     doc.recipient = decryptIfString(doc.recipient);
@@ -166,7 +159,6 @@ MessageLogSchema.post("findOneAndUpdate", function (doc) {
     doc.employe = decryptIfString(doc.employe);
   }
 });
-
 
 const MessageLog = mongoose.model("MessageLog", MessageLogSchema);
 

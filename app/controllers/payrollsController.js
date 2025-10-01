@@ -6,12 +6,12 @@ import {
 } from '../services/apiCloudnavis.js';
 import { MessageLog } from '../schemas/index.js';
 
-// Función para pausar la ejecución por un tiempo determinado
+
 function esperar(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Función genérica para manejar reintentos
+
 async function withRetries(task, maxRetries, delay) {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
@@ -27,7 +27,7 @@ async function withRetries(task, maxRetries, delay) {
   }
 }
 
-// Descarga una nómina puntual y retorna el PDF directamente
+
 export const downloadPayrollPdf = async (req, res) => {
   const { id } = req.params; // uuid de la nómina
   if (!id) {
@@ -45,10 +45,8 @@ export const downloadPayrollPdf = async (req, res) => {
       return res.status(500).json({ message: 'No se pudo iniciar sesión en CloudNavis' });
     }
 
-    // Obtener buffer del PDF
     const buffer = await withRetries(() => fetchPayrollBuffer(id), 3, 3000);
 
-    // Buscar metadata en MessageLog usando source = id y usar solo 'serie' como nombre
     let filename = `nomina_${id}.pdf`;
     try {
       const log = await MessageLog.findOne(
@@ -60,7 +58,6 @@ export const downloadPayrollPdf = async (req, res) => {
         filename = `${sanitize(log.serie)}.pdf`;
       }
     } catch (e) {
-      // Si falla la consulta, continuamos con el nombre por defecto
     }
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${filename}"`);

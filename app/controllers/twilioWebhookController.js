@@ -17,22 +17,15 @@ export const handleTwilioWebhook = async (req, res) => {
       ChannelMetadata,
     } = req.body;
 
-    // console.log(envConfig.redirectNumber)
-    // await sendWhatsAppMessage(envConfig.redirectNumber, `Respuesta al Automatizador:`);
-    // return ;
-
-    // Extraer nombre desde ChannelMetadata si no viene en ProfileName
     let senderName = ProfileName;
     if (!senderName && ChannelMetadata) {
       try {
         const meta = JSON.parse(ChannelMetadata);
         senderName = meta?.data?.context?.ProfileName || senderName;
       } catch (e) {
-        // Ignorar error de parseo
       }
     }
 
-    // Construir mensaje de notificación
     let content = `Nueva respuesta recibida de Twilio:\n`;
     content += `Nombre: ${senderName || "Desconocido"}\n`;
     content += `Número: ${From || "Desconocido"}\n`;
@@ -42,15 +35,13 @@ export const handleTwilioWebhook = async (req, res) => {
       content += `Botón: ${ButtonText || "N/A"}\n`;
       content += `Payload: ${ButtonPayload || "N/A"}\n`;
     }
+
     content += `Mensaje: ${Body || "Sin contenido"}\n`;
 
-    // Enviar notificación a Telegram
     await send_telegram_message(content);
 
-    // Enviar notificación a WhatsApp (puedes cambiar el número destino)
-    // Aquí se envía al mismo remitente, ajusta si necesitas otro destino
     await sendWhatsAppMessage(
-      "whatsapp:" + "+34" + envConfig.redirectNumber,
+      `whatsapp:+34${envConfig.redirectNumber}`,
       `Respuesta al Automatizador: "${content}"`
     );
 

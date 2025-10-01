@@ -7,7 +7,6 @@ const connectDB = async () => {
   const mongoURI = envConfig.mongoUri;
   if (!mongoURI) throw new Error("MONGO_URI no definido");
 
-  // Estados: 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
   if (mongoose.connection.readyState === 1) return mongoose.connection;
   if (mongoose.connection.readyState === 2 && cachedPromise) return cachedPromise;
 
@@ -18,7 +17,6 @@ const connectDB = async () => {
     for (let i = 0; i < maxRetries; i++) {
       try {
         await mongoose.connect(mongoURI, {
-          // Opcional: parámetros adicionales
           serverSelectionTimeoutMS: 7000,
         });
         console.log("🗄️ Conexión a MongoDB exitosa");
@@ -42,7 +40,7 @@ const connectDB = async () => {
   try {
     return await cachedPromise;
   } catch (e) {
-    cachedPromise = null; // permitir reintentos futuros
+    cachedPromise = null; 
     throw e;
   }
 };
