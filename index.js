@@ -10,6 +10,7 @@ import rateLimit from "express-rate-limit";
 import { engine } from "express-handlebars";
 import puppeteer from 'puppeteer';
 import { fileURLToPath } from "url";
+import fs from "fs";
 import {
   processInvoicesTask,
   processMessageQueue,
@@ -32,7 +33,7 @@ if (envConfig.env === "development") {
   app.use(morgan("dev"));
 }
 
-
+// ⬅️ HELPER CORREGIDO PARA BASE64
 app.engine('handlebars', engine({
     defaultLayout: false,
     partialsDir: [
@@ -40,28 +41,36 @@ app.engine('handlebars', engine({
     ],
     helpers: {
         imagePath: function(imageName) {
-            return `public/images/pdf/${imageName}`;
+            // Convertir imagen a Base64
+            const imagePath = path.join(__dirname, 'public', 'images', 'pdf', imageName);
+            try {
+                const imageBuffer = fs.readFileSync(imagePath);
+                const ext = path.extname(imageName).substring(1);
+                const mimeType = ext === 'png' ? 'image/png' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/png';
+                return `data:${mimeType};base64,${imageBuffer.toString('base64')}`;
+            } catch (error) {
+                console.error(`Error loading image ${imageName}:`, error);
+                return '';
+            }
         },
     }
 }));
 
 app.set("view engine", 'handlebars');
-app.set('views', path.join(__dirname, "app", "views"));
-app.use("/", express.static(path.join(__dirname, "app", "public")));
+app.set('views', path.join(__dirname, "app", "views","pdf"));
+app.use("/", express.static(path.join(__dirname, "app", "public","images","pdf")));
 
 app.get("/view-pdf-html", (req, res) => {
-    res.render("pdf/report");
+    res.render("report");
 });
-
 
 app.get('/generate-pdf', async (req, res) => {
   try {
     // Renderizar la plantilla con los datos del servidor
-    const htmlContent = await renderTemplate("pdf/report", {});
+    const htmlContent = await renderTemplate("report", {});
 
     // Generar el PDF con Puppeteer
     const pdfBuffer = await generatePDF(htmlContent);
-    console.log(pdfBuffer)
 
     res.writeHead(200, {
       'Content-Type': 'application/pdf',
@@ -74,6 +83,7 @@ app.get('/generate-pdf', async (req, res) => {
     res.status(500).json({ error: 'Error al generar el PDF.' });
   }
 });
+
 // Función para renderizar la plantilla Handlebars
 async function renderTemplate(templateName, data) {
   return new Promise((resolve, reject) => {
@@ -84,7 +94,7 @@ async function renderTemplate(templateName, data) {
   });
 }
 
-// Función para generar PDF con Puppeteer
+// ⬅️ FUNCIÓN MEJORADA PARA GENERAR PDF
 async function generatePDF(htmlContent) {
   const browser = await puppeteer.launch({
     headless: true,
@@ -94,11 +104,22 @@ async function generatePDF(htmlContent) {
   await page.setContent(htmlContent, {
     waitUntil: ['domcontentloaded', 'networkidle0'],
   });
-  const pdfBuffer = await page.pdf({ format: 'A2' });
+  
+  const pdfBuffer = await page.pdf({ 
+    format: 'A4',
+    printBackground: true, // ⬅️ IMPORTANTE: Para mostrar imágenes de fondo
+    margin: {
+      top: '0px',
+      right: '0px',
+      bottom: '0px',
+      left: '0px'
+    },
+    preferCSSPageSize: true
+  });
+  
   await browser.close();
   return pdfBuffer;
 }
-
 
 // app.use(helmet());
 
