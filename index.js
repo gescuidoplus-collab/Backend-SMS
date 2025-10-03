@@ -7,12 +7,17 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
+import { engine } from "express-handlebars";
+import puppeteer from 'puppeteer';
+import { fileURLToPath } from "url";
 import {
   processInvoicesTask,
   processMessageQueue,
   processPayRollsTask,
 } from "./app/tasks/index.js";
 
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 const app = express();
 
 app.use(
@@ -26,6 +31,74 @@ app.use(
 if (envConfig.env === "development") {
   app.use(morgan("dev"));
 }
+
+
+app.engine('handlebars', engine({
+    defaultLayout: false,
+    partialsDir: [
+        path.join(__dirname, 'app', 'views', 'pdf', 'partials'),  
+    ],
+    helpers: {
+        imagePath: function(imageName) {
+            return `public/images/pdf/${imageName}`;
+        },
+    }
+}));
+
+app.set("view engine", 'handlebars');
+app.set('views', path.join(__dirname, "app", "views"));
+app.use("/", express.static(path.join(__dirname, "app", "public")));
+
+app.get("/view-pdf-html", (req, res) => {
+    res.render("pdf/report");
+});
+
+
+app.get('/generate-pdf', async (req, res) => {
+  try {
+    // Renderizar la plantilla con los datos del servidor
+    const htmlContent = await renderTemplate("pdf/report", {});
+
+    // Generar el PDF con Puppeteer
+    const pdfBuffer = await generatePDF(htmlContent);
+    console.log(pdfBuffer)
+
+    res.writeHead(200, {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'attachment; filename="seguros.pdf"',
+      'Content-Length': pdfBuffer.length,
+    });
+    res.end(pdfBuffer);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error al generar el PDF.' });
+  }
+});
+// Función para renderizar la plantilla Handlebars
+async function renderTemplate(templateName, data) {
+  return new Promise((resolve, reject) => {
+    app.render(templateName, data, (err, html) => {
+      if (err) reject(err);
+      else resolve(html);
+    });
+  });
+}
+
+// Función para generar PDF con Puppeteer
+async function generatePDF(htmlContent) {
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+  const page = await browser.newPage();
+  await page.setContent(htmlContent, {
+    waitUntil: ['domcontentloaded', 'networkidle0'],
+  });
+  const pdfBuffer = await page.pdf({ format: 'A2' });
+  await browser.close();
+  return pdfBuffer;
+}
+
 
 // app.use(helmet());
 
