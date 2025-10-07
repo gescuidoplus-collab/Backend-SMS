@@ -4,7 +4,12 @@
     <meta charset="UTF-8">
     <title>Reporte PDF</title>
     <style>
-    * {
+ @page {
+    size: A4 landscape;  /* Especifica landscape en CSS */
+    margin: 0;
+}
+
+* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -15,227 +20,130 @@ body {
     font-size: 12pt;
     color: rgb(39, 35, 107);
     background-color: #ffffff;
+    margin: 0;
+    padding: 0;
 }
 
-/* CONFIGURACIÓN DE PÁGINAS */
+/* PÁGINAS EN HORIZONTAL */
 .page {
-    width: 100%;  /* Ancho A4 */
-    height: 297mm; /* Alto A4 */
+    width: 297mm;  /* Ancho A4 horizontal */
+    height: 210mm; /* Alto A4 horizontal */
+    min-height: 210mm;
     padding: 20mm;
     position: relative;
     background-color: #afc8a6ac;
     page-break-after: always;
+    overflow: hidden;
 }
 
 .page:last-child {
     page-break-after: auto;
 }
 
-.page-break {
-    page-break-after: always;
+.page.cover {
+    width: 297mm !important;  /* ⬅️ Fuerza ancho horizontal */
+    height: 210mm !important; /* ⬅️ Fuerza alto horizontal */
+    min-height: 210mm !important;
+    padding: 0 !important;
+    background-color: #ffffff;
+    overflow: hidden;
 }
 
-/* LOGO EN ESQUINA SUPERIOR IZQUIERDA */
-.page-logo {
+/* LOGO EN PORTADA */
+.page.cover .page-logo {
     position: absolute;
-    top: 20mm;
-    left: 20mm;
-    width: 150px;
-    height: auto;
-    z-index: 10;
-}
-.page-logo-second{
-    position: absolute;
-    top: 45mm;
-    left: 11mm;
-    width: 150px;
-    height: auto;
-    z-index: 10;
-}
-.page-logo-tercero{
-    position: absolute;
-    top: 25mm;
-    left: 25mm;
-    width: 150px;
+    top: 190px;
+    left: 148px;
+    width: 100px;
     height: auto;
     z-index: 10;
 }
 
+.page.cover .page-logo-second {
+    position: absolute;
+    top: 150px;
+    left: 50px;
+    width: 100px;
+    height: auto;
+    z-index: 10;    
+}
+.page.cover .page-logo-tercero {
+    position: absolute;
+    top: 75px;
+    left: 100px;
+    width: 100px;
+    height: auto;
+    z-index: 10;
+}
 
-/* CONTENIDO DE LA PÁGINA */
-.page-content {
-    padding-top: 30mm; /* Espacio para el logo */
-    width: 100%;
+/* CONTENIDO DE PORTADA */
+.page.cover .page-content {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 60px 60px 60px;
     height: 100%;
-    color: rgb(39, 35, 107);
+    width: 100%;
 }
 
-/* TIPOGRAFÍA Y TÍTULOS */
-h1, h2, h3, h4, h5, h6 {
+.page.cover .page-content > div {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 40px;
+    max-width: 450px;
+}
+
+.page.cover h1 {
     color: rgb(39, 35, 107);
-    background-color: rgb(230, 172, 0);
-    padding: 10px 15px;
-    margin: 20px 0 15px 0;
+    border-radius: 25px;
+    font-size: 19pt !important;
     font-weight: bold;
+    text-align: center;
+    margin: 0 !important;
+    width: 100%;
 }
 
-h1 {
-    font-size: 24pt;
-    padding: 15px 20px;
-}
-
-h2 {
-    font-size: 20pt;
-    padding: 12px 18px;
-}
-
-h3 {
+.page.cover p {
     font-size: 16pt;
-    padding: 10px 15px;
-}
-
-h4 {
-    font-size: 14pt;
-    padding: 8px 12px;
-}
-
-h5, h6 {
-    font-size: 12pt;
-    padding: 6px 10px;
-}
-
-/* PÁRRAFOS Y TEXTO */
-p {
-    color: rgb(39, 35, 107);
-    line-height: 1.6;
-    margin-bottom: 10px;
-}
-
-/* IMÁGENES */
-img {
-    max-width: 100%;
-    height: auto;
-}
-
-/* TEXTO EN NEGRITA Y ÉNFASIS */
-strong, b {
     color: rgb(39, 35, 107);
     font-weight: bold;
+    margin: 0;
+    line-height: 1.6;
 }
 
-em, i {
-    color: rgb(39, 35, 107);
-    font-style: italic;
+.page.cover p span {
+    color: rgb(255, 191, 0);
+    font-weight: bold;
+    font-size: 22pt;
 }
 
-/* ENLACES */
-a {
-    color: rgb(39, 35, 107);
-    text-decoration: underline;
+.page.cover .page-content > img {
+    flex: 0 0 auto;
+    width: 350px;
+    height: auto;
+    max-height: 500px;
+    object-fit: contain;
+    border-radius: 15px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
-a:hover {
-    color: rgb(230, 172, 0);
+/* Segunda página tipo cover */
+.page.cover .page-second {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 60px 60px 60px;
+    height: 100%;
+    width: 100%;
+    gap: 0px;
 }
 
-/* SECCIONES Y DIVISIONES */
-section, div {
-    color: rgb(39, 35, 107);
-}
-
-/*PARA LA PORTADA*/
- .page.cover {
-        padding: 0 !important; /* Quita el padding de 20mm */
-        background-color: #ffffff;
-    }
-
-    .page.cover .page-logo {
-        position: absolute;
-        top: 300px;
-        left: 500px;
-        width: 100px;
-        height: auto;
-        z-index: 10;
-    }
-
-    .page.cover .page-content {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: center;
-        padding: 80px 60px 60px 60px;
-        height: 100%;
-        gap: 40px;
-    }
-
-    .page.cover .page-content > div {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: flex-start;
-        gap: 40px;
-        max-width: 450px;
-    }
-
-    .page.cover h1 {
-        background-color: rgb(255, 191, 0) !important;
-        color: rgb(39, 35, 107);
-        padding: 30px 0px !important;
-        border-radius: 25px;
-        font-size: 22pt !important;
-        font-weight: bold;
-        text-align: center;
-        line-height: 1.3;
-        margin: 0 !important;
-        width: 100%;
-    }
-
-    .page.cover p {
-        font-size: 16pt;
-        color: rgb(39, 35, 107);
-        font-weight: bold;
-        margin: 0;
-        line-height: 1.6;
-    }
-
-    .page.cover p span {
-        color: rgb(255, 191, 0);
-        font-weight: bold;
-        font-size: 22pt;
-    }
-
-    .page.cover .page-content > img {
-        flex: 0 0 auto;
-        width: 350px;
-        height: auto;
-        max-height: 500px;
-        object-fit: cover;
-        border-radius: 15px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    }
-
-    /*Segunda pagina*/
-    
-    .page.cover .page-second{
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: center;
-        padding: 80px 60px 60px 60px;
-        height: 100%;   
-        gap: 0px;
-    }
-
-    .page.cover .page-ocho{
-        display: flex;
-        flex-direction: row;
-        padding: 80px 60px 60px 60px;
-        height: 100px;   
-        gap: 10px;
-    }
-
-    .page-second > div {
+.page-second > div {
     flex: 0 0 50%;
     width: 50%;
     display: flex;
@@ -248,9 +156,10 @@ section, div {
     width: 50%;
     height: auto;
     max-height: 80%;
-    object-fit: cover;
+    object-fit: contain;
     border-radius: 15px;
 }
+
 .service-item {
     display: flex;
     align-items: center;
@@ -268,7 +177,6 @@ section, div {
     margin: 0;
     line-height: 1.5;
 }
-
 /*Tercera pagina*/
 .funciones-container {
     position: relative;
@@ -277,14 +185,12 @@ section, div {
     margin-top: 20px;
 }
 
-/* Imagen de fondo */
 .funciones-container > img {
     width: 100%;
-    height: 600px;
+    height: 500px;
     display: block;
 }
 
-/* Contenedor de texto encima de la imagen */
 .funciones-text {
     position: absolute;
     top: 0;
@@ -293,11 +199,10 @@ section, div {
     height: 100%;
 }
 
-/* Estilos base para todos los párrafos */
 .funciones-text p {
     position: absolute;
     margin: 0;
-    font-size: 30px !important;
+    font-size: 22px !important;
     font-weight: bold;
     color: rgb(39, 35, 107);
     background-color: rgba(255, 255, 255, 0.9);
@@ -305,7 +210,6 @@ section, div {
     border-radius: 8px;
 }
 
-/* POSICIONES INDIVIDUALES - Ajusta estos valores */
 .funcion-1 {
     top: 12%;
     left: 18%;
@@ -313,7 +217,7 @@ section, div {
 
 .funcion-2 {
     top: 27%;
-    right: 20%;
+    right: 4%;
 }
 
 .funcion-3 {
@@ -323,7 +227,7 @@ section, div {
 
 .funcion-4 {
     top: 62%;
-    right: 23%;
+    right: 10%;
 }
 
 .funcion-5 {
@@ -341,38 +245,54 @@ section, div {
     align-items: center;
 }
 
-/* Imagen de fondo */
 .img-fondo {
     width: 90%;
     height: auto;
     display: block;
 }
 
-/* Imagen del título encima del fondo */
 .img-titulo {
     position: absolute;
-    top: 30%;
-    left: 50%;
-    transform: translate(-50%, -50%); /* Centra perfectamente */
-    width: 60%; /* Ajusta el tamaño según necesites */
+    top: 30.5%;
+    left:   55%;
+    transform: translate(-50%, -50%); 
+    width: 60%; 
     height: auto;
-    z-index: 10; /* Asegura que esté encima */
+    z-index: 10; 
 }
 /*Cuarta Pagina*/
 .img-google{
     position: absolute;
     top: 37%;
-    left: 50%;
+    left: 55%;
     transform: translate(-50%, -50%); /* Centra perfectamente */
-    width: 30%; /* Ajusta el tamaño según necesites */
+    width: 50%;
     height: auto;
-    z-index: 10; /* Asegura que esté encima */
+    z-index: 10; 
 }
 .page-logo-cuarta{
     position: absolute;
-    top: 90mm;
-    left: 80mm;
+    top: 45mm;
+    left: 25mm;
     width: 150px;
+    height: auto;
+    z-index: 10;
+}
+
+.page-logo-quinto{
+    position: absolute;
+    top: 38mm; 
+    left: 15mm;
+    width: 80px;
+    height: auto;
+    z-index: 10;
+}
+
+.page-logo-sexta{
+    position: absolute;
+    top: 55mm; 
+    left: 40mm;
+    width: 100px;
     height: auto;
     z-index: 10;
 }
@@ -380,11 +300,15 @@ section, div {
 
 .page-logo-ocho{
     position: absolute;
-    top: 30mm;
-    left: 20mm;
+    top: 40mm;
+    left: 25mm;
     width: 100px;
     height: auto;
     z-index: 10;
+}
+
+.page-ocho{
+    display: flex;
 }
 
   </style>

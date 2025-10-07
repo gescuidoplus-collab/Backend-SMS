@@ -33,7 +33,6 @@ if (envConfig.env === "development") {
   app.use(morgan("dev"));
 }
 
-// ⬅️ HELPER CORREGIDO PARA BASE64
 app.engine('handlebars', engine({
     defaultLayout: false,
     partialsDir: [
@@ -94,27 +93,40 @@ async function renderTemplate(templateName, data) {
   });
 }
 
-// ⬅️ FUNCIÓN MEJORADA PARA GENERAR PDF
+//FUNCIÓN MEJORADA PARA GENERAR PDF
 async function generatePDF(htmlContent) {
   const browser = await puppeteer.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    args: [
+      '--no-sandbox', 
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage'
+    ],
   });
+  
   const page = await browser.newPage();
+  
+  page.setDefaultNavigationTimeout(120000);
+  page.setDefaultTimeout(120000);
+  
   await page.setContent(htmlContent, {
-    waitUntil: ['domcontentloaded', 'networkidle0'],
+    waitUntil: 'load',
+    timeout: 120000
   });
   
   const pdfBuffer = await page.pdf({ 
     format: 'A4',
-    printBackground: true, // ⬅️ IMPORTANTE: Para mostrar imágenes de fondo
+    landscape: true,  //ESTO CAMBIA A HORIZONTAL
+    printBackground: true,
     margin: {
-      top: '0px',
-      right: '0px',
-      bottom: '0px',
-      left: '0px'
+      top: '0mm',
+      right: '0mm',
+      bottom: '0mm',
+      left: '0mm'
     },
-    preferCSSPageSize: true
+    preferCSSPageSize: true,
+    displayHeaderFooter: false,
+    timeout: 120000
   });
   
   await browser.close();
