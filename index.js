@@ -29,7 +29,6 @@ if (envConfig.env === "development") {
   app.use(morgan("dev"));
 }
 
-// app.use(helmet());
 
 const limiter = rateLimit({
   windowMs: 5 * 60 * 1000,
@@ -44,7 +43,6 @@ app.use(express.urlencoded({ extended: true, limit: "1kb" }));
 
 mongoClient();
 
-// app.use("/public", express.static(path.join(process.cwd(), "public")));
 
 createUser({
   email: envConfig.emailUser,
@@ -68,8 +66,6 @@ app.use(envConfig.urlPath, router);
 
 app.get("/api/cron", async (req, res) => {
   try {
-    console.log("Cron job triggered");
-
     const ua = (req.headers["user-agent"] || "").toLowerCase();
     const isVercel = ua.includes("vercel-cron");
     const provided = req.headers["x-cron-secret"];
@@ -112,5 +108,6 @@ app.get("/api/cron-send", async (req, res) => {
 });
 
 app.listen(envConfig.port, () => {
+  runAllTasks();
   console.log(`Running in proyect port : ${envConfig.port}`);
 });

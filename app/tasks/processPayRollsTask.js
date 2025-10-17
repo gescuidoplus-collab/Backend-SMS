@@ -11,9 +11,46 @@ import {
 import { send_telegram_message } from "../services/sendMessageTelegram.js";
 import { MessageLog } from "../schemas/index.js";
 import { envConfig } from "../config/index.js";
+
 // Función para pausar la ejecución por un tiempo determinado
 function esperar(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Función para validar UUID v4
+function isValidUUID(uuid) {
+  if (!uuid || typeof uuid !== 'string') return false;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+}
+
+// Función para validar si una nómina cumple con los requisitos para envío
+function canSendPayroll(payRoll) {
+  // 1. whatsappStatus debe ser "PENDING"
+  if (payRoll.whatsappStatus !== 'PENDING') {
+    return { 
+      valid: false, 
+      reason: `whatsappStatus es "${payRoll.whatsappStatus}", debe ser "PENDING"` 
+    };
+  }
+
+  // 2. idEmpleador debe ser un UUID válido y no debe ser null
+  if (!isValidUUID(payRoll.idEmpleador)) {
+    return { 
+      valid: false, 
+      reason: `idEmpleador "${payRoll.idEmpleador}" no es un UUID válido` 
+    };
+  }
+
+  // 3. idTrabajador debe ser un UUID válido y no debe ser null
+  if (!isValidUUID(payRoll.idTrabajador)) {
+    return { 
+      valid: false, 
+      reason: `idTrabajador "${payRoll.idTrabajador}" no es un UUID válido` 
+    };
+  }
+
+  return { valid: true };
 }
 
 // Función genérica para manejar reintentos
@@ -55,6 +92,30 @@ function isFullMonthPeriod(inicio, fin) {
   return d2 === lastDay;
 }
 
+// Función helper para crear un MessageLog de nómina
+function createPayrollMessageLog(payRoll, recipient, employe) {
+  return new MessageLog({
+    source: payRoll.id,
+    recipient: {
+      id: payRoll.idEmpleador,
+      fullName: recipient.fullName,
+      phoneNumber: recipient.phoneNumber,
+    },
+    employe: {
+      id: payRoll.idTrabajador,
+      fullName: employe.fullName,
+      phoneNumber: employe.phoneNumber,
+    },
+    status: "pending",
+    mes: payRoll.mes,
+    ano: payRoll.ano,
+    serie: `N${payRoll.ano}${String(payRoll.mes).padStart(2, "0")}`,
+    separador: "-",
+    numbero: 0,
+    messageType: "payRoll",
+  });
+}
+
 // Función principal para guardar nóminas
 const savePayRollsTask = async () => {
   try {
@@ -91,10 +152,20 @@ const savePayRollsTask = async () => {
               payRoll.finLiquidacion
             )
           ) {
+            console.log(
+              `Omitiendo nómina ${payRoll.id}: período no es mes completo (${payRoll.inicioLiquidacion} a ${payRoll.finLiquidacion})`
+            );
             continue;
           }
 
-          if (payRoll.whatsappStatus === "ENVIADO") continue;
+          // Validar si la nómina cumple con los requisitos para envío
+          const validation = canSendPayroll(payRoll);
+          if (!validation.valid) {
+            console.log(
+              `Omitiendo nómina ${payRoll.ano}-${String(payRoll.mes).padStart(2, '0')} (ID: ${payRoll.id}): ${validation.reason}`
+            );
+            continue;
+          }
 
           // Obtener información del usuario
           const user = await withRetries(
@@ -109,29 +180,35 @@ const savePayRollsTask = async () => {
             3000
           );
 
-          // Guardar registro en la base de datos
-          const log = new MessageLog({
-            source: payRoll.id,
-            recipient: {
-              id: payRoll.idEmpleador,
-              fullName: payRoll.nombreEmpleador,
+          // Preparar datos del empleado
+          const employeData = {
+            fullName: employe.nombre.trim(),
+            phoneNumber: employe.telefono1,
+          };
+
+          // Guardar registro principal en la base de datos
+          const log = createPayrollMessageLog(
+            payRoll,
+            {
+              fullName: user.nombre.trim(),
               phoneNumber: user.telefono1,
             },
-            employe: {
-              id: payRoll.idTrabajador,
-              fullName: payRoll.nombreTrabajador,
-              phoneNumber: employe.telefono1,
-            },
-            // fileUrl: pdf?.publicUrl || null,
-            status: "pending",
-            mes: payRoll.mes, // temporal
-            ano: payRoll.ano,
-            serie: `N${payRoll.ano}${String(payRoll.mes).padStart(2, "0")}`,
-            separador: "-",
-            numbero: 0,
-            messageType: "payRoll", // Corregido
-          });
+            employeData
+          );
           await log.save();
+
+          // Segundo contacto para empleador (si existe)
+          if (user.nombre2?.trim() && user.telefono2?.trim()) {
+            const secondLog = createPayrollMessageLog(
+              payRoll,
+              {
+                fullName: user.nombre2.trim(),
+                phoneNumber: user.telefono2.trim(),
+              },
+              employeData
+            );
+            await secondLog.save();
+          }
         } catch (error) {
           console.log(
             `Error procesando nómina ${payRoll.id}: ${error.message}`
@@ -154,5 +231,5 @@ const savePayRollsTask = async () => {
 // Exporta como función asíncrona para el manager
 export const processPayRollsTask = async () => {
   await savePayRollsTask();
-  // send_telegram_message("Guardado de nóminas completado 🎉");
+  // send_telegram_message("Guardado de nóminas completado ");
 };
