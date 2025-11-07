@@ -15,11 +15,11 @@
   "crons": [
     {
       "path": "/api/cron",
-      "schedule": "0 9 19 9 *"
+      "schedule": "0 9 8 11 *"
     },
     {
       "path": "/api/cron-send",
-      "schedule": "0 11 19 9 *"
+      "schedule": "0 11 8 11 *"
     }
   ]
 }

@@ -41,8 +41,7 @@ export const handleTwilioWebhook = async (req, res) => {
     await send_telegram_message(content);
 
     await sendWhatsAppMessage(
-      `whatsapp:+584129530702`,
-      //`whatsapp:+34${envConfig.redirectNumber}`,
+      `whatsapp:+34${envConfig.redirectNumber}`,
       `Respuesta al Automatizador: "${content}"`
     );
 
