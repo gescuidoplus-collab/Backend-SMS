@@ -108,6 +108,7 @@ app.get("/api/cron-send", async (req, res) => {
 });
 
 app.listen(envConfig.port, () => {
-  runAllTasks();
+  //runAllTasks();
+  //processMessageQueue()
   console.log(`Running in proyect port : ${envConfig.port}`);
 });

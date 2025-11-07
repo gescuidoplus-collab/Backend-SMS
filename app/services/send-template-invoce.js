@@ -1,6 +1,8 @@
 import twilio from "twilio";
 import { envConfig } from "../config/index.js";
 import { formatWhatsAppNumber } from "../utils/formatWhatsAppNumber.js";
+import { getInvoiceTemplateSid } from "../config/twilioTemplates.js";
+
 const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
 
 /**
@@ -14,8 +16,17 @@ const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
  */
 export const sendInvoceTemplate = async (to, name, mediaUrl, data) => {
   const { mes, numero, total, fechaExpedicion } = data || {};
-  const contentSidExample =
-    envConfig.twilioInvoiceContentSid || "HXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"; // ejemplo
+  
+  // Obtener el Content SID dinámicamente según el mes
+  const contentSid = getInvoiceTemplateSid(mes);
+  
+  if (!contentSid) {
+    console.error(`No se encontró plantilla de factura para el mes: ${mes}`);
+    return { 
+      success: false, 
+      error: `No hay plantilla configurada para el mes ${mes}` 
+    };
+  }
 
   // Convertir mes numérico a nombre en español y capitalizar
   const monthNumber = parseInt(mes, 10);
@@ -44,22 +55,6 @@ export const sendInvoceTemplate = async (to, name, mediaUrl, data) => {
 
   // Normalizar valores a string y formatos esperados por la plantilla
   const safeName = String(name ?? "");
-  const safeNumero =
-    numero != null && numero !== undefined ? String(numero) : "";
-  const safeTotal = (() => {
-    const n = Number(total);
-    return Number.isFinite(n) ? n.toFixed(2) : String(total ?? "");
-  })();
-  const safeFecha = (() => {
-    if (!fechaExpedicion) return "";
-    try {
-      const d = new Date(fechaExpedicion);
-      if (isNaN(d.getTime())) return String(fechaExpedicion);
-      return d.toISOString().slice(0, 10); // YYYY-MM-DD
-    } catch {
-      return String(fechaExpedicion);
-    }
-  })();
 
   if (to === undefined || to === null || String(to).trim() === "") {
     return { success: false, error: "Número de destino 'to' no proporcionado" };
@@ -67,35 +62,32 @@ export const sendInvoceTemplate = async (to, name, mediaUrl, data) => {
 
   const toWhatsApp = formatWhatsAppNumber(to);
   try {
-    if (contentSidExample && contentSidExample.startsWith("HX")) {
-      const vars = {
-        1: safeName,
-        2: monthName,
-        3: safeNumero,
-        4: safeTotal,
-        5: safeFecha,
-      };
-      // Log de debug acotado
-      if (process.env.NODE_ENV !== "production") {
-        console.log("Twilio Invoice ContentVars:", vars);
-        console.log("Twilio Invoice mediaUrl:", mediaUrl);
-      }
-      const result = await client.messages.create({
-        from: envConfig.twilioWhatsappNumber,
-        to: toWhatsApp,
-        contentSid: contentSidExample,
-        contentVariables: JSON.stringify(vars),
-        mediaUrl: [mediaUrl],
-      });
-      return { success: true, messageId: result.sid, status: result.status };
-    } else {
-      return { success: false, error: "Content SID no configurado" };
+    // Solo enviar variables 1 (nombre)
+    const vars = {
+      1: safeName
+    };
+    
+    // Log de debug acotado
+    if (process.env.NODE_ENV !== "production") {
+      console.log("Twilio Invoice ContentSid:", contentSid);
+      console.log("Twilio Invoice ContentVars:", vars);
+      console.log("Twilio Invoice mediaUrl:", mediaUrl);
     }
+    
+    const result = await client.messages.create({
+      from: envConfig.twilioWhatsappNumber,
+      to: toWhatsApp,
+      contentSid: contentSid,
+      contentVariables: JSON.stringify(vars),
+      mediaUrl: [mediaUrl],
+    });
+    
+    return { success: true, messageId: result.sid, status: result.status };
   } catch (err) {
-    console.warn(
-      "Fallo al enviar por Content API, haciendo fallback a media estándar:",
+    console.error(
+      "Error al enviar factura por WhatsApp:",
       err.message,
-      { to: toWhatsApp, contentSid: contentSidExample }
+      { to: toWhatsApp, contentSid: contentSid, mes: mes }
     );
     return { success: false, error: err.message };
   }

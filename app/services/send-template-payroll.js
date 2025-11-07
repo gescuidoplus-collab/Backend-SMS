@@ -1,6 +1,11 @@
 import twilio from "twilio";
 import { envConfig } from "../config/index.js";
 import { formatWhatsAppNumber } from "../utils/formatWhatsAppNumber.js";
+import { 
+  getPayrollTemplateSid, 
+  getPayrollEmployeTemplateSid 
+} from "../config/twilioTemplates.js";
+
 const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
 
 /**
@@ -47,8 +52,7 @@ export const sendInvocePayRool = async (
     monthName = `${monthName} ${currentYear}`;
   }
 
-  let contentSidExample = null;
-  let payload = {};
+  // Helper para extraer primer y tercer nombre
   const firstAndThird = (fullName) => {
     if (!fullName) return "";
     const parts = String(fullName).trim().split(/\s+/).filter(Boolean);
@@ -57,21 +61,42 @@ export const sendInvocePayRool = async (
     return [first, third].filter(Boolean).join(" ");
   };
 
+  // Obtener el Content SID dinámicamente según el mes y tipo
+  let contentSid = null;
+  let payload = {};
+
   if (type === "payrollUser") {
-    contentSidExample =
-      envConfig.twilioPayrollContentSid || "HXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+    // Nómina para empleador: variables 1 (nombre empleador) y 2 (archivo/mes)
+    contentSid = getPayrollTemplateSid(mes);
+    if (!contentSid) {
+      console.error(`No se encontró plantilla de nómina (empleador) para el mes: ${mes}`);
+      return { 
+        success: false, 
+        error: `No hay plantilla de nómina (empleador) configurada para el mes ${mes}` 
+      };
+    }
     payload = {
       1: String(firstAndThird(recipient?.fullName)),
-      2: String(firstAndThird(employe?.fullName)),
-      3: String(monthName),
+      //2: String(monthName),
     };
   } else if (type === "payrollEmployee") {
-    contentSidExample =
-      envConfig.twilioPayrollContentSidEmploye ||
-      "HXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+    // Nómina para empleado: variables 1 (nombre empleado) y 2 (archivo/mes)
+    contentSid = getPayrollEmployeTemplateSid(mes);
+    if (!contentSid) {
+      console.error(`No se encontró plantilla de nómina (empleado) para el mes: ${mes}`);
+      return { 
+        success: false, 
+        error: `No hay plantilla de nómina (empleado) configurada para el mes ${mes}` 
+      };
+    }
     payload = {
       1: String(firstAndThird(employe?.fullName)),
-      2: String(monthName),
+     // 2: String(monthName),
+    };
+  } else {
+    return { 
+      success: false, 
+      error: `Tipo de nómina inválido: ${type}. Debe ser "payrollUser" o "payrollEmployee"` 
     };
   }
 
@@ -81,32 +106,27 @@ export const sendInvocePayRool = async (
 
   const toWhatsApp = formatWhatsAppNumber(to);
   try {
-    if (contentSidExample && contentSidExample.startsWith("HX")) {
-      if (process.env.NODE_ENV !== "production") {
-        console.log("Twilio Payroll ContentVars:", payload, "type:", type);
-      }
-      const result = await client.messages.create({
-        from: envConfig.twilioWhatsappNumber,
-        to: toWhatsApp,
-        contentSid: contentSidExample,
-        contentVariables: JSON.stringify(payload),
-        mediaUrl: [mediaUrl],
-      });
-
-
-      // Funcionon exitosamente
-
-      return { success: true, messageId: result.sid, status: result.status };
-    } else {
-
-      console.warn("Content SID no configurado");
-      return { success: false, error: "Content SID no configurado" };
+    if (process.env.NODE_ENV !== "production") {
+      console.log("Twilio Payroll ContentSid:", contentSid);
+      console.log("Twilio Payroll ContentVars:", payload);
+      console.log("Twilio Payroll Type:", type);
+      console.log("Twilio Payroll Mes:", mes);
     }
+    
+    const result = await client.messages.create({
+      from: envConfig.twilioWhatsappNumber,
+      to: toWhatsApp,
+      contentSid: contentSid,
+      contentVariables: JSON.stringify(payload),
+      mediaUrl: [mediaUrl],
+    });
+
+    return { success: true, messageId: result.sid, status: result.status };
   } catch (err) {
-    console.warn(
-      "Fallo al enviar por Content API, haciendo fallback a media estándar:",
+    console.error(
+      "Error al enviar nómina por WhatsApp:",
       err.message,
-      { to: toWhatsApp, contentSid: contentSidExample, type }
+      { to: toWhatsApp, contentSid: contentSid, type: type, mes: mes }
     );
     return { success: false, error: err.message };
   }
