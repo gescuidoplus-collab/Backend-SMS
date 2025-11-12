@@ -28,7 +28,6 @@ export const INVOICE_TEMPLATES_BY_MONTH = [
  */
 export const PAYROLL_TEMPLATES_BY_MONTH = [
   'HX9d3ae88be2dedfb8ad17e80c3209cc78',
-  'HX103a39f38b948b9dc7b2ac40891534a4',
 ];
 
 /**
@@ -92,6 +91,34 @@ export function getPayrollEmployeTemplateSid(month) {
     return null;
   }
   return getRandomElement(PAYROLL_EMPLOYE_TEMPLATES_BY_MONTH);
+}
+
+/**
+ * Mapeo de Content SIDs a contenido de plantillas
+ * El contenido es el texto que se envía en el mensaje
+ */
+export const TEMPLATE_CONTENT_MAP = {
+  // Facturas
+  'HX550c902458a96d141f02c65d42e1a6ed': 'Estimado {{1}}, le enviamos adjunta su factura correspondiente al mes de {{2}}. Agradecemos su atención.',
+  'HXf713aa7557953448d6520cf46c35ad94': 'Hola {{1}}, su factura está lista. Consulte el documento adjunto para el mes de {{2}}.',
+  'HX7f11f0b1fd9c53072e7e95160da504bc': 'Buenos días {{1}}, le compartimos su factura del mes de {{2}}. Gracias por su confianza.',
+  
+  // Nóminas (empleador)
+  'HX9d3ae88be2dedfb8ad17e80c3209cc78': 'Estimado {{1}}, le enviamos la nómina de {{2}}. Consulte el archivo adjunto.',
+  
+  // Nóminas (empleado)
+  'HX755c00f2be822e0da88f8685309272cc': 'Hola {{1}}, su nómina de {{2}} está disponible. Revise el documento adjunto.',
+  'HX9013695e1dbba62e3cb46286ae2150bf': 'Estimado {{1}}, le compartimos su nómina del mes de {{2}}. Gracias.',
+  'HX72462f72ead61d3e380a352c8b4850f7': 'Buenos días {{1}}, su nómina de {{2}} está lista. Consulte el archivo adjunto.',
+};
+
+/**
+ * Obtiene el contenido de una plantilla basado en su Content SID
+ * @param {string} contentSid - Content SID de Twilio
+ * @returns {string|null} Contenido de la plantilla o null si no existe
+ */
+export function getTemplateContent(contentSid) {
+  return TEMPLATE_CONTENT_MAP[contentSid] || null;
 }
 
 /**

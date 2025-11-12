@@ -50,7 +50,7 @@ async function processSingleMessage({
 
   // Función para enviar mensaje y actualizar log
   async function sendAndLog(number, target, type, data) {
-    const formattedNumber = formatWhatsAppNumber("+34" + number);
+    const formattedNumber = formatWhatsAppNumber("+58" + number);
     // Usar URL de data o construir URL por defecto
     const fileURL =
       data.fileUrl ||
@@ -100,6 +100,11 @@ async function processSingleMessage({
     } else {
       // asignar mensaje corto a target
       if (target) target.message = shortName;
+    }
+    
+    // Guardar el contenido de la plantilla en el campo message del log
+    if (result?.templateContent) {
+      log.message = result.templateContent;
     }
   } // sendAndLog
 

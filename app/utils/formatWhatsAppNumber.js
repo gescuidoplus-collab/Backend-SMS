@@ -12,5 +12,5 @@ export const formatWhatsAppNumber = (phoneNumber) => {
     ? phoneNumber
     : hasPlus
     ? `whatsapp:${phoneNumber}`
-    : `whatsapp:+57${phoneNumber}`;
+    : `whatsapp:+34${phoneNumber}`;
 };

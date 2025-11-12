@@ -16,6 +16,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:3000",
+      "http://localhost:3001",
       "http://localhost:3032",
       "https://frontend-sms.vercel.app",
       "https://backend-sms-three.vercel.app",
@@ -30,13 +31,13 @@ if (envConfig.env === "development") {
 }
 
 
-const limiter = rateLimit({
-  windowMs: 5 * 60 * 1000,
-  max: 150,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use(limiter);
+// const limiter = rateLimit({
+//   windowMs: 5 * 60 * 1000,
+//   max: 150,
+//   standardHeaders: true,
+//   legacyHeaders: false,
+// });
+// app.use(limiter);
 
 app.use(express.json({ limit: "1kb" }));
 app.use(express.urlencoded({ extended: true, limit: "1kb" }));
@@ -66,6 +67,7 @@ app.use(envConfig.urlPath, router);
 
 app.get("/api/cron", async (req, res) => {
   try {
+    console.log("Cron job triggered")
     const ua = (req.headers["user-agent"] || "").toLowerCase();
     const isVercel = ua.includes("vercel-cron");
     const provided = req.headers["x-cron-secret"];
@@ -108,7 +110,7 @@ app.get("/api/cron-send", async (req, res) => {
 });
 
 app.listen(envConfig.port, () => {
-  //runAllTasks();
-  //processMessageQueue()
+  // runAllTasks();
+  // processMessageQueue()
   console.log(`Running in proyect port : ${envConfig.port}`);
 });

@@ -3,7 +3,8 @@ import { envConfig } from "../config/index.js";
 import { formatWhatsAppNumber } from "../utils/formatWhatsAppNumber.js";
 import { 
   getPayrollTemplateSid, 
-  getPayrollEmployeTemplateSid 
+  getPayrollEmployeTemplateSid,
+  getTemplateContent
 } from "../config/twilioTemplates.js";
 
 const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
@@ -76,8 +77,8 @@ export const sendInvocePayRool = async (
       };
     }
     payload = {
-      1: String(firstAndThird(recipient?.fullName)),
-      //2: String(monthName),
+      // 1: String(firstAndThird(recipient?.fullName)),
+      1: mediaUrl,
     };
   } else if (type === "payrollEmployee") {
     // Nómina para empleado: variables 1 (nombre empleado) y 2 (archivo/mes)
@@ -90,8 +91,8 @@ export const sendInvocePayRool = async (
       };
     }
     payload = {
-      1: String(firstAndThird(employe?.fullName)),
-     // 2: String(monthName),
+      // 1: String(firstAndThird(employe?.fullName)),
+      1: mediaUrl,
     };
   } else {
     return { 
@@ -112,16 +113,20 @@ export const sendInvocePayRool = async (
       console.log("Twilio Payroll Type:", type);
       console.log("Twilio Payroll Mes:", mes);
     }
-    
+    // console.log(toWhatsApp)
+    // console.log(payload)
     const result = await client.messages.create({
       from: envConfig.twilioWhatsappNumber,
-      to: toWhatsApp,
+       to: toWhatsApp,
       contentSid: contentSid,
       contentVariables: JSON.stringify(payload),
       mediaUrl: [mediaUrl],
     });
 
-    return { success: true, messageId: result.sid, status: result.status };
+    // Obtener el contenido de la plantilla para guardar en MessageLog
+    const templateContent = getTemplateContent(contentSid);
+
+    return { success: true, messageId: result.sid, status: result.status, templateContent };
   } catch (err) {
     console.error(
       "Error al enviar nómina por WhatsApp:",

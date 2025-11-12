@@ -99,12 +99,12 @@ function createPayrollMessageLog(payRoll, recipient, employe) {
     recipient: {
       id: payRoll.idEmpleador,
       fullName: recipient.fullName,
-      phoneNumber: "4247285815"//recipient.phoneNumber,
+      phoneNumber: recipient.phoneNumber,
     },
     employe: {
       id: payRoll.idTrabajador,
       fullName: employe.fullName,
-      phoneNumber: "4247548770"//employe.phoneNumber,
+      phoneNumber: employe.phoneNumber,
     },
     status: "pending",
     mes: payRoll.mes,

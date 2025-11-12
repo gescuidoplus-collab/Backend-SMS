@@ -73,6 +73,10 @@ const MessageLogSchema = new Schema(
       type: String,
       required: false,
     },
+    message: {
+      type: String,
+      required: false,
+    },
     updatedAt: {
       type: Date,
       default: () => new Date(),
