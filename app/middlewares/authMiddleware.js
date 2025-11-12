@@ -1,34 +1,31 @@
 import jwt from 'jsonwebtoken';
-import { envConfig } from "../config/index.js"
+import { envConfig } from "../config/index.js";
 
+/**
+ * Middleware para verificar token JWT
+ * Extrae el token del header Authorization (Bearer token)
+ * y lo valida usando la clave secreta
+ */
 export const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization?.trim();
 
-  if (!authHeader || !authHeader.startsWith('Bearer '))
-    return res.status(401).json({ error: 'Token no proporcionado' });
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Token no proporcionado o formato inválido' });
+  }
 
-  const token = authHeader.split(' ')[1];
+  const token = authHeader.slice(7); // Remover "Bearer " del inicio
 
   try {
- 
-    const decodedHeader = jwt.decode(token, { complete: true })?.header;
-    if (!decodedHeader)
-      return res.status(403).json({ error: 'Token mal formado' });
-
-
-    if (decodedHeader.alg !== 'HS256' || decodedHeader.typ !== 'JWT')
-      return res.status(403).json({ error: 'Algoritmo o tipo de token inválido' });
-
-
-    const decoded = jwt.verify(token, envConfig.jwtSecretKey, {
-      algorithms: ['HS256'],
-      audience : "IsOuSEMiatHA",
-      issuer: "4j:lNHtZ89-1"
-    });
-
+    const decoded = jwt.verify(token, envConfig.jwtSecretKey);
     req.user = decoded;
     next();
-  } catch (error) {
-    res.status(403).json({ error: 'Token inválido o expirado' });
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({ error: 'Token expirado' });
+    }
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Token inválido' });
+    }
+    return res.status(401).json({ error: 'Error al verificar token' });
   }
 };

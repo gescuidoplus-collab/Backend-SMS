@@ -22,6 +22,8 @@ export const getLogs = async (req, res) => {
           phoneNumberTwo: 1,
           messageType: 1,
           fileUrl: 1,
+          pdfUrl: 1,
+          templateContentSid: 1,
         }
       )
         .skip(skip)
@@ -57,6 +59,9 @@ export const getLogById = async (req, res) => {
       phoneNumberTwo: 1,
       messageType: 1,
       fileUrl: 1,
+      pdfUrl: 1,
+      templateContentSid: 1,
+      message: 1,
     });
     if (!log) return res.status(404).json({ error: "Registro no encontrado" });
     const invoce = log.getDecryptedData ? log.getDecryptedData() : null;

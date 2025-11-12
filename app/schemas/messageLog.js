@@ -89,6 +89,10 @@ const MessageLogSchema = new Schema(
       type: String,
       required: false,
     },
+    pdfUrl: {
+      type: String,
+      required: false,
+    },
     status: {
       type: String,
       enum: ["success", "failure", "pending"],
@@ -99,6 +103,14 @@ const MessageLogSchema = new Schema(
       required: false,
     },
     employeMessage: {
+      type: String,
+      required: false,
+    },
+    templateContentSid: {
+      type: String,
+      required: false,
+    },
+    templateContent: {
       type: String,
       required: false,
     },
@@ -116,6 +128,12 @@ MessageLogSchema.pre("save", function (next) {
     if (this.isModified("employe")) {
       this.employe = encryptIfObject(this.employe);
     }
+    if (this.isModified("templateContentSid") && this.templateContentSid) {
+      this.templateContentSid = encrypt(this.templateContentSid);
+    }
+    if (this.isModified("templateContent") && this.templateContent) {
+      this.templateContent = encrypt(this.templateContent);
+    }
     next();
   } catch (err) {
     next(err);
@@ -132,6 +150,12 @@ MessageLogSchema.pre("findOneAndUpdate", function (next) {
     if ($set.employe) {
       $set.employe = encryptIfObject($set.employe);
     }
+    if ($set.templateContentSid && typeof $set.templateContentSid === "string") {
+      $set.templateContentSid = encrypt($set.templateContentSid);
+    }
+    if ($set.templateContent && typeof $set.templateContent === "string") {
+      $set.templateContent = encrypt($set.templateContent);
+    }
     if (update.$set) this.setUpdate({ ...update, $set });
     else this.setUpdate($set);
     next();
@@ -143,17 +167,23 @@ MessageLogSchema.pre("findOneAndUpdate", function (next) {
 MessageLogSchema.post("init", function (doc) {
   doc.recipient = decryptIfString(doc.recipient);
   doc.employe = decryptIfString(doc.employe);
+  doc.templateContentSid = decryptIfString(doc.templateContentSid);
+  doc.templateContent = decryptIfString(doc.templateContent);
 });
 
 MessageLogSchema.post("save", function (doc) {
   doc.recipient = decryptIfString(doc.recipient);
   doc.employe = decryptIfString(doc.employe);
+  doc.templateContentSid = decryptIfString(doc.templateContentSid);
+  doc.templateContent = decryptIfString(doc.templateContent);
 });
 
 MessageLogSchema.post("find", function (docs) {
   for (const doc of docs) {
     doc.recipient = decryptIfString(doc.recipient);
     doc.employe = decryptIfString(doc.employe);
+    doc.templateContentSid = decryptIfString(doc.templateContentSid);
+    doc.templateContent = decryptIfString(doc.templateContent);
   }
 });
 
@@ -161,6 +191,8 @@ MessageLogSchema.post("findOneAndUpdate", function (doc) {
   if (doc) {
     doc.recipient = decryptIfString(doc.recipient);
     doc.employe = decryptIfString(doc.employe);
+    doc.templateContentSid = decryptIfString(doc.templateContentSid);
+    doc.templateContent = decryptIfString(doc.templateContent);
   }
 });
 

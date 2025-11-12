@@ -4,7 +4,8 @@ import { formatWhatsAppNumber } from "../utils/formatWhatsAppNumber.js";
 import { 
   getPayrollTemplateSid, 
   getPayrollEmployeTemplateSid,
-  getTemplateContent
+  getTemplateFromTwilio,
+  replaceTemplateVariables
 } from "../config/twilioTemplates.js";
 
 const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
@@ -123,10 +124,11 @@ export const sendInvocePayRool = async (
       mediaUrl: [mediaUrl],
     });
 
-    // Obtener el contenido de la plantilla para guardar en MessageLog
-    const templateContent = getTemplateContent(contentSid);
+    // Obtener el contenido de la plantilla desde Twilio API para guardar en MessageLog
+    const rawTemplateContent = await getTemplateFromTwilio(contentSid, client);
+    const templateContent = rawTemplateContent ? replaceTemplateVariables(rawTemplateContent, payload) : null;
 
-    return { success: true, messageId: result.sid, status: result.status, templateContent };
+    return { success: true, messageId: result.sid, status: result.status, templateContent, contentSid };
   } catch (err) {
     console.error(
       "Error al enviar nómina por WhatsApp:",

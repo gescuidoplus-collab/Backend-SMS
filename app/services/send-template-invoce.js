@@ -1,7 +1,7 @@
 import twilio from "twilio";
 import { envConfig } from "../config/index.js";
 import { formatWhatsAppNumber } from "../utils/formatWhatsAppNumber.js";
-import { getInvoiceTemplateSid, getTemplateContent } from "../config/twilioTemplates.js";
+import { getInvoiceTemplateSid, getTemplateFromTwilio, replaceTemplateVariables } from "../config/twilioTemplates.js";
 
 const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
 
@@ -79,16 +79,17 @@ export const sendInvoceTemplate = async (to, name, mediaUrl, data) => {
     // console.log(envConfig.twilioWhatsappNumber)
     const result = await client.messages.create({
       from: envConfig.twilioWhatsappNumber,
-      to: toWhatsApp,
+      to:  toWhatsApp,
       contentSid: contentSid,
       contentVariables: JSON.stringify(vars),
       mediaUrl: [mediaUrl],
     });
     
-    // Obtener el contenido de la plantilla para guardar en MessageLog
-    const templateContent = getTemplateContent(contentSid);
+    // Obtener el contenido de la plantilla desde Twilio API para guardar en MessageLog
+    const rawTemplateContent = await getTemplateFromTwilio(contentSid, client);
+    const templateContent = rawTemplateContent ? replaceTemplateVariables(rawTemplateContent, vars) : null;
     
-    return { success: true, messageId: result.sid, status: result.status, templateContent };
+    return { success: true, messageId: result.sid, status: result.status, templateContent, contentSid };
   } catch (err) {
     console.error(
       "Error al enviar factura por WhatsApp:",

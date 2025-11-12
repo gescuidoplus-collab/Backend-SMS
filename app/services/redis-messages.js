@@ -57,6 +57,9 @@ async function processSingleMessage({
       (type === "invoice"
         ? `${envConfig.apiUrl}/api/v1/invoices/${log.source}/factura.pdf`
         : `${envConfig.apiUrl}/api/v1/payrolls/${log.source}/nomina.pdf`);
+    
+    // Guardar la URL del PDF en el log
+    log.pdfUrl = fileURL;
     // console.log(
     //   `Enviando WhatsApp [${type}] a ${formattedNumber} con archivo ${fileURL}`
     // );
@@ -105,6 +108,12 @@ async function processSingleMessage({
     // Guardar el contenido de la plantilla en el campo message del log
     if (result?.templateContent) {
       log.message = result.templateContent;
+      log.templateContent = result.templateContent; // También guardar en templateContent (encriptado)
+    }
+    
+    // Guardar el Content SID de la plantilla utilizada (encriptado automáticamente)
+    if (result?.contentSid) {
+      log.templateContentSid = result.contentSid;
     }
   } // sendAndLog
 

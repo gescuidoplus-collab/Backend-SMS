@@ -122,6 +122,26 @@ export function getTemplateContent(contentSid) {
 }
 
 /**
+ * Reemplaza variables en el contenido de una plantilla
+ * @param {string} templateContent - Contenido con variables {{1}}, {{2}}, etc.
+ * @param {object} variables - Objeto con variables: { 1: "valor1", 2: "valor2" }
+ * @returns {string} Contenido con variables reemplazadas
+ */
+export function replaceTemplateVariables(templateContent, variables = {}) {
+  if (!templateContent) return '';
+  
+  let result = templateContent;
+  
+  // Reemplazar cada variable {{1}}, {{2}}, etc.
+  for (const [key, value] of Object.entries(variables)) {
+    const placeholder = `{{${key}}}`;
+    result = result.replace(new RegExp(placeholder, 'g'), String(value || ''));
+  }
+  
+  return result;
+}
+
+/**
  * Valida si existe una plantilla para un mes y tipo específico
  * @param {string} type - Tipo: 'invoice', 'payroll', 'payroll_employe'
  * @param {number} month - Mes (1-12)
@@ -137,5 +157,48 @@ export function hasTemplateForMonth(type, month) {
       return getPayrollEmployeTemplateSid(month) !== null;
     default:
       return false;
+  }
+}
+
+/**
+ * Obtiene el contenido de una plantilla de Twilio usando la API
+ * GET https://content.twilio.com/v1/Content/{ContentSid}
+ * @param {string} contentSid - Content SID de Twilio
+ * @param {Object} twilioClient - Cliente de Twilio inicializado
+ * @returns {Promise<string|null>} Contenido de la plantilla (texto del body) o null si hay error
+ */
+export async function getTemplateFromTwilio(contentSid, twilioClient) {
+  try {
+    if (!contentSid || typeof contentSid !== 'string') {
+      console.warn('getTemplateFromTwilio: contentSid inválido', contentSid);
+      return null;
+    }
+
+    if (!twilioClient || !twilioClient.content) {
+      console.warn('getTemplateFromTwilio: cliente de Twilio no disponible');
+      return null;
+    }
+
+    // Llamar a la API de Twilio Content
+    const content = await twilioClient.content.v1.contents(contentSid).fetch();
+
+    // Extraer el body del tipo twilio/text o twilio/media
+    if (content && content.types) {
+      // Intentar obtener twilio/text primero
+      if (content.types['twilio/text']) {
+        return content.types['twilio/text'].body || null;
+      }
+      
+      // Si no existe twilio/text, intentar twilio/media
+      if (content.types['twilio/media']) {
+        return content.types['twilio/media'].body || null;
+      }
+    }
+
+    console.warn(`getTemplateFromTwilio: No se encontró contenido twilio/text o twilio/media para ${contentSid}`);
+    return null;
+  } catch (error) {
+    console.error(`getTemplateFromTwilio: Error al obtener plantilla ${contentSid}:`, error.message);
+    return null;
   }
 }
