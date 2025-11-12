@@ -11,7 +11,7 @@ import {
 const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
 
 /**
- * Enviar plantilla de WhatsApp (Nómina) con media.
+ * Enviar plantilla de WhatsApp (Nómina) con media
  * Usa Content API si hay plantilla (contentSid) disponible; de lo contrario,
  * envía un mensaje con media y un texto de respaldo.
  * @param {string} to - Número del destinatario (E.164 o con prefijo whatsapp:)
