@@ -8,6 +8,9 @@ import {
   replaceTemplateVariables
 } from "../config/twilioTemplates.js";
 
+console.log("\n sendInvocePayRool:")
+console.log(envConfig.twilioAccountSid)
+console.log(envConfig.twilioAuthToken)
 const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
 
 /**

@@ -3,6 +3,10 @@ import { envConfig } from "../config/index.js";
 import { formatWhatsAppNumber } from "../utils/formatWhatsAppNumber.js";
 import { getInvoiceTemplateSid, getTemplateFromTwilio, replaceTemplateVariables } from "../config/twilioTemplates.js";
 
+console.log("\n sendInvoceTemplate:")
+console.log(envConfig.twilioAccountSid)
+console.log(envConfig.twilioAuthToken)
+
 const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
 
 /**
