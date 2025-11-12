@@ -3,12 +3,6 @@ import { envConfig } from "../config/index.js";
 import { formatWhatsAppNumber } from "../utils/formatWhatsAppNumber.js";
 import { getInvoiceTemplateSid, getTemplateFromTwilio, replaceTemplateVariables } from "../config/twilioTemplates.js";
 
-console.log("\n sendInvoceTemplate:")
-console.log(envConfig.twilioAccountSid)
-console.log(envConfig.twilioAuthToken)
-
-const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
-
 /**
  * Enviar plantilla de WhatsApp (Factura) con media.
  * Usa Content API si hay plantilla (contentSid) disponible; de lo contrario,
@@ -19,6 +13,8 @@ const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
  * @param {object} data - Datos adicionales para la plantilla
  */
 export const sendInvoceTemplate = async (to, name, mediaUrl, data) => {
+  // Inicializar cliente Twilio dentro de la función para asegurar que las credenciales estén cargadas
+  const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
   const { mes, numero, total, fechaExpedicion } = data || {};
   
   // Obtener el Content SID dinámicamente según el mes

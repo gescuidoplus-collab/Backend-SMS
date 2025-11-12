@@ -8,11 +8,6 @@ import {
   replaceTemplateVariables
 } from "../config/twilioTemplates.js";
 
-console.log("\n sendInvocePayRool:")
-console.log(envConfig.twilioAccountSid)
-console.log(envConfig.twilioAuthToken)
-const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
-
 /**
  * Enviar plantilla de WhatsApp (Nómina) con media
  * Usa Content API si hay plantilla (contentSid) disponible; de lo contrario,
@@ -34,6 +29,8 @@ export const sendInvocePayRool = async (
   recipient,
   employe
 ) => {
+  // Inicializar cliente Twilio dentro de la función para asegurar que las credenciales estén cargadas
+  const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
   const monthNumber = parseInt(mes, 10);
   const monthNames = [
     "enero",
