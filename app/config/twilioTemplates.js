@@ -135,7 +135,9 @@ export function replaceTemplateVariables(templateContent, variables = {}) {
   // Reemplazar cada variable {{1}}, {{2}}, etc.
   for (const [key, value] of Object.entries(variables)) {
     const placeholder = `{{${key}}}`;
-    result = result.replace(new RegExp(placeholder, 'g'), String(value || ''));
+    // Escapar caracteres especiales de regex antes de crear la expresión regular
+    const escapedPlaceholder = placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    result = result.replace(new RegExp(escapedPlaceholder, 'g'), String(value || ''));
   }
   
   return result;
