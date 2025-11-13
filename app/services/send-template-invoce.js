@@ -1,7 +1,7 @@
 import twilio from "twilio";
 import { envConfig } from "../config/index.js";
 import { formatWhatsAppNumber } from "../utils/formatWhatsAppNumber.js";
-import { getInvoiceTemplateSid, getTemplateFromTwilio, replaceTemplateVariables } from "../config/twilioTemplates.js";
+import { getInvoiceTemplateSid, getTemplateFromTwilio, getTemplateContent, replaceTemplateVariables } from "../config/twilioTemplates.js";
 
 /**
  * Enviar plantilla de WhatsApp (Factura) con media.
@@ -79,14 +79,18 @@ export const sendInvoceTemplate = async (to, name, mediaUrl, data) => {
     // console.log(envConfig.twilioWhatsappNumber)
     const result = await client.messages.create({
       from: envConfig.twilioWhatsappNumber,
-      to: "whatsapp:+584247285815", // toWhatsApp,
+      to: toWhatsApp,
       contentSid: contentSid,
       contentVariables: JSON.stringify(vars),
       mediaUrl: [mediaUrl],
     });
     
     // Obtener el contenido de la plantilla desde Twilio API para guardar en MessageLog
-    const rawTemplateContent = await getTemplateFromTwilio(contentSid, client);
+    // Si falla, usar el mapeo local como fallback
+    let rawTemplateContent = await getTemplateFromTwilio(contentSid, client);
+    if (!rawTemplateContent) {
+      rawTemplateContent = getTemplateContent(contentSid);
+    }
     const templateContent = rawTemplateContent ? replaceTemplateVariables(rawTemplateContent, vars) : null;
     
     return { success: true, messageId: result.sid, status: result.status, templateContent, contentSid };

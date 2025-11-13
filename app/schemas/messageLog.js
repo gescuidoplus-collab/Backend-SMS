@@ -77,6 +77,10 @@ const MessageLogSchema = new Schema(
       type: String,
       required: false,
     },
+    message_employe: {
+      type: String,
+      required: false,
+    },
     updatedAt: {
       type: Date,
       default: () => new Date(),
@@ -102,7 +106,7 @@ const MessageLogSchema = new Schema(
       type: String,
       required: false,
     },
-    employeMessage: {
+    message_employe: {
       type: String,
       required: false,
     },
@@ -134,6 +138,12 @@ MessageLogSchema.pre("save", function (next) {
     if (this.isModified("templateContent") && this.templateContent) {
       this.templateContent = encrypt(this.templateContent);
     }
+    if (this.isModified("message") && this.message) {
+      this.message = encrypt(this.message);
+    }
+    if (this.isModified("message_employe") && this.message_employe) {
+      this.message_employe = encrypt(this.message_employe);
+    }
     next();
   } catch (err) {
     next(err);
@@ -156,6 +166,12 @@ MessageLogSchema.pre("findOneAndUpdate", function (next) {
     if ($set.templateContent && typeof $set.templateContent === "string") {
       $set.templateContent = encrypt($set.templateContent);
     }
+    if ($set.message && typeof $set.message === "string") {
+      $set.message = encrypt($set.message);
+    }
+    if ($set.message_employe && typeof $set.message_employe === "string") {
+      $set.message_employe = encrypt($set.message_employe);
+    }
     if (update.$set) this.setUpdate({ ...update, $set });
     else this.setUpdate($set);
     next();
@@ -169,6 +185,8 @@ MessageLogSchema.post("init", function (doc) {
   doc.employe = decryptIfString(doc.employe);
   doc.templateContentSid = decryptIfString(doc.templateContentSid);
   doc.templateContent = decryptIfString(doc.templateContent);
+  doc.message = decryptIfString(doc.message);
+  doc.message_employe = decryptIfString(doc.message_employe);
 });
 
 MessageLogSchema.post("save", function (doc) {
@@ -176,6 +194,8 @@ MessageLogSchema.post("save", function (doc) {
   doc.employe = decryptIfString(doc.employe);
   doc.templateContentSid = decryptIfString(doc.templateContentSid);
   doc.templateContent = decryptIfString(doc.templateContent);
+  doc.message = decryptIfString(doc.message);
+  doc.message_employe = decryptIfString(doc.message_employe);
 });
 
 MessageLogSchema.post("find", function (docs) {
@@ -184,6 +204,8 @@ MessageLogSchema.post("find", function (docs) {
     doc.employe = decryptIfString(doc.employe);
     doc.templateContentSid = decryptIfString(doc.templateContentSid);
     doc.templateContent = decryptIfString(doc.templateContent);
+    doc.message = decryptIfString(doc.message);
+    doc.message_employe = decryptIfString(doc.message_employe);
   }
 });
 
@@ -193,6 +215,8 @@ MessageLogSchema.post("findOneAndUpdate", function (doc) {
     doc.employe = decryptIfString(doc.employe);
     doc.templateContentSid = decryptIfString(doc.templateContentSid);
     doc.templateContent = decryptIfString(doc.templateContent);
+    doc.message = decryptIfString(doc.message);
+    doc.message_employe = decryptIfString(doc.message_employe);
   }
 });
 

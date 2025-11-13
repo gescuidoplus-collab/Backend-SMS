@@ -106,14 +106,27 @@ async function processSingleMessage({
     }
     
     // Guardar el contenido de la plantilla en el campo message del log
+    // Para nóminas: message = empleador, message_employe = empleado
     if (result?.templateContent) {
-      log.message = result.templateContent;
+      if (type === "payrollUser") {
+        log.message = result.templateContent;
+        log.markModified("message");
+      } else if (type === "payrollEmployee") {
+        log.message_employe = result.templateContent;
+        log.markModified("message_employe");
+      } else {
+        // Para facturas y otros tipos
+        log.message = result.templateContent;
+        log.markModified("message");
+      }
       log.templateContent = result.templateContent; // También guardar en templateContent (encriptado)
+      log.markModified("templateContent");
     }
     
     // Guardar el Content SID de la plantilla utilizada (encriptado automáticamente)
     if (result?.contentSid) {
       log.templateContentSid = result.contentSid;
+      log.markModified("templateContentSid");
     }
   } // sendAndLog
 

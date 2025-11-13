@@ -19,6 +19,7 @@ export const getLogs = async (req, res) => {
           employe: 1,
           phoneNumber: 1,
           message: 1,
+          message_employe: 1,
           phoneNumberTwo: 1,
           messageType: 1,
           fileUrl: 1,
