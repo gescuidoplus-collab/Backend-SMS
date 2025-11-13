@@ -36,9 +36,9 @@ function isPendingOrNull(val) {
 // Función para validar si una factura cumple con los requisitos para envío
 function canSendInvoice(invoice) {
   // 1. whatsappStatus debe ser "PENDING"
-  // if (invoice.whatsappStatus !== 'PENDING') {
-  //   return { valid: false, reason: `whatsappStatus es "${invoice.whatsappStatus}", debe ser "PENDING"` };
-  // }
+  if (invoice.whatsappStatus !== 'PENDING') {
+    return { valid: false, reason: `whatsappStatus es "${invoice.whatsappStatus}", debe ser "PENDING"` };
+  }
 
   // 2. firma, codigoQr y codigoIdentificativo no deben ser null o "PENDIENTE"
   if (isPendingOrNull(invoice.firma)) {
