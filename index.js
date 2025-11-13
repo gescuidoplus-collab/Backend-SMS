@@ -8,8 +8,10 @@ import helmet from "helmet";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import { engine } from "express-handlebars";
+import { GoogleGenAI } from "@google/genai";
 import puppeteer from 'puppeteer';
 import { fileURLToPath } from "url";
+import { generarCodigoFactura } from "./app/utils/generador-codigo.js";
 import fs from "fs";
 import {
   processInvoicesTask,
@@ -20,7 +22,9 @@ import {
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const app = express();
+const ai = new GoogleGenAI({})
 
+app.use(express.json());
 app.use(
   cors({
     origin: ["http://localhost:3000", "http://localhost:3032"],
@@ -63,10 +67,18 @@ app.get("/view-pdf-html", (req, res) => {
     res.render("report");
 });
 
-app.get('/generate-pdf', async (req, res) => {
+app.post('/api/v1/generate-pdf', async (req, res) => {
   try {
+
+    const datos = req.body;
+    console.log('Datos recibidos del frontend:', datos);
+    const codigoData = await generarCodigoFactura();
+    console.log(codigoData.codigo)
+
+
+    const datosParaPdf = await prepararDatosPdf(datos)
     // Renderizar la plantilla con los datos del servidor
-    const htmlContent = await renderTemplate("report", {});
+    const htmlContent = await renderTemplate("report", {...datosParaPdf,codigoData:codigoData.codigo});
 
     // Generar el PDF con Puppeteer
     const pdfBuffer = await generatePDF(htmlContent);
@@ -83,6 +95,62 @@ app.get('/generate-pdf', async (req, res) => {
   }
 });
 
+async function generarContenido(prompt) {
+  try {
+    console.log(prompt)
+    const response = await ai.models.generateContent({
+      model: "gemini-2.0-flash", // El modelo que desees usar
+      contents: prompt,
+    });
+    console.log(response.text)
+    return response.text;
+  } catch (error) {
+    return `Error al generar contenido: ${error}`;
+  }
+}
+
+
+async function prepararDatosPdf(datos) {
+    const nombreContrato = datos.nameContrato || 'No especificado';
+    const nombrePueblo = datos.NombrePueblo || 'No especificado';
+    const nombreCuidador = datos.nameCuidador || 'Empleado';
+
+    const tiposServicio = datos.TipoServicio || [];
+    const tipoServicioTexto = tiposServicio.length > 0 
+    ? tiposServicio.join(', ') 
+    : 'No especificado';
+
+    const servicioLugar= datos.Servicio
+    const desglocePresupuesto =datos.desglocePresupuesto
+    const cuotaCuidoFam= datos.cuotaCuidoFam
+    const salarioNetoMensual=datos.salarioNetoMensual
+    const seguridadSocial= datos.seguridadSocial
+    const TotalMensual = Number(salarioNetoMensual) + Number(cuotaCuidoFam) + Number(seguridadSocial)
+    const HorariosFormateados = formatearHorarios(datos.horarios)
+    const textoHorarios =  await generarContenido(`Genera un texto corto (máximo dos líneas) que comience con “HORARIO:”. El texto debe mostrar únicamente los días y horas actuales en formato ${HorariosFormateados}, sin agregar palabras ni frases adicionales que no estén relacionadas con los horarios. El resultado debe ser limpio y directo, ideal para mostrar a un cliente, Dame el resultado en español`)
+    const desglocePresupuesto2 = datos?.desglocePresupuesto2 || 'No especificado';
+    const cuotaCuidoFam2 = datos?.cuotaCuidoFam2 || 'No especificado';
+    const seguridadSocial2 = datos?.seguridadSocial2 || 'No especificado';
+    //console.log(textoHorarios)
+
+    return({
+      nombreContrato,
+      nombrePueblo,
+      nombreCuidador,
+      tipoServicioTexto,
+      servicioLugar,
+      desglocePresupuesto,
+      cuotaCuidoFam,
+      salarioNetoMensual,
+      seguridadSocial,
+      TotalMensual,
+      textoHorarios,
+      desglocePresupuesto2,
+      cuotaCuidoFam2,
+      seguridadSocial2,
+    })
+
+}
 // Función para renderizar la plantilla Handlebars
 async function renderTemplate(templateName, data) {
   return new Promise((resolve, reject) => {
@@ -131,6 +199,25 @@ async function generatePDF(htmlContent) {
   
   await browser.close();
   return pdfBuffer;
+}
+
+function formatearHorarios(horarios) {
+  if (!horarios || typeof horarios !== 'object') {
+    return 'No se especificaron horarios';
+  }
+
+  const diasActivos = Object.entries(horarios)
+    .filter(([_, valor]) => valor && valor.inicio && valor.fin)
+    .map(([dia, valor]) => {
+      const diaCapitalizado = dia.charAt(0).toUpperCase() + dia.slice(1);
+      return `${diaCapitalizado}: ${valor.inicio} - ${valor.fin}`;
+    });
+
+  if (diasActivos.length === 0) {
+    return 'No hay horarios configurados';
+  }
+
+  return diasActivos.join(', ');
 }
 
 // app.use(helmet());
