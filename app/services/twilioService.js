@@ -1,7 +1,6 @@
 import twilio from "twilio";
 import { envConfig } from "../config/index.js";
 import { formatWhatsAppNumber } from "../utils/formatWhatsAppNumber.js";
-const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
 
 /**
  * Enviar mensaje de WhatsApp
@@ -10,6 +9,7 @@ const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
  * @returns {Promise<Object>} Resultado del envío
  */
 export const sendWhatsAppMessage = async (to, message) => {
+  const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
   try {
     const result = await client.messages.create({
       from: envConfig.twilioWhatsappNumber,
@@ -38,6 +38,7 @@ export const sendWhatsAppMessage = async (to, message) => {
  * @returns {Promise<Object>} Resultado del envío
  */
 export const sendWhatsAppPDF = async (to, mediaUrl, caption = "") => {
+  const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
   try {
     const result = await client.messages.create({
       from: envConfig.twilioWhatsappNumber,
@@ -67,6 +68,7 @@ export const sendWhatsAppPDF = async (to, mediaUrl, caption = "") => {
  * @returns {Promise<Object>} Resultado del envío
  */
 export const sendWhatsAppMessageWithPDF = async (to, message, mediaUrl) => {
+  const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
   try {
     const result = await client.messages.create({
       from: envConfig.twilioWhatsappNumber,
