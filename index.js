@@ -37,6 +37,7 @@ app.use(
       "http://localhost:3001",
       "http://localhost:3032",
       "https://frontend-sms.vercel.app",
+      "https://frontend-sms-git-main-cuido-farm.vercel.app",
       "https://backend-sms-three.vercel.app",
     ],
     allowedHeaders: ["Content-Type", "Authorization"],
