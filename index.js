@@ -27,7 +27,6 @@ const ai = new GoogleGenAI({})
 
 app.use(express.json());
 
-import { processMessageQueue, runCleanupMedia } from "./app/tasks/index.js";
 import { runAllTasks } from "./app/tasks/taskManager.js";
 //
 
@@ -120,8 +119,6 @@ async function generarContenido(prompt) {
     return `Error al generar contenido: ${error}`;
   }
 }
-
-
 async function prepararDatosPdf(datos) {
     const nombreContrato = datos.nameContrato || 'No especificado';
     const nombrePueblo = datos.NombrePueblo || 'No especificado';
@@ -267,22 +264,10 @@ createUser({
 app.get(`${envConfig.urlPath}healtcheck`, (req, res) => {
   res.status(200).json({ message: "version 1.0.0" });
 });
-app.use(envConfig.urlPath, router);
-
-app.listen(envConfig.port, () => {
-  processInvoicesTask();
-  processPayRollsTask();
-  // processMessageQueue();
-  console.log(`Running in proyect port : ${envConfig.port}`);
-});
 
 app.get(`${envConfig.urlPath}healtcheck`, (req, res) => {
   res.status(200).json({ message: "version 1.0.0" });
 });
-
-
-app.use(envConfig.urlPath, router);
-
 
 app.get("/api/cron", async (req, res) => {
   try {
@@ -327,6 +312,9 @@ app.get("/api/cron-send", async (req, res) => {
     res.status(500).json({ ok: false, error: e.message });
   }
 });
+
+
+app.use(envConfig.urlPath, router);
 
 app.listen(envConfig.port, () => {
   // runAllTasks();
