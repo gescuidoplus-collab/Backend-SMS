@@ -27,12 +27,12 @@ function isValidUUID(uuid) {
 // Función para validar si una nómina cumple con los requisitos para envío
 function canSendPayroll(payRoll) {
   // 1. whatsappStatus debe ser "PENDING"
-  // if (payRoll.whatsappStatus !== 'PENDING') {
-  //   return { 
-  //     valid: false, 
-  //     reason: `whatsappStatus es "${payRoll.whatsappStatus}", debe ser "PENDING"` 
-  //   };
-  // }
+  if (payRoll.whatsappStatus !== 'PENDING') {
+    return { 
+      valid: false, 
+      reason: `whatsappStatus es "${payRoll.whatsappStatus}", debe ser "PENDING"` 
+    };
+  }
 
   // 2. idEmpleador debe ser un UUID válido y no debe ser null
   if (!isValidUUID(payRoll.idEmpleador)) {
