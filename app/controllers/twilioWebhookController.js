@@ -1,7 +1,7 @@
 import { send_telegram_message } from "../services/sendMessageTelegram.js";
 import { sendWhatsAppMessage } from "../services/twilioService.js";
 import { envConfig } from "../config/index.js";
-import { hasActiveContextWindow } from "../services/twilioContextManager.js";
+import { hasActiveContextWindow, initializeContextWindow, sendTemplateWithinContextWindow } from "../services/twilioContextManager.js";
 
 /**
  * Webhook para recibir eventos de Twilio (SMS entrantes, status, etc.)
@@ -47,25 +47,32 @@ export const handleTwilioWebhook = async (req, res) => {
 
     // Verificar si redirectNumber tiene ventana de contexto activa
     const redirectNumberFormatted = `+34${envConfig.redirectNumber}`;
-    const hasContext = await hasActiveContextWindow(redirectNumberFormatted);
+    let hasContext = await hasActiveContextWindow(redirectNumberFormatted);
 
-    if (hasContext) {
-      // ✅ Hay contexto: Enviar mensaje directo
+    if (!hasContext) {
+      // ❌ SIN contexto: Enviar plantilla de inicialización
+      console.log(`🔄 Enviando plantilla de inicialización para ${redirectNumberFormatted}...`);
+      const initResult = await initializeContextWindow(redirectNumberFormatted, "Automatizador", Body);
+      
+      if (initResult.success) {
+        console.log(`✅ Plantilla de inicialización enviada exitosamente`);
+      } else {
+        console.warn(`⚠️ Fallo al enviar plantilla de inicialización:`, initResult.error);
+      }
+    } else {
+      // ✅ Hay contexto: Enviar mensaje directo (texto libre)
       console.log(`✅ Contexto activo para ${redirectNumberFormatted}. Enviando respuesta directa...`);
       
       const result = await sendWhatsAppMessage(
         `whatsapp:${redirectNumberFormatted}`,
-        `Respuesta al Automatizador: "${content}"`
+        `${content}`
       );
 
       if (!result.success) {
-        console.warn(`⚠️ Fallo al enviar respuesta directa:`, result.error);
+        console.warn(`⚠️ Fallo al enviar respuesta:`, result.error);
+      } else {
+        console.log(`✅ Respuesta enviada exitosamente`);
       }
-    } else {
-      // ❌ SIN contexto: Usar plantilla
-      console.warn(
-        `⚠️ SIN contexto para ${redirectNumberFormatted}. Usando plantilla en próximo envío...`
-      );
     }
 
     res.status(200).send("OK");
