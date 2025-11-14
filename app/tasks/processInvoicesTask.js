@@ -6,119 +6,114 @@ import {
   logout,
   getUsers,
   downloadInvoce,
-  downloadPayrolls,
 } from "../services/apiCloudnavis.js";
 import { send_telegram_message } from "../services/sendMessageTelegram.js";
 import { MessageLog } from "../schemas/index.js";
 
+// Función para pausar la ejecución por un tiempo determinado
 function esperar(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-const saveInvocesTask = async () => {
-  try {
-    const status_code = await setCookie();
-    if (status_code == 200) {
-      const maxRetries = 3;
-      let login_status = null;
-      let attempt = 0;
-
-      while (attempt < maxRetries) {
-        login_status = await loginCloudnavis();
-        if (login_status == 200) {
-          break; // Login exitoso, salimos del ciclo
-        }
-        attempt++;
-        if (attempt < maxRetries) {
-          console.log("Esperando 3 segundos antes del siguiente intento...");
-          await esperar(3000); // Espera 3 segundos antes del próximo intento
-        }
-      }
-      if (login_status == 200) {
-        const now = new Date();
-        const monthActualy = now.getMonth() + 1;
-        const yearActualy = now.getFullYear();
-        const invoces = await listInvoices(yearActualy, monthActualy - 1);
-        if (invoces && invoces.facturas.length > 0) {
-          for (const invoce of invoces.facturas) {
-            if (invoce.tipoPago !== "Remesa") continue;
-            try {
-              // Obtener user (estaba comentado)
-              let user = null;
-              try {
-                user = await getUsers(invoce.idUsuario);
-              } catch (e) {
-                console.log("No se pudo obtener usuario:", e.message);
-              }
-
-              // Reintentos descarga
-              const maxDownloadRetries = 3;
-              let pdf = null;
-              for (let i = 0; i < maxDownloadRetries; i++) {
-                try {
-                  pdf = await downloadInvoce(invoce.id);
-                  if (pdf) break;
-                } catch (e) {
-                  if (i < maxDownloadRetries - 1) {
-                    console.log(
-                      `Retry downloadInvoce (${i + 1}/${maxDownloadRetries})`
-                    );
-                    await esperar(1500);
-                  } else {
-                    throw e;
-                  }
-                }
-              }
-
-              const log = new MessageLog({
-                source: invoce.id,
-                recipient: {
-                  id: invoce.idUsuario,
-                  nombre: user?.nombre || null,
-                  apellidos: user?.apellidos || null,
-                },
-                phoneNumber: "4247548770",
-                status: "pending",
-                mes: invoce.mes,
-                ano: invoce.ano,
-                fileUrl: pdf?.publicUrl || null,
-                messageType: "invoce"
-              });
-              await log.save();
-
-              // Pequeña pausa para evitar rate limit
-              await esperar(300);
-            } catch (error) {
-              console.log("Fallo con:", invoce.id, error.message);
-              // send_telegram_message(`Fallo al guarda la factura : ${invoce.id} error : ${error.message}`);
-            }
-          }
-        }
-      } else {
-        send_telegram_message(
-          "No se pudo hacer login después de varios intentos."
+// Función genérica para manejar reintentos
+async function withRetries(task, maxRetries, delay) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await task();
+    } catch (error) {
+      if (attempt < maxRetries - 1) {
+        console.log(
+          `Reintento ${attempt + 1}/${maxRetries} fallido. Esperando...`
         );
+        await esperar(delay);
+      } else {
+        throw error; // Lanza el error si se agotaron los reintentos
       }
     }
-    // await logout();
+  }
+}
+
+// Función principal para guardar facturas
+const saveInvoicesTask = async () => {
+  try {
+    const status_code = await setCookie();
+    if (status_code !== 200) {
+      throw new Error("No se pudo establecer la cookie.");
+    }
+
+    // Intentar iniciar sesión con reintentos
+    const login_status = await withRetries(loginCloudnavis, 3, 3000);
+    if (login_status !== 200) {
+      send_telegram_message(
+        "No se pudo hacer login después de varios intentos."
+      );
+      return;
+    }
+
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1; // Mes actual (1-12)
+    const currentYear = now.getFullYear();
+
+    // Obtener facturas del mes anterior
+    const invoices = await listInvoices(currentYear, currentMonth - 1);
+    if (invoices && invoices.facturas.length > 0) {
+      for (const invoice of invoices.facturas) {
+        if (invoice.tipoPago !== "Remesa") continue;
+
+        try {
+          // Obtener información del usuario
+          const user = await withRetries(
+            () => getUsers(invoice.idUsuario),
+            3,
+            1500
+          );
+
+          // Descargar factura con reintentos
+          const pdf = await withRetries(
+            () => downloadInvoce(invoice.id),
+            3,
+            1500
+          );
+
+          // Guardar registro en la base de datos
+          const log = new MessageLog({
+            source: invoice.id,
+            recipient: {
+              id: invoice.idUsuario,
+              fullName: invoice?.nombreDestinatario || null,
+              phoneNumber: "4247548770",
+            },
+            status: "pending",
+            mes: invoice.mes,
+            ano: invoice.ano,
+            fileUrl: pdf?.publicUrl || null,
+            messageType: "invoice",
+          });
+          await log.save();
+          await esperar(300); // Pausa entre registros
+        } catch (error) {
+          console.log(
+            `Error procesando factura ${invoice.id}: ${error.message}`
+          );
+        }
+      }
+    }
   } catch (err) {
-    send_telegram_message(`Fallo al Guarda las Facturas Error: ${err.message}`);
-    await logout();
+    send_telegram_message(`Error en la tarea de facturas: ${err.message}`);
+  } finally {
+    await logout(); // Asegurarse de cerrar sesión
   }
 };
 
-export const processInvoicesTask = () => {
-  setTimeout(async () => {
-    await saveInvocesTask();
-    send_telegram_message(
-      "Ejecución inicial de Guardado de facturas por WhatsApp completada 🎉"
-    );
-  }, 25000);
 
-  cron.schedule("0 9 1 * *", async () => {
-    await saveInvocesTask();
-    send_telegram_message(
-      "Cron de Guardado de facturas por WhatsApp Compleado 🎉"
-    );
-  });
+export const processInvoicesTask = () => {
+
+  const executeTask = async () => {
+    console.log("Se ejecuta Guarda Facturas");
+    await saveInvoicesTask();
+    // send_telegram_message("Guardado de facturas completado 🎉");
+  };
+
+  setTimeout(executeTask, 25000);
+  cron.schedule("0 9 1 * *", executeTask);
 };

@@ -10,8 +10,25 @@ import {
 import { send_telegram_message } from "../services/sendMessageTelegram.js";
 import { MessageLog } from "../schemas/index.js";
 
+// Función para pausar la ejecución por un tiempo determinado
 function esperar(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Función genérica para manejar reintentos
+async function withRetries(task, maxRetries, delay) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await task();
+    } catch (error) {
+      if (attempt < maxRetries - 1) {
+        console.log(`Reintento ${attempt + 1}/${maxRetries} fallido. Esperando...`);
+        await esperar(delay);
+      } else {
+        throw error; // Lanza el error si se agotaron los reintentos
+      }
+    }
+  }
 }
 
 // Valida que el periodo vaya del día 1 al último día del mismo mes
@@ -35,96 +52,88 @@ function isFullMonthPeriod(inicio, fin) {
   return d2 === lastDay;
 }
 
+// Función principal para guardar nóminas
 const savePayRollsTask = async () => {
   try {
     const status_code = await setCookie();
-    if (status_code == 200) {
-      const maxRetries = 3;
-      let login_status = null;
-      let attempt = 0;
+    if (status_code !== 200) {
+      throw new Error("No se pudo establecer la cookie.");
+    }
 
-      while (attempt < maxRetries) {
-        login_status = await loginCloudnavis();
-        if (login_status == 200) {
-          break; // Login exitoso, salimos del ciclo
-        }
-        attempt++;
-        if (attempt < maxRetries) {
-          console.log("Esperando 3 segundos antes del siguiente intento...");
-          await esperar(3000); // Espera 3 segundos antes del próximo intento
-        }
-      }
+    // Intentar iniciar sesión con reintentos
+    const login_status = await withRetries(loginCloudnavis, 3, 3000);
+    if (login_status !== 200) {
+      send_telegram_message("No se pudo hacer login después de varios intentos.");
+      return;
+    }
 
-      if (login_status == 200) {
-        const now = new Date();
-        const monthActualy = now.getMonth() + 1;
-        const yearActualy = now.getFullYear();
-        const payRolls = await ListPayRolls(yearActualy, monthActualy - 1);
-        if (payRolls && payRolls.nominas.length > 0) {
-          for (const payRoll of payRolls.nominas) {
-            try {
-              if (
-                !isFullMonthPeriod(
-                  payRoll.inicioLiquidacion,
-                  payRoll.finLiquidacion
-                )
-              ) {
-                continue;
-              }
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1; // Mes actual (1-12)
+    const currentYear = now.getFullYear();
 
-              let pdf = await downloadPayrolls(payRoll.id);
-              let log = new MessageLog({
-                source: payRoll.id,
-                recipient: {
-                  id: payRoll.idEmpleador,
-                  nombre: payRoll.nombreEmpleador,
-                },
-                employe: {
-                  id: payRoll.idTrabajador,
-                  nombre: payRoll.nombreTrabajador,
-                },
-                phoneNumber: "4247548770",
-                phoneNumberTwo: "4247548770",
-                fileUrl: pdf.publicUrl || null,
-                status: "pending",
-                mes: payRoll.mes + 1, // temporal
-                ano: payRoll.ano,
-                messageType: "payRool", // Considera corregir a "payRoll" si aplica
-                sensitiveData: payRoll,
-              });
-              await log.save();
-            } catch (error) {
-              send_telegram_message(
-                `Fallo al guarda Nomina : ${payRoll.id} error : ${error.message}`
-              );
-            }
+    // Obtener nóminas del mes anterior
+    const payRolls = await ListPayRolls(currentYear, currentMonth - 1);
+    if (payRolls && payRolls.nominas.length > 0) {
+      for (const payRoll of payRolls.nominas) {
+        try {
+          // Validar que el período sea de un mes completo
+          if (!isFullMonthPeriod(payRoll.inicioLiquidacion, payRoll.finLiquidacion)) {
+            continue;
           }
+
+          // Descargar nómina
+          const pdf = await withRetries(() => downloadPayrolls(payRoll.id), 3, 1500);
+
+          // Guardar registro en la base de datos
+          const log = new MessageLog({
+            source: payRoll.id,
+            recipient: {
+              id: payRoll.idEmpleador,
+              fullName: payRoll.nombreEmpleador,
+              phoneNumber: "4247548770",
+            },
+            employe: {
+              id: payRoll.idTrabajador,
+              fullName: payRoll.nombreTrabajador,
+              phoneNumber: "4247548770",
+            },
+            fileUrl: pdf?.publicUrl || null,
+            status: "pending",
+            mes: payRoll.mes + 1, // temporal
+            ano: payRoll.ano,
+            messageType: "payRoll", // Corregido
+          });
+          await log.save();
+        } catch (error) {
+          console.log(`Error procesando nómina ${payRoll.id}: ${error.message}`);
+          send_telegram_message(
+            `Fallo al guardar nómina: ${payRoll.id}. Error: ${error.message}`
+          );
         }
-      } else {
-        send_telegram_message(
-          "No se pudo hacer login después de varios intentos."
-        );
       }
     }
-    await logout();
   } catch (err) {
-    send_telegram_message(`Fallo al Guarda las Facturas Error: ${err.message}`);
-    await logout();
+    console.log(`Error en la tarea de nóminas: ${err.message}`);
+    send_telegram_message(`Error en la tarea de nóminas: ${err.message}`);
+  } finally {
+    await logout(); // Asegurarse de cerrar sesión
   }
 };
 
+// Función para programar la tarea
 export const processPayRollsTask = () => {
-  setTimeout(async () => {
+  // Función para ejecutar la tarea
+  const executeTask = async () => {
     await savePayRollsTask();
-    send_telegram_message(
-      "Ejecución inicial de Guardado de Nominas por WhatsApp completada 🎉"
-    );
-  }, 10000);
+    console.log(`Se ejecutaron los payrool`)
+    // send_telegram_message(
+    //   "Guardado de nóminas completado 🎉"
+    // );
+  };
 
-  cron.schedule("0 9 1 * *", async () => {
-    await savePayRollsTask();
-    send_telegram_message(
-      "Cron de Guardado de Nominas por WhatsApp Compleado 🎉"
-    );
-  });
+  // Ejecución inicial con retraso
+  setTimeout(executeTask, 30000);
+
+  // Programar tarea mensual
+  cron.schedule("0 9 1 * *", executeTask);
 };

@@ -1,9 +1,9 @@
-import Redis from "ioredis";
+// import Redis from "ioredis";
 import { MessageLog } from "../schemas/index.js";
 
-const redisClient = new Redis(
-  process.env.REDIS_URL || "redis://localhost:6379"
-);
+// const redisClient = new Redis(
+//   process.env.REDIS_URL || "redis://localhost:6379"
+// );
 const CACHE_EXPIRATION_TIME = 150;
 
 export const getLogs = async (req, res) => {
@@ -12,11 +12,11 @@ export const getLogs = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const cacheKey = `sms-logs:page:${page}:limit:${limit}`;
-    const cachedData = await redisClient.get(cacheKey);
-    if (cachedData) {
-      return res.json(JSON.parse(cachedData));
-    }
+    // const cacheKey = `sms-logs:page:${page}:limit:${limit}`;
+    // const cachedData = await redisClient.get(cacheKey);
+    // if (cachedData) {
+    //   return res.json(JSON.parse(cachedData));
+    // }
 
     let [results, total] = await Promise.all([
       MessageLog.find(
@@ -47,11 +47,11 @@ export const getLogs = async (req, res) => {
       pages: Math.ceil(total / limit),
     };
 
-    await redisClient.setex(
-      cacheKey,
-      CACHE_EXPIRATION_TIME,
-      JSON.stringify(responseData)
-    );
+    // await redisClient.setex(
+    //   cacheKey,
+    //   CACHE_EXPIRATION_TIME,
+    //   JSON.stringify(responseData)
+    // );
     res.json(responseData);
   } catch (error) {
     console.error("Error en getLogs:", error);

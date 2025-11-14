@@ -6,25 +6,33 @@ import {
   sendWhatsAppMessage,
 } from "./twilioService.js";
 import { send_telegram_message } from "./sendMessageTelegram.js";
-// 🚨 ⚠️ 🎉
+
 const subscriber = new Redis();
 const publisher = new Redis();
 const BATCH_DELAY = 3000;
 
 const MESSAGES_INVOCES = [
-  "¡Hola! Aquí tienes tu factura. Si tienes alguna duda, estamos para ayudarte.",
-  "Adjuntamos tu factura correspondiente. ¡Gracias por confiar en nosotros!",
-  "Te enviamos tu factura solicitada. No dudes en contactarnos si necesitas algo más.",
-  "Factura disponible. ¡Gracias por tu preferencia!",
-  "Aquí está tu factura. ¡Que tengas un excelente día!",
+  "¡Hola! Este es un mensaje automático: adjuntamos tu factura. Si tienes alguna duda, estamos para ayudarte.",
+  "Factura generada automáticamente y enviada. ¡Gracias por confiar en nosotros!",
+  "Te enviamos tu factura solicitada de forma automática. No dudes en contactarnos si necesitas algo más.",
+  "Factura disponible (proceso automático). ¡Gracias por tu preferencia!",
+  "Aquí está tu factura generada automáticamente. ¡Que tengas un excelente día!",
 ];
 
-const MESSAGES_PAYROOL = [
-  "¡Hola! Te enviamos tu comprobante de pago de nómina.",
-  "Adjuntamos tu recibo de pago. Si tienes preguntas, estamos a tu disposición.",
-  "Aquí tienes tu comprobante de nómina. ¡Gracias por tu trabajo!",
-  "Recibo de nómina enviado. ¡Que tengas un gran día!",
-  "Te compartimos tu recibo de pago. ¡Gracias por ser parte del equipo!",
+const MESSAGES_PAYROLL_USER = [
+  "¡Hola! Este es un mensaje automático: te enviamos tu comprobante de pago de nómina.",
+  "Adjuntamos tu recibo de pago generado automáticamente. Si tienes preguntas, estamos a tu disposición.",
+  "Aquí tienes tu comprobante de nómina enviado por nuestro sistema automático. ¡Gracias por tu trabajo!",
+  "Recibo de nómina enviado automáticamente. ¡Que tengas un gran día!",
+  "Te compartimos tu recibo de pago generado por nuestro sistema. ¡Gracias por ser parte del equipo!",
+];
+
+const MESSAGES_PAYROLL_EMPLOYE = [
+  "¡Hola! Este es un mensaje automático: te enviamos tu comprobante de pago de nómina.",
+  "Adjuntamos tu recibo de pago generado automáticamente. Si tienes preguntas, estamos a tu disposición.",
+  "Aquí tienes tu comprobante de nómina enviado por nuestro sistema automático. ¡Gracias por tu trabajo!",
+  "Recibo de nómina enviado automáticamente. ¡Que tengas un gran día!",
+  "Te compartimos tu recibo de pago generado por nuestro sistema. ¡Gracias por ser parte del equipo!",
 ];
 
 subscriber.subscribe("whatsapp_invoice_channel");
@@ -35,25 +43,11 @@ subscriber.on("message", async (channel, message) => {
 
   const log = await MessageLog.findById(logId);
 
-  // Selecciona el array de mensajes según el tipo
-  let messagesArray = [];
-  if (messageType === "payRool") {
-    messagesArray = MESSAGES_PAYROOL;
-  } else {
-    messagesArray = MESSAGES_INVOCES;
-  }
-
-  // Elige un mensaje aleatorio
-  const msg =
-    messagesArray.length > 0
-      ? messagesArray[Math.floor(Math.random() * messagesArray.length)]
-      : `Toma tu Factura con ID:${logId}`;
-
   let success = true;
   let errorMsg = "";
 
   // Función para enviar mensaje y actualizar log
-  async function sendAndLog(number) {
+  async function sendAndLog(number, target, msg) {
     const formattedNumber = formatWhatsAppNumber("+58" + number);
     const result = await sendWhatsAppMessageWithPDF(
       formattedNumber,
@@ -63,20 +57,50 @@ subscriber.on("message", async (channel, message) => {
     if (!result.success) {
       success = false;
       errorMsg = result.error;
+    } else {
+      // Agregar el campo `message` al target (recipient o employe)
+      if (target) {
+        target.message = msg;
+      }
     }
   }
 
-  if (messageType === "payRool") {
-    // Enviar a phoneNumber
-    if (phoneNumber) await sendAndLog(phoneNumber);
-    // Enviar a phoneNumberTwo si existe
-    if (phoneNumberTwo) await sendAndLog(phoneNumberTwo);
+  if (messageType === "payRoll") {
+    // Mensaje para el empleador (recipient)
+    const recipientMessage =
+      MESSAGES_PAYROLL_USER[
+        Math.floor(Math.random() * MESSAGES_PAYROLL_USER.length)
+      ];
+    if (phoneNumber) {
+      await sendAndLog(phoneNumber, log.recipient, recipientMessage);
+      log.recipient.message = recipientMessage; // Asignar el mensaje
+      log.markModified("recipient"); // Marcar como modificado
+    }
+
+    // Mensaje para el empleado (employe)
+    const employeMessage =
+      MESSAGES_PAYROLL_EMPLOYE[
+        Math.floor(Math.random() * MESSAGES_PAYROLL_EMPLOYE.length)
+      ];
+    if (phoneNumberTwo) {
+      await sendAndLog(phoneNumberTwo, log.employe, employeMessage);
+      log.employe.message = employeMessage; // Asignar el mensaje
+      log.markModified("employe"); // Marcar como modificado
+    }
   } else {
-    // Solo invoce: enviar a phoneNumber
-    if (phoneNumber) await sendAndLog(phoneNumber);
+    // Solo invoice: enviar a phoneNumber
+    const invoiceMessage =
+      MESSAGES_INVOCES[Math.floor(Math.random() * MESSAGES_INVOCES.length)];
+    if (phoneNumber) {
+      await sendAndLog(phoneNumber, log.recipient, invoiceMessage);
+      log.recipient.message = invoiceMessage; // Asignar el mensaje
+      log.markModified("recipient"); // Marcar como modificado
+    }
   }
 
+  // Actualizar el estado y sentAt
   log.status = success ? "success" : "failure";
+  log.sentAt = new Date(); // Actualizar sentAt con la fecha y hora actual
   if (!success) log.reason = errorMsg;
 
   await log.save();
@@ -116,8 +140,8 @@ export const enqueueWhatsAppMessage = async () => {
           JSON.stringify({
             logId: log._id,
             recipient: log.recipient,
-            phoneNumber: log.phoneNumber,
-            phoneNumberTwo: log.phoneNumberTwo || null,
+            phoneNumber: log.recipient.phoneNumber,
+            phoneNumberTwo: log.employe?.phoneNumber || null,
             messageType: log.messageType,
             fileUrl: log.fileUrl || null,
           })
