@@ -134,11 +134,11 @@ const savePayRollsTask = async () => {
     }
 
     const now = new Date();
-    //const currentMonth = now.getMonth() + 1; // Mes actual (1-12)
-    const currentMonth = 8;
+    const currentMonth = now.getMonth() + 1; // Mes actual (1-12)
+    // const currentMonth = 8;
     const currentYear = now.getFullYear();
 
-    // console.log(`Mes de Busqueda en Nominas: ${currentMonth}`);
+    console.log(`Mes de Busqueda en Nominas: ${currentMonth}`);
 
     // Obtener nóminas del mes anterior
     const payRolls = await ListPayRolls(currentYear, currentMonth);
