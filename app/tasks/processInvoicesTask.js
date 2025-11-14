@@ -131,7 +131,7 @@ const saveInvoicesTask = async () => {
             source: invoice.id,
             recipient: {
               id: invoice.idUsuario,
-              fullName: invoice?.nombreDestinatario || null,
+              fullName: user?.nombre1.trim() || null,
               phoneNumber: user.telefono1,
             },
             status: "pending",
@@ -154,7 +154,7 @@ const saveInvoicesTask = async () => {
               source: invoice.id,
               recipient: {
                 id: invoice.idUsuario,
-                fullName: user.nombre2.trim(),
+                fullName: user?.nombre2.trim() || null,
                 phoneNumber: user.telefono2.trim(),
               },
               status: "pending",

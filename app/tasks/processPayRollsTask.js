@@ -190,7 +190,7 @@ const savePayRollsTask = async () => {
           const log = createPayrollMessageLog(
             payRoll,
             {
-              fullName: user.nombre.trim(),
+              fullName: user.nombre1.trim(),
               phoneNumber: user.telefono1,
             },
             employeData
