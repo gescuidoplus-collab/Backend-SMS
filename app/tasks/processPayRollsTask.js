@@ -71,6 +71,15 @@ async function withRetries(task, maxRetries, delay) {
   }
 }
 
+// Función para validar si un teléfono es válido (no vacío, no nulo, no undefined)
+function isValidPhoneNumber(phone) {
+  return (
+    phone !== null &&
+    phone !== undefined &&
+    (typeof phone === 'string' && phone.trim() !== '')
+  );
+}
+
 // Valida que el periodo vaya del día 1 al último día del mismo mes
 function isFullMonthPeriod(inicio, fin) {
   if (!inicio || !fin) return false;
@@ -180,6 +189,22 @@ const savePayRollsTask = async () => {
             3000
           );
 
+          // Validar que telefono1 del empleador sea válido antes de guardar
+          if (!isValidPhoneNumber(user.telefono1)) {
+            console.log(
+              `Omitiendo nómina ${payRoll.ano}-${String(payRoll.mes).padStart(2, '0')} (ID: ${payRoll.id}): telefono1 del empleador está vacío o no es válido`
+            );
+            continue;
+          }
+
+          // Validar que telefono1 del empleado sea válido antes de guardar
+          if (!isValidPhoneNumber(employe.telefono1)) {
+            console.log(
+              `Omitiendo nómina ${payRoll.ano}-${String(payRoll.mes).padStart(2, '0')} (ID: ${payRoll.id}): telefono1 del empleado está vacío o no es válido`
+            );
+            continue;
+          }
+
           // Preparar datos del empleado
           const employeData = {
             fullName: employe.nombre.trim(),
@@ -190,7 +215,7 @@ const savePayRollsTask = async () => {
           const log = createPayrollMessageLog(
             payRoll,
             {
-              fullName: user.nombre.trim(),
+              fullName: user.nombre1.trim(),
               phoneNumber: user.telefono1,
             },
             employeData

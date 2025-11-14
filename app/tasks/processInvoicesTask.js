@@ -33,6 +33,15 @@ function isPendingOrNull(val) {
   );
 }
 
+// Función para validar si un teléfono es válido (no vacío, no nulo, no undefined)
+function isValidPhoneNumber(phone) {
+  return (
+    phone !== null &&
+    phone !== undefined &&
+    (typeof phone === 'string' && phone.trim() !== '')
+  );
+}
+
 // Función para validar si una factura cumple con los requisitos para envío
 function canSendInvoice(invoice) {
   //1. whatsappStatus debe ser "PENDING"
@@ -127,11 +136,19 @@ const saveInvoicesTask = async () => {
             3000
           );
 
+          // Validar que telefono1 sea válido antes de guardar
+          if (!isValidPhoneNumber(user.telefono1)) {
+            console.log(
+              `Omitiendo factura ${invoice.serie}${invoice.separador}${invoice.numero} (ID: ${invoice.id}): telefono1 está vacío o no es válido`
+            );
+            continue;
+          }
+
           const log = new MessageLog({
             source: invoice.id,
             recipient: {
               id: invoice.idUsuario,
-              fullName: invoice?.nombreDestinatario || null,
+              fullName: user?.nombre1.trim() || null,
               phoneNumber: user.telefono1,
             },
             status: "pending",
@@ -154,7 +171,7 @@ const saveInvoicesTask = async () => {
               source: invoice.id,
               recipient: {
                 id: invoice.idUsuario,
-                fullName: user.nombre2.trim(),
+                fullName: user?.nombre2.trim() || null,
                 phoneNumber: user.telefono2.trim(),
               },
               status: "pending",

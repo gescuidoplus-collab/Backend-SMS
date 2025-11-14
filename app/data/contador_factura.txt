@@ -1,0 +1,6 @@
+{
+  "numeroFactura": 1,
+  "mes": 11,
+  "anio": 2025,
+  "ultimaActualizacion": "2025-11-14T16:05:05.627Z"
+}

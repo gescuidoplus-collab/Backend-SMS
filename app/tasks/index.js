@@ -3,4 +3,4 @@ import { processPayRollsTask } from "./processPayRollsTask.js";
 import { processInvoicesTask } from "./processInvoicesTask.js";
 import { runCleanupMedia } from "./cleanupMediaTask.js";
 
-export { processMessageQueue, processPayRollsTask, processInvoicesTask, runCleanupMedia };
+export { processMessageQueue, processPayRollsTask, processInvoicesTask };
