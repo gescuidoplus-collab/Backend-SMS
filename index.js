@@ -24,10 +24,22 @@ const __dirname = path.dirname(__filename)
 const app = express();
 const ai = new GoogleGenAI({})
 
+
 app.use(express.json());
+
+import { processMessageQueue, runCleanupMedia } from "./app/tasks/index.js";
+import { runAllTasks } from "./app/tasks/taskManager.js";
+//
+
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:3032"],
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "http://localhost:3032",
+      "https://frontend-sms.vercel.app",
+      "https://backend-sms-three.vercel.app",
+    ],
     allowedHeaders: ["Content-Type", "Authorization"],
     optionsSuccessStatus: 200,
   })
@@ -225,6 +237,10 @@ function formatearHorarios(horarios) {
 // const limiter = rateLimit({
 //   windowMs: 5 * 60 * 1000,
 //   max: 100,
+
+// const limiter = rateLimit({
+//   windowMs: 5 * 60 * 1000,
+//   max: 150,
 //   standardHeaders: true,
 //   legacyHeaders: false,
 // });
@@ -257,5 +273,63 @@ app.listen(envConfig.port, () => {
   processInvoicesTask();
   processPayRollsTask();
   // processMessageQueue();
+  console.log(`Running in proyect port : ${envConfig.port}`);
+});
+
+app.get(`${envConfig.urlPath}healtcheck`, (req, res) => {
+  res.status(200).json({ message: "version 1.0.0" });
+});
+
+
+app.use(envConfig.urlPath, router);
+
+
+app.get("/api/cron", async (req, res) => {
+  try {
+    console.log("Cron job triggered")
+    const ua = (req.headers["user-agent"] || "").toLowerCase();
+    const isVercel = ua.includes("vercel-cron");
+    const provided = req.headers["x-cron-secret"];
+    if (
+      !isVercel &&
+      envConfig.cronSecret &&
+      provided !== envConfig.cronSecret
+    ) {
+      return res.status(401).json({ ok: false, error: "unauthorized" });
+    }
+    await runAllTasks();
+    res.json({ ok: true, runAt: new Date().toISOString() });
+  } catch (e) {
+    console.error("Cron endpoint error", e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.get("/api/cron-send", async (req, res) => {
+  try {
+
+    console.log("Cron SEND job triggered");
+    const ua = (req.headers["user-agent"] || "").toLowerCase();
+    const isVercel = ua.includes("vercel-cron");
+    const provided = req.headers["x-cron-secret"];
+    if (
+      !isVercel &&
+      envConfig.cronSecret &&
+      provided !== envConfig.cronSecret
+    ) {
+      return res.status(401).json({ ok: false, error: "unauthorized" });
+    }
+    await mongoClient(); 
+    await processMessageQueue();
+    res.json({ ok: true, runAt: new Date().toISOString(), processed: true });
+  } catch (e) {
+    console.error("Cron endpoint error", e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+app.listen(envConfig.port, () => {
+  // runAllTasks();
+  // processMessageQueue()
   console.log(`Running in proyect port : ${envConfig.port}`);
 });

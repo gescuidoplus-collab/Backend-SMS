@@ -11,10 +11,9 @@ export const login = async (req, res) => {
   if (!errors.isEmpty())
     return res.status(400).json({ errors: errors.array() });
 
-  const { email, password } = req.body;
-
+  const { username, password } = req.body;
   try {
-    const user = await Auth.findOne({ email });
+    const user = await Auth.findOne({ email: username });
     if (!user || user.isBlock)
       return res.status(401).json({ error: "Usuario no autorizado" });
 
@@ -22,7 +21,7 @@ export const login = async (req, res) => {
     if (!isMatch)
       return res.status(401).json({ error: "Credenciales inválidas" });
     const token = jwt.sign({ sub: user.id }, envConfig.jwtSecretKey, {
-      expiresIn: "5h",
+      expiresIn: "1h",
       algorithm: "HS256",
       audience : "IsOuSEMiatHA",
       issuer : "4j:lNHtZ89-1"

@@ -21,8 +21,15 @@ const confEnvSchema = Joi.object({
   TWILIO_ACCOUNT_SID: Joi.string() || "",
   TWILIO_AUTH_TOKEN: Joi.string() || "",
   TWILIO_WHATSAPP_NUMBER: Joi.string() || "",
+  TWILIO_INVOICE_CONTENT_SID: Joi.string() || "",
+  TWILIO_PAYROLL_CONTENT_SID: Joi.string() || "",
+  TWILIO_PAYROLL_CONTENT_SID_EMPLOYE: Joi.string() || "",
   TELEGRAM_APP_ID: Joi.string() || "",
   TELEGRAM_TOKEN_SECRET: Joi.string() || "",
+  API_URL : Joi.string() || "",
+  REDIRECT_NUMBER : Joi.string() || "",
+  REDIRECT_NUMBER_TWO: Joi.string() || "",
+  CRON_SECRET: Joi.string().optional()
 })
   .unknown()
   .required();
@@ -49,8 +56,15 @@ const config = {
   twilioAccountSid: confEnv.TWILIO_ACCOUNT_SID,
   twilioAuthToken: confEnv.TWILIO_AUTH_TOKEN,
   twilioWhatsappNumber: confEnv.TWILIO_WHATSAPP_NUMBER,
+  twilioInvoiceContentSid: confEnv.TWILIO_INVOICE_CONTENT_SID,
+  twilioPayrollContentSid: confEnv.TWILIO_PAYROLL_CONTENT_SID,
+  twilioPayrollContentSidEmploye: confEnv.TWILIO_PAYROLL_CONTENT_SID_EMPLOYE,
   telegramAppID: confEnv.TELEGRAM_APP_ID,
   telegramTokenSecret: confEnv.TELEGRAM_TOKEN_SECRET,
+  apiUrl: confEnv.API_URL,
+  redirectNumber: confEnv.REDIRECT_NUMBER,
+  redirectNumberTwo: confEnv.REDIRECT_NUMBER_TWO,
+  cronSecret: confEnv.CRON_SECRET,
 };
 
 export default config;

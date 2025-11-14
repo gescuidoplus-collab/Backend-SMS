@@ -1,18 +1,15 @@
 import cron from "node-cron";
-import {send_telegram_message} from "../services/sendMessageTelegram.js"
-//import { enqueueWhatsAppMessage } from "../services/redis-messages.js";
+import { send_telegram_message } from "../services/sendMessageTelegram.js";
+import { enqueueWhatsAppMessage } from "../services/redis-messages.js";
+import { envConfig } from "../config/index.js";
 
-export const processMessageQueue = () => {
+export const processMessageQueue = async () => {
   const executeTask = async () => {
-    //await enqueueWhatsAppMessage();
-    console.log(`Se ejecuto la tarea de envio de mensajes`)
-    // send_telegram_message(
-    //   "Guardado de nóminas completado 🎉"
-    // );
+    const now = new Date();
+    await enqueueWhatsAppMessage();
+    send_telegram_message(
+      `Envio de mensajes finalizado ✅ - Fecha: ${now.toLocaleDateString()} Hora: ${now.toLocaleTimeString()}`
+    );
   };
-
-  // Ejecución inicial con retraso
-  // setTimeout(executeTask, 10 * 60 * 1000);
-
- // cron.schedule("0 9 1 * *", executeTask);
+  return executeTask();
 };

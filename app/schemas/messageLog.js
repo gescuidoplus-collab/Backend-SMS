@@ -3,6 +3,26 @@ import { encrypt, decrypt } from "../utils/cipher.js";
 
 const { Schema } = mongoose;
 
+function encryptIfObject(val) {
+  if (!val) return val;
+  if (typeof val === "object") {
+    return encrypt(val);
+  }
+  return val;
+}
+
+function decryptIfString(val) {
+  if (!val) return val;
+  if (typeof val === "string") {
+    try {
+      return decrypt(val);
+    } catch (e) {
+      return val;
+    }
+  }
+  return val;
+}
+
 const MessageLogSchema = new Schema(
   {
     source: {
@@ -25,12 +45,40 @@ const MessageLogSchema = new Schema(
       type: String,
       required: false,
     },
+    serie: {
+      type: String,
+      required: false,
+    },
+    separador: {
+      type: String,
+      required: false,
+    },
     mes: {
       type: Number,
       required: false,
     },
     ano: {
       type: Number,
+      required: false,
+    },
+    numero: {
+      type: Number,
+      required: false,
+    },
+    total: {
+      type: Number,
+      required: false,
+    },
+    fechaExpedicion: {
+      type: String,
+      required: false,
+    },
+    message: {
+      type: String,
+      required: false,
+    },
+    message_employe: {
+      type: String,
       required: false,
     },
     updatedAt: {
@@ -45,6 +93,10 @@ const MessageLogSchema = new Schema(
       type: String,
       required: false,
     },
+    pdfUrl: {
+      type: String,
+      required: false,
+    },
     status: {
       type: String,
       enum: ["success", "failure", "pending"],
@@ -54,7 +106,15 @@ const MessageLogSchema = new Schema(
       type: String,
       required: false,
     },
-    employeMessage: {
+    message_employe: {
+      type: String,
+      required: false,
+    },
+    templateContentSid: {
+      type: String,
+      required: false,
+    },
+    templateContent: {
       type: String,
       required: false,
     },
@@ -64,35 +124,101 @@ const MessageLogSchema = new Schema(
   }
 );
 
-// MessageLogSchema.pre("save", function (next) {
-//   if (!this.isModified("sensitiveData") || !this.sensitiveData) {
-//     return next();
-//   }
+MessageLogSchema.pre("save", function (next) {
+  try {
+    if (this.isModified("recipient")) {
+      this.recipient = encryptIfObject(this.recipient);
+    }
+    if (this.isModified("employe")) {
+      this.employe = encryptIfObject(this.employe);
+    }
+    if (this.isModified("templateContentSid") && this.templateContentSid) {
+      this.templateContentSid = encrypt(this.templateContentSid);
+    }
+    if (this.isModified("templateContent") && this.templateContent) {
+      this.templateContent = encrypt(this.templateContent);
+    }
+    if (this.isModified("message") && this.message) {
+      this.message = encrypt(this.message);
+    }
+    if (this.isModified("message_employe") && this.message_employe) {
+      this.message_employe = encrypt(this.message_employe);
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
-//   if (typeof this.sensitiveData !== "object" || this.sensitiveData === null) {
-//     return next();
-//   }
+MessageLogSchema.pre("findOneAndUpdate", function (next) {
+  try {
+    const update = this.getUpdate() || {};
+    const $set = update.$set || update;
+    if ($set.recipient) {
+      $set.recipient = encryptIfObject($set.recipient);
+    }
+    if ($set.employe) {
+      $set.employe = encryptIfObject($set.employe);
+    }
+    if ($set.templateContentSid && typeof $set.templateContentSid === "string") {
+      $set.templateContentSid = encrypt($set.templateContentSid);
+    }
+    if ($set.templateContent && typeof $set.templateContent === "string") {
+      $set.templateContent = encrypt($set.templateContent);
+    }
+    if ($set.message && typeof $set.message === "string") {
+      $set.message = encrypt($set.message);
+    }
+    if ($set.message_employe && typeof $set.message_employe === "string") {
+      $set.message_employe = encrypt($set.message_employe);
+    }
+    if (update.$set) this.setUpdate({ ...update, $set });
+    else this.setUpdate($set);
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
-//   try {
-//     this.sensitiveData = encrypt(this.sensitiveData);
-//     next();
-//   } catch (error) {
-//     next(error);
-//   }
-// });
+MessageLogSchema.post("init", function (doc) {
+  doc.recipient = decryptIfString(doc.recipient);
+  doc.employe = decryptIfString(doc.employe);
+  doc.templateContentSid = decryptIfString(doc.templateContentSid);
+  doc.templateContent = decryptIfString(doc.templateContent);
+  doc.message = decryptIfString(doc.message);
+  doc.message_employe = decryptIfString(doc.message_employe);
+});
 
-// MessageLogSchema.methods.getDecryptedData = function () {
-//   try {
-//     if (!this.sensitiveData || typeof this.sensitiveData !== "string") {
-//       return this.sensitiveData;
-//     }
-//     const resp = decrypt(this.sensitiveData);
-//     return resp;
-//   } catch (error) {
-//     console.error("Error al descifrar:", error);
-//     return null;
-//   }
-// };
+MessageLogSchema.post("save", function (doc) {
+  doc.recipient = decryptIfString(doc.recipient);
+  doc.employe = decryptIfString(doc.employe);
+  doc.templateContentSid = decryptIfString(doc.templateContentSid);
+  doc.templateContent = decryptIfString(doc.templateContent);
+  doc.message = decryptIfString(doc.message);
+  doc.message_employe = decryptIfString(doc.message_employe);
+});
+
+MessageLogSchema.post("find", function (docs) {
+  for (const doc of docs) {
+    doc.recipient = decryptIfString(doc.recipient);
+    doc.employe = decryptIfString(doc.employe);
+    doc.templateContentSid = decryptIfString(doc.templateContentSid);
+    doc.templateContent = decryptIfString(doc.templateContent);
+    doc.message = decryptIfString(doc.message);
+    doc.message_employe = decryptIfString(doc.message_employe);
+  }
+});
+
+MessageLogSchema.post("findOneAndUpdate", function (doc) {
+  if (doc) {
+    doc.recipient = decryptIfString(doc.recipient);
+    doc.employe = decryptIfString(doc.employe);
+    doc.templateContentSid = decryptIfString(doc.templateContentSid);
+    doc.templateContent = decryptIfString(doc.templateContent);
+    doc.message = decryptIfString(doc.message);
+    doc.message_employe = decryptIfString(doc.message_employe);
+  }
+});
 
 const MessageLog = mongoose.model("MessageLog", MessageLogSchema);
 

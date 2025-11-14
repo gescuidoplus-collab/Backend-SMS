@@ -1,111 +1,167 @@
-import Redis from "ioredis";
 import { MessageLog } from "../schemas/index.js";
+import mongoose from "mongoose";
+import { mongoClient } from "../config/index.js";
 import { formatWhatsAppNumber } from "../utils/formatWhatsAppNumber.js";
-import {
-  sendWhatsAppMessageWithPDF,
-  sendWhatsAppMessage,
-} from "./twilioService.js";
+import { sendInvoceTemplate } from "./send-template-invoce.js";
+import { sendInvocePayRool } from "./send-template-payroll.js";
 import { send_telegram_message } from "./sendMessageTelegram.js";
+import { envConfig } from "../config/index.js";
+import { updateWhatsappStatuses } from "./update-status-message.js";
 
-const subscriber = new Redis();
-const publisher = new Redis();
-const BATCH_DELAY = 3000;
+const BATCH_DELAY = 3500; // Mayor retardo entre mensajes para evitar spams
 
-const MESSAGES_INVOCES = [
-  "¡Hola! Este es un mensaje automático: adjuntamos tu factura. Si tienes alguna duda, estamos para ayudarte.",
-  "Factura generada automáticamente y enviada. ¡Gracias por confiar en nosotros!",
-  "Te enviamos tu factura solicitada de forma automática. No dudes en contactarnos si necesitas algo más.",
-  "Factura disponible (proceso automático). ¡Gracias por tu preferencia!",
-  "Aquí está tu factura generada automáticamente. ¡Que tengas un excelente día!",
-];
+// Asegura conexión a Mongo (evita buffering en entornos serverless)
+async function ensureDb() {
+  if (mongoose.connection.readyState !== 1) {
+    await mongoClient();
+  }
+}
 
-const MESSAGES_PAYROLL_USER = [
-  "¡Hola! Este es un mensaje automático: te enviamos tu comprobante de pago de nómina.",
-  "Adjuntamos tu recibo de pago generado automáticamente. Si tienes preguntas, estamos a tu disposición.",
-  "Aquí tienes tu comprobante de nómina enviado por nuestro sistema automático. ¡Gracias por tu trabajo!",
-  "Recibo de nómina enviado automáticamente. ¡Que tengas un gran día!",
-  "Te compartimos tu recibo de pago generado por nuestro sistema. ¡Gracias por ser parte del equipo!",
-];
-
-const MESSAGES_PAYROLL_EMPLOYE = [
-  "¡Hola! Este es un mensaje automático: te enviamos tu comprobante de pago de nómina.",
-  "Adjuntamos tu recibo de pago generado automáticamente. Si tienes preguntas, estamos a tu disposición.",
-  "Aquí tienes tu comprobante de nómina enviado por nuestro sistema automático. ¡Gracias por tu trabajo!",
-  "Recibo de nómina enviado automáticamente. ¡Que tengas un gran día!",
-  "Te compartimos tu recibo de pago generado por nuestro sistema. ¡Gracias por ser parte del equipo!",
-];
-
-subscriber.subscribe("whatsapp_invoice_channel");
-
-subscriber.on("message", async (channel, message) => {
-  const { logId, recipient, phoneNumber, phoneNumberTwo, messageType } =
-    JSON.parse(message);
-
+// Procesa un mensaje individual (antes era manejado por Redis subscriber)
+async function processSingleMessage({
+  logId,
+  recipient,
+  employe,
+  phoneNumber,
+  phoneNumberTwo,
+  messageType,
+  total,
+  fechaExpedicion,
+  tipoPago,
+  mes,
+  numero,
+  fileUrl,
+}) {
+  await ensureDb();
   const log = await MessageLog.findById(logId);
 
+  // Empaquetar datos completos para la plantilla
+  const payload = {
+    mes: log.mes ?? null,
+    numero,
+    total,
+    fechaExpedicion,
+    fileUrl,
+    recipient: log.recipient,
+    employe: log.employe,
+  };
   let success = true;
   let errorMsg = "";
 
   // Función para enviar mensaje y actualizar log
-  async function sendAndLog(number, target, msg) {
+  async function sendAndLog(number, target, type, data) {
     const formattedNumber = formatWhatsAppNumber("+58" + number);
-    const result = await sendWhatsAppMessageWithPDF(
-      formattedNumber,
-      msg,
-      log.fileUrl
-    );
-    if (!result.success) {
-      success = false;
-      errorMsg = result.error;
-    } else {
-      // Agregar el campo `message` al target (recipient o employe)
-      if (target) {
-        target.message = msg;
+    // Usar URL de data o construir URL por defecto
+    const fileURL =
+      data.fileUrl ||
+      (type === "invoice"
+        ? `${envConfig.apiUrl}/api/v1/invoices/${log.source}/factura.pdf`
+        : `${envConfig.apiUrl}/api/v1/payrolls/${log.source}/nomina.pdf`);
+    
+    // Guardar la URL del PDF en el log
+    log.pdfUrl = fileURL;
+    // console.log(
+    //   `Enviando WhatsApp [${type}] a ${formattedNumber} con archivo ${fileURL}`
+    // );
+    // Nombre corto para plantilla
+    const shortName = target?.fullName ? target.fullName.split(/\s+/)[0] : "";
+    let result;
+    // Seleccionar plantilla según tipo
+    try {
+      if (type === "invoice") {
+        result = await sendInvoceTemplate(
+          formattedNumber,
+          shortName,
+          fileURL,
+          data
+        );
+      } else if (type === "payrollUser" || type === "payrollEmployee") {
+        result = await sendInvocePayRool(
+          formattedNumber,
+          shortName,
+          fileURL,
+          data.mes ?? log.mes,
+          type,
+          data.recipient ?? log.recipient,
+          data.employe ?? log.employe
+        );
+      } else {
+        result = { success: false, error: "Tipo de plantilla no soportado" };
       }
+    } catch (err) {
+      console.error("Error enviando plantilla:", err);
+      result = { success: false, error: err?.message || String(err) };
     }
-  }
+
+    if (!result?.success) {
+      success = false;
+      errorMsg = result?.error || "Unknown error";
+      // Reportar el error a Telegram para monitoreo
+      send_telegram_message(
+        `Error al enviar WhatsApp a ${formattedNumber}: ${errorMsg}`
+      );
+    } else {
+      // asignar mensaje corto a target
+      if (target) target.message = shortName;
+    }
+    
+    // Guardar el contenido de la plantilla en el campo message del log
+    // Para nóminas: message = empleador, message_employe = empleado
+    if (result?.templateContent) {
+      if (type === "payrollUser") {
+        log.message = result.templateContent;
+        log.markModified("message");
+      } else if (type === "payrollEmployee") {
+        log.message_employe = result.templateContent;
+        log.markModified("message_employe");
+      } else {
+        // Para facturas y otros tipos
+        log.message = result.templateContent;
+        log.markModified("message");
+      }
+      log.templateContent = result.templateContent; // También guardar en templateContent (encriptado)
+      log.markModified("templateContent");
+    }
+    
+    // Guardar el Content SID de la plantilla utilizada (encriptado automáticamente)
+    if (result?.contentSid) {
+      log.templateContentSid = result.contentSid;
+      log.markModified("templateContentSid");
+    }
+  } // sendAndLog
+
+  // Enviar según tipo de mensaje
 
   if (messageType === "payRoll") {
-    // Mensaje para el empleador (recipient)
-    const recipientMessage =
-      MESSAGES_PAYROLL_USER[
-        Math.floor(Math.random() * MESSAGES_PAYROLL_USER.length)
-      ];
+    // Nómina - usuario
     if (phoneNumber) {
-      await sendAndLog(phoneNumber, log.recipient, recipientMessage);
-      log.recipient.message = recipientMessage; // Asignar el mensaje
-      log.markModified("recipient"); // Marcar como modificado
+      await sendAndLog(phoneNumber, log.recipient, "payrollUser", payload);
+      log.markModified("recipient");
     }
-
-    // Mensaje para el empleado (employe)
-    const employeMessage =
-      MESSAGES_PAYROLL_EMPLOYE[
-        Math.floor(Math.random() * MESSAGES_PAYROLL_EMPLOYE.length)
-      ];
+    // Nómina - empleado
     if (phoneNumberTwo) {
-      await sendAndLog(phoneNumberTwo, log.employe, employeMessage);
-      log.employe.message = employeMessage; // Asignar el mensaje
-      log.markModified("employe"); // Marcar como modificado
+      await sendAndLog(phoneNumberTwo, log.employe, "payrollEmployee", payload);
+      log.markModified("employe");
     }
   } else {
-    // Solo invoice: enviar a phoneNumber
-    const invoiceMessage =
-      MESSAGES_INVOCES[Math.floor(Math.random() * MESSAGES_INVOCES.length)];
+    // Factura
     if (phoneNumber) {
-      await sendAndLog(phoneNumber, log.recipient, invoiceMessage);
-      log.recipient.message = invoiceMessage; // Asignar el mensaje
-      log.markModified("recipient"); // Marcar como modificado
+      await sendAndLog(phoneNumber, log.recipient, "invoice", payload);
+      log.markModified("recipient");
     }
   }
 
   // Actualizar el estado y sentAt
   log.status = success ? "success" : "failure";
   log.sentAt = new Date(); // Actualizar sentAt con la fecha y hora actual
-  if (!success) log.reason = errorMsg;
+  if (!success) {
+    log.reason = errorMsg;
+  }
 
   await log.save();
   await new Promise((res) => setTimeout(res, BATCH_DELAY));
-});
+  return success;
+}
 
 function chunkArray(array, size) {
   const result = [];
@@ -116,36 +172,49 @@ function chunkArray(array, size) {
 }
 
 export const enqueueWhatsAppMessage = async () => {
-  const BATCH_SIZE = 30; // Más mensajes por lote
-  const MIN_DELAY = 1000; // 1 segundo
-  const MAX_DELAY = 2000; // 3 segundos
+  await ensureDb();
+  const BATCH_SIZE = 20; // Menos mensajes por lote para menor riesgo
+  const MIN_DELAY = 2000; // 2 segundos mínimo
+  const MAX_DELAY = 3500; // 3.5 segundos máximo
 
   const now = new Date();
   const monthActualy = now.getMonth() + 1;
   const yearActualy = now.getFullYear();
+
+  let cloud_navis_logs = [];
   const logs = await MessageLog.find({
-    mes: monthActualy - 1,
+    mes: 8, // monthActualy -1,
     ano: yearActualy,
     status: "pending",
   });
 
-  console.log("Cantidad de logs :", logs.length);
+  console.log("🏠 Mensajes a Enviar:", logs.length);
+
   if (logs.length > 0) {
     const chunks = chunkArray(logs, BATCH_SIZE);
 
     for (const [i, chunk] of chunks.entries()) {
       for (const log of chunk) {
-        await publisher.publish(
-          "whatsapp_invoice_channel",
-          JSON.stringify({
-            logId: log._id,
-            recipient: log.recipient,
-            phoneNumber: log.recipient.phoneNumber,
-            phoneNumberTwo: log.employe?.phoneNumber || null,
-            messageType: log.messageType,
-            fileUrl: log.fileUrl || null,
-          })
-        );
+        console.log(log.recipient.fullName);
+        let resp = await processSingleMessage({
+          logId: log._id,
+          recipient: log.recipient,
+          employe: log.employe,
+          phoneNumber: log.recipient.phoneNumber,
+          phoneNumberTwo: log.employe?.phoneNumber || null,
+          total: log.total || null,
+          fechaExpedicion: log.fechaExpedicion || null,
+          tipoPago: log.tipoPago || null,
+          mes: log.mes || null,
+          numero: log.numero || null,
+          messageType: log.messageType,
+          fileUrl: log.fileUrl || null,
+        });
+        cloud_navis_logs.push({
+          source: log.source,
+          response: resp,
+          messageType: log.messageType,
+        });
         // Retardo aleatorio entre mensajes
         const delay =
           Math.floor(Math.random() * (MAX_DELAY - MIN_DELAY + 1)) + MIN_DELAY;
@@ -156,6 +225,8 @@ export const enqueueWhatsAppMessage = async () => {
         await new Promise((res) => setTimeout(res, 5000)); // 5 segundos entre lotes
       }
     }
+
+    await updateWhatsappStatuses(cloud_navis_logs);
     send_telegram_message(`Mensajes enviados: ${logs.length}`);
   } else {
     send_telegram_message("⚠️ Mensajes no enviados logs == []");
