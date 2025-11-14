@@ -8,7 +8,7 @@ import { send_telegram_message } from "./sendMessageTelegram.js";
 import { envConfig } from "../config/index.js";
 import { updateWhatsappStatuses } from "./update-status-message.js";
 
-const BATCH_DELAY = 3500; // Mayor retardo entre mensajes para evitar spam
+const BATCH_DELAY = 3500; // Mayor retardo entre mensajes para evitar spams
 
 // Asegura conexión a Mongo (evita buffering en entornos serverless)
 async function ensureDb() {
