@@ -38,9 +38,9 @@ function isValidPhoneNumber(phone) {
 }
 
 function canSendInvoice(invoice) {
-  // if (invoice.whatsappStatus !== 'PENDING') {
-  //   return { valid: false, reason: `whatsappStatus es "${invoice.whatsappStatus}", debe ser "PENDING"` };
-  // }
+  if (invoice.whatsappStatus !== 'PENDING') {
+    return { valid: false, reason: `whatsappStatus es "${invoice.whatsappStatus}", debe ser "PENDING"` };
+  }
 
   if (isPendingOrNull(invoice.firma)) {
     return { valid: false, reason: 'firma es null, vacío o "PENDIENTE"' };

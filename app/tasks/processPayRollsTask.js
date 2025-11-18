@@ -23,12 +23,12 @@ function isValidUUID(uuid) {
 }
 
 function canSendPayroll(payRoll) {
-  // if (payRoll.whatsappStatus !== 'PENDING') {
-  //   return { 
-  //     valid: false, 
-  //     reason: `whatsappStatus es "${payRoll.whatsappStatus}", debe ser "PENDING"` 
-  //   };
-  // }
+  if (payRoll.whatsappStatus !== 'PENDING') {
+    return { 
+      valid: false, 
+      reason: `whatsappStatus es "${payRoll.whatsappStatus}", debe ser "PENDING"` 
+    };
+  }
 
   if (!isValidUUID(payRoll.idEmpleador)) {
     return { 
