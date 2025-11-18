@@ -38,7 +38,7 @@ function isValidPhoneNumber(phone) {
 }
 
 function canSendInvoice(invoice) {
-  if (invoice.whatsappStatus !== 'PENDING') {
+  if (invoice.whatsappStatus !== 'PENDING' && invoice.whatsappStatus !== null) {
     return { valid: false, reason: `whatsappStatus es "${invoice.whatsappStatus}", debe ser "PENDING"` };
   }
 

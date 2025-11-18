@@ -23,7 +23,7 @@ function isValidUUID(uuid) {
 }
 
 function canSendPayroll(payRoll) {
-  if (payRoll.whatsappStatus !== 'PENDING') {
+  if (payRoll.whatsappStatus !== 'PENDING' && payRoll.whatsappStatus !== null) {
     return { 
       valid: false, 
       reason: `whatsappStatus es "${payRoll.whatsappStatus}", debe ser "PENDING"` 
