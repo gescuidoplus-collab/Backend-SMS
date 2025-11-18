@@ -15,14 +15,24 @@ Esta documentación está diseñada para explicar de forma clara y sencilla el f
 
 ## 3. Procesamiento de Facturas (archivo: processInvoicesTask.js)
 
-- **¿Qué es?** Aunque no se muestra el contenido completo, esta tarea se encarga de recopilar y procesar la información de las facturas de forma automática.
+- **¿Qué es?** Esta tarea se encarga de recopilar y procesar la información de las facturas de forma automática desde la API de CloudNavis.
 - **Función principal:** Organiza, valida y envía las facturas a través de los canales configurados, garantizando que la información se maneje de manera correcta y completa.
+- **Búsqueda de múltiples meses:** La variable `MONTHS_SEARCH` controla cuántos meses se procesan:
+  - **0**: Solo el mes actual
+  - **1**: Mes actual + mes anterior (valor por defecto)
+  - **N**: Mes actual + (N-1) meses anteriores
+- **Validaciones:** Verifica que la factura tenga estado "PENDING", que los campos requeridos (firma, codigoQr, codigoIdentificativo) no estén vacíos o pendientes, y que el teléfono del destinatario sea válido.
 
 ## 4. Procesamiento de Nóminas (archivo: processPayRollsTask.js)
 
-- **¿Qué es?** Es la tarea encargada de gestionar la información relacionada con las nóminas (liquidaciones de pago).
+- **¿Qué es?** Es la tarea encargada de gestionar la información relacionada con las nóminas (liquidaciones de pago) desde la API de CloudNavis.
 - **Función principal:** Verifica que los períodos de nómina sean completos y correctos, se encarga de obtener información de usuarios y empleados, y registra el resultado final de cada envío.
+- **Búsqueda de múltiples meses:** La variable `MONTHS_SEARCH` controla cuántos meses se procesan:
+  - **0**: Solo el mes actual
+  - **1**: Mes actual + mes anterior (valor por defecto)
+  - **N**: Mes actual + (N-1) meses anteriores
 - **Reintentos:** En caso de encontrar problemas, se reintenta el proceso para asegurar que la nómina se procese correctamente.
+- **Validaciones:** Verifica que la nómina tenga estado "PENDING", que el período sea un mes completo (día 1 al último día), que los IDs de empleador y empleado sean válidos, y que los teléfonos sean válidos.
 
 ## 5. Gestión de Mensajes en Lotes (archivo: redis-messages.js)
 
@@ -111,8 +121,68 @@ La aplicación incorpora mecanismos robustos para el manejo y registro de errore
 
 5. **Recepción de Notificaciones:** La aplicación escucha las notificaciones de Twilio. Cuando se reciben, se reenvían a otros servicios (como Telegram) para alertar sobre el estado o problemas en tiempo real.
 
+---
+
+## Configuración de Búsqueda de Múltiples Meses (MONTHS_SEARCH)
+
+### ¿Qué es MONTHS_SEARCH?
+
+`MONTHS_SEARCH` es una variable de configuración que controla cuántos meses se procesan en las tareas de facturas y nóminas. Esto es útil cuando necesitas recuperar documentos de meses anteriores que no fueron procesados correctamente.
+
+### Valores y Comportamiento
+
+| Valor | Descripción | Ejemplo (Hoy: 15 Nov) |
+|-------|-------------|----------------------|
+| **0** | Solo el mes actual | Procesa: Noviembre |
+| **1** | Mes actual + 1 mes anterior | Procesa: Noviembre, Octubre |
+| **2** | Mes actual + 2 meses anteriores | Procesa: Noviembre, Octubre, Septiembre |
+| **3** | Mes actual + 3 meses anteriores | Procesa: Noviembre, Octubre, Septiembre, Agosto |
+| **N** | Mes actual + (N-1) meses anteriores | Procesa: Mes actual + N-1 meses atrás |
+
+### Casos de Uso
+
+1. **Recuperación de documentos perdidos:** Si un cron job falló en octubre, puedes establecer `MONTHS_SEARCH=3` para procesar octubre junto con los meses actuales.
+
+2. **Procesamiento inicial:** Al desplegar por primera vez, establece un valor alto para procesar meses anteriores.
+
+3. **Operación normal:** Mantén `MONTHS_SEARCH=1` para procesar solo el mes actual y el anterior (valor por defecto).
+
+### Cómo Funciona Internamente
+
+1. La tarea obtiene el mes y año actual.
+2. Calcula los meses a procesar según `MONTHS_SEARCH`.
+3. Para cada mes, realiza una llamada a la API de CloudNavis.
+4. Procesa todas las facturas/nóminas encontradas.
+5. Registra cada documento en la base de datos.
+
+### Ejemplo de Ejecución
+
+Si hoy es **15 de noviembre de 2025** y `MONTHS_SEARCH=3`:
+
+```
+Meses a buscar en Facturas (MONTHS_SEARCH=3): 2025-11, 2025-10, 2025-09
+Procesando facturas del mes: 2025-11
+  → Encontradas 5 facturas
+Procesando facturas del mes: 2025-10
+  → Encontradas 3 facturas
+Procesando facturas del mes: 2025-09
+  → Encontradas 2 facturas
+Total procesadas: 10 facturas
+```
+
+### Recomendaciones
+
+- **Desarrollo:** Usa `MONTHS_SEARCH=1` para pruebas rápidas.
+- **Producción:** Mantén `MONTHS_SEARCH=1` para operación normal.
+- **Recuperación:** Aumenta temporalmente si necesitas procesar meses anteriores, luego vuelve a `1`.
+- **Máximo recomendado:** No excedas `MONTHS_SEARCH=12` para evitar sobrecarga de la API.
+
+---
+
 ## Conclusión
 
 La aplicación está diseñada para automatizar el envío y seguimiento de notificaciones y documentos (facturas y nóminas) a través de servicios de mensajería. Gracias a su arquitectura modular, cada componente se encarga de una función específica, permitiendo un manejo eficiente y seguro de la información, garantizando que tanto los mensajes como los documentos se envíen correctamente y se registre cualquier incidencia para su monitoreo.
+
+La configuración flexible mediante `MONTHS_SEARCH` permite adaptarse a diferentes escenarios operativos, desde recuperación de datos hasta procesamiento rutinario.
 
 Esta documentación ofrece una visión general y no técnica del funcionamiento del sistema, para que cualquier usuario o cliente pueda entender el proceso sin necesitar conocimientos especializados en tecnología.

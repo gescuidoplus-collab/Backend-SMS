@@ -158,6 +158,21 @@ Crea un archivo `.env` en la raíz del proyecto y configura las siguientes varia
 | TWILIO_WHATSAPP_NUMBER    | Número de WhatsApp habilitado en Twilio.                                    |
 | TELEGRAM_APP_ID           | ID de la aplicación de Telegram para el bot de notificaciones.              |
 | TELEGRAM_TOKEN_SECRET     | Token secreto del bot de Telegram.                                          |
+| MONTHS_SEARCH             | Cantidad de meses a buscar en las tasks (0-12). Ver detalles abajo.          |
+
+### Detalles de MONTHS_SEARCH
+
+La variable `MONTHS_SEARCH` controla cuántos meses se procesan en las tasks de facturas y nóminas:
+
+- **0**: Solo el mes actual
+- **1**: Mes actual + mes anterior (2 meses total) - **Valor por defecto**
+- **2**: Mes actual + 2 meses anteriores (3 meses total)
+- **3**: Mes actual + 3 meses anteriores (4 meses total)
+- **N**: Mes actual + (N-1) meses anteriores
+
+**Ejemplo:**
+- Si hoy es 15 de noviembre (mes 11) y `MONTHS_SEARCH=3`:
+  - Se procesarán facturas/nóminas de: noviembre (11), octubre (10), septiembre (09)
 
 Ejemplo de archivo `.env`:
 
@@ -179,6 +194,7 @@ TWILIO_AUTH_TOKEN=
 TWILIO_WHATSAPP_NUMBER=
 TELEGRAM_APP_ID=
 TELEGRAM_TOKEN_SECRET=
+MONTHS_SEARCH=1
 ```
 
 ---
