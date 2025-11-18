@@ -183,7 +183,7 @@ export const enqueueWhatsAppMessage = async () => {
 
   let cloud_navis_logs = [];
   const logs = await MessageLog.find({
-    mes: 8, // monthActualy -1,
+    mes: 10, // monthActualy -1,
     ano: yearActualy,
     status: "pending",
   });
