@@ -31,6 +31,36 @@ export const sendWhatsAppMessage = async (to, message) => {
 };
 
 /**
+ * Enviar plantilla de WhatsApp con variables
+ * @param {string} to - Número de teléfono del destinatario (formato whatsapp:+XXX)
+ * @param {string} contentSid - Content SID de la plantilla
+ * @param {Object} variables - Variables de la plantilla { 1: "valor1", 2: "valor2", ... }
+ * @returns {Promise<Object>} Resultado del envío
+ */
+export const sendWhatsAppTemplate = async (to, contentSid, variables = {}) => {
+  const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
+  try {
+    const result = await client.messages.create({
+      from: envConfig.twilioWhatsappNumber,
+      to,
+      contentSid,
+      contentVariables: JSON.stringify(variables),
+    });
+    return {
+      success: true,
+      messageId: result.sid,
+      status: result.status,
+    };
+  } catch (error) {
+    console.error(`Error al enviar plantilla de WhatsApp: ${error.message}`);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+};
+
+/**
  * Enviar archivo PDF por WhatsApp
  * @param {string} to - Número de teléfono del destinatario
  * @param {string} mediaUrl - URL del archivo PDF
@@ -316,6 +346,7 @@ export const sendTextForWhatsApp = async (to, name) => {
 
 export default {
   sendWhatsAppMessage,
+  sendWhatsAppTemplate,
   sendWhatsAppPDF,
   sendWhatsAppMessageWithPDF,
   sendInvoceTemplate,

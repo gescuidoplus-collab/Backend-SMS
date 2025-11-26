@@ -50,11 +50,13 @@ export const hasActiveContextWindow = async (phoneNumber) => {
 /**
  * Inicializa la ventana de contexto para un número
  * Envía una plantilla aprobada para abrir la ventana de 24 horas
- * @param {string} phoneNumber - Número de teléfono
- * @param {string} recipientName - Nombre del destinatario
+ * @param {string} phoneNumber - Número de teléfono del destinatario
+ * @param {string} senderName - Nombre del usuario que envió el mensaje original
+ * @param {string} senderPhone - Teléfono del usuario que envió el mensaje original
+ * @param {string} messageBody - Contenido del mensaje recibido
  * @returns {Promise<Object>} { success: boolean, messageId?: string, error?: string }
  */
-export const initializeContextWindow = async (phoneNumber, recipientName = "Usuario" , content= "") => {
+export const initializeContextWindow = async (phoneNumber, senderName = "Usuario", senderPhone = "", messageBody = "") => {
   try {
     const formattedNumber = normalizePhoneNumber(phoneNumber);
     
@@ -71,30 +73,21 @@ export const initializeContextWindow = async (phoneNumber, recipientName = "Usua
       return { success: false, error: "No hay plantillas disponibles" };
     }
 
-    // Obtener contenido de la plantilla
-    const templateContent = getTemplateContent(templateSid);
-    if (!templateContent) {
-      return { success: false, error: "No se pudo obtener contenido de plantilla" };
-    }
-
-    // Reemplazar variables (nombre y mes actual)
-    const currentMonth = new Date().toLocaleString("es-ES", { month: "long" });
-    const messageContent = replaceTemplateVariables(templateContent, {
-      1: recipientName,
-      2 : content
-    });
-
-    // Enviar plantilla a Twilio
+    // Enviar plantilla a Twilio con 3 variables:
+    // 1: Nombre del usuario que respondió
+    // 2: Teléfono del usuario que respondió
+    // 3: Mensaje que envió el usuario
     const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
     
-    console.log(`📱 Enviando a: whatsapp:${formattedNumber}`)
+    console.log(`📱 Enviando a: whatsapp:${formattedNumber}`);
     const result = await client.messages.create({
       from: envConfig.twilioWhatsappNumber,
       to: `whatsapp:${formattedNumber}`,
-      contentSid: "HX66fee7a590db3a49b3d28bb52c337789",
+      contentSid: "HX54ea2b37cc6d7fac373dfb1384e88a85",
       contentVariables: JSON.stringify({
-        1: recipientName,
-        2:`Mensaje de ${formattedNumber} resp : ${content}`
+        1: senderName || "Desconocido",
+        2: senderPhone || "Sin número",
+        3: messageBody || "Sin contenido"
       }),
     });
 
@@ -166,11 +159,13 @@ export const recordMessageSent = async (phoneNumber, messageType = "message", te
 
 /**
  * Envía un mensaje usando plantilla dentro de la ventana de contexto
- * @param {string} phoneNumber - Número de teléfono
- * @param {string} messageContent - Contenido del mensaje para la variable 1
+ * @param {string} phoneNumber - Número de teléfono del destinatario
+ * @param {string} senderName - Nombre del usuario que envió el mensaje original
+ * @param {string} senderPhone - Teléfono del usuario que envió el mensaje original
+ * @param {string} messageBody - Contenido del mensaje recibido
  * @returns {Promise<Object>} { success: boolean, messageId?: string, error?: string }
  */
-export const sendTemplateWithinContextWindow = async (phoneNumber, messageContent = "", content= "") => {
+export const sendTemplateWithinContextWindow = async (phoneNumber, senderName = "", senderPhone = "", messageBody = "") => {
   try {
     const normalizedNumber = normalizePhoneNumber(phoneNumber);
     
@@ -180,7 +175,7 @@ export const sendTemplateWithinContextWindow = async (phoneNumber, messageConten
       return { success: false, error: "No hay plantillas disponibles" };
     }
 
-    // Enviar plantilla a Twilio
+    // Enviar plantilla a Twilio con 3 variables
     const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
     
     console.log(`📱 Enviando plantilla a: whatsapp:${normalizedNumber}`);
@@ -188,10 +183,11 @@ export const sendTemplateWithinContextWindow = async (phoneNumber, messageConten
     const result = await client.messages.create({
       from: envConfig.twilioWhatsappNumber,
       to: `whatsapp:${normalizedNumber}`,
-      contentSid: "HX66fee7a590db3a49b3d28bb52c337789",
+      contentSid: "HX54ea2b37cc6d7fac373dfb1384e88a85",
       contentVariables: JSON.stringify({
-        1: messageContent || "Respuesta",
-        2 : content
+        1: senderName || "Desconocido",
+        2: senderPhone || "Sin número",
+        3: messageBody || "Sin contenido"
       }),
     });
 

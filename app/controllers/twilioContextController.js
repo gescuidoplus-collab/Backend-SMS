@@ -8,8 +8,7 @@ import { envConfig } from "../config/index.js";
  */
 export const initializeRedirectNumberContext = async (req, res) => {
   try {
-    // const redirectNumber = `+34${envConfig.redirectNumber}`;
-    const redirectNumber = `+584247548770`;
+    const redirectNumber = `+34${envConfig.redirectNumber}`;
     console.log(`🔄 Inicializando contexto para ${redirectNumber}...`);
     
     const result = await initializeContextWindow(redirectNumber, "Automatizador");

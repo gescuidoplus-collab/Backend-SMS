@@ -28,6 +28,7 @@ export const INVOICE_TEMPLATES_BY_MONTH = [
  */
 export const PAYROLL_TEMPLATES_BY_MONTH = [
   'HX9d3ae88be2dedfb8ad17e80c3209cc78',
+  'HXcd84d440355613e363dd00120218a411'
 ];
 
 /**
