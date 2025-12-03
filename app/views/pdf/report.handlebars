@@ -318,9 +318,10 @@ body {
      {{> page03}}
      {{> page04}}
      {{> page05}}
-     {{> page06}}
-     {{> page07}}
-     {{> page08}}
+    {{#each presupuestos}}
+        {{> page06 this tipoServicioTexto=../tipoServicioTexto}}
+        {{> page08 this}}
+     {{/each}}
      {{> page09}}
      {{> page10}}
      {{> page11}}

@@ -83,9 +83,9 @@ app.post('/api/v1/generate-pdf', async (req, res) => {
   try {
 
     const datos = req.body;
-    console.log('Datos recibidos del frontend:', datos);
+    //console.log('Datos recibidos del frontend:', datos);
     const codigoData = await generarCodigoFactura();
-    console.log(codigoData.codigo)
+    //console.log(codigoData.codigo)
 
 
     const datosParaPdf = await prepararDatosPdf(datos)
@@ -123,41 +123,28 @@ async function generarContenido(prompt) {
 async function prepararDatosPdf(datos) {
     const nombreContrato = datos.nameContrato || 'No especificado';
     const nombrePueblo = datos.NombrePueblo || 'No especificado';
-    const nombreCuidador = datos.nameCuidador || 'Empleado';
 
     const tiposServicio = datos.TipoServicio || [];
     const tipoServicioTexto = tiposServicio.length > 0 
     ? tiposServicio.join(', ') 
     : 'No especificado';
 
-    const servicioLugar= datos.Servicio
-    const desglocePresupuesto =datos.desglocePresupuesto
-    const cuotaCuidoFam= datos.cuotaCuidoFam
-    const salarioNetoMensual=datos.salarioNetoMensual
-    const seguridadSocial= datos.seguridadSocial
-    const TotalMensual = Number(salarioNetoMensual) + Number(cuotaCuidoFam) + Number(seguridadSocial)
-    const HorariosFormateados = formatearHorarios(datos.horarios)
+    const servicioLugar= datos.Servicio;
+    const horarioConvenir= datos.horarioConvenir;
+    const mensajeHorarioConvenir= datos?.horario_Convenir || "";
+    const HorariosFormateados = formatearHorarios(datos.horarios);
     const textoHorarios =  await generarContenido(`Genera un texto corto (máximo dos líneas) que comience con “HORARIO:”. El texto debe mostrar únicamente los días y horas actuales en formato ${HorariosFormateados}, sin agregar palabras ni frases adicionales que no estén relacionadas con los horarios. El resultado debe ser limpio y directo, ideal para mostrar a un cliente, Dame el resultado en español`)
-    const desglocePresupuesto2 = datos?.desglocePresupuesto2 || 'No especificado';
-    const cuotaCuidoFam2 = datos?.cuotaCuidoFam2 || 'No especificado';
-    const seguridadSocial2 = datos?.seguridadSocial2 || 'No especificado';
-    //console.log(textoHorarios)
+    const presupuestos = datos.presupuestos;
 
     return({
       nombreContrato,
       nombrePueblo,
-      nombreCuidador,
       tipoServicioTexto,
       servicioLugar,
-      desglocePresupuesto,
-      cuotaCuidoFam,
-      salarioNetoMensual,
-      seguridadSocial,
-      TotalMensual,
+      horarioConvenir,
+      mensajeHorarioConvenir,
       textoHorarios,
-      desglocePresupuesto2,
-      cuotaCuidoFam2,
-      seguridadSocial2,
+      presupuestos
     })
 
 }
