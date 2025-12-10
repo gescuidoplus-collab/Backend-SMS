@@ -94,7 +94,7 @@ export const sendInvocePayRool = async (
     }
     payload = {
       1: String(firstAndThird(employe?.fullName)),
-      // 1: mediaUrl,
+      2: mediaUrl,
     };
   } else {
     return { 
@@ -119,7 +119,7 @@ export const sendInvocePayRool = async (
     // console.log(payload)
     const result = await client.messages.create({
       from: envConfig.twilioWhatsappNumber,
-      to: toWhatsApp,
+       to: toWhatsApp,
       contentSid: contentSid,
       contentVariables: JSON.stringify(payload),
       mediaUrl: [mediaUrl],

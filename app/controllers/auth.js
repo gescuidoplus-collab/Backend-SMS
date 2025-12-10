@@ -11,11 +11,13 @@ export const login = async (req, res) => {
   if (!errors.isEmpty())
     return res.status(400).json({ errors: errors.array() });
 
-  const { username, password } = req.body;
+  const { email, password } = req.body;
   try {
-    const user = await Auth.findOne({ email: username });
+    const user = await Auth.findOne({ email: email });
     if (!user || user.isBlock)
       return res.status(401).json({ error: "Usuario no autorizado" });
+
+    console.log(password)
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch)
