@@ -30,7 +30,8 @@ const confEnvSchema = Joi.object({
   REDIRECT_NUMBER : Joi.string() || "",
   REDIRECT_NUMBER_TWO: Joi.string() || "",
   CRON_SECRET: Joi.string().optional(),
-  MONTHS_SEARCH: Joi.number().default(1).min(0).max(12)
+  MONTHS_SEARCH: Joi.number().default(1).min(0).max(12),
+  GOOGLE_API_KEY: Joi.string().optional()
 })
   .unknown()
   .required();
@@ -67,6 +68,7 @@ const config = {
   redirectNumberTwo: confEnv.REDIRECT_NUMBER_TWO,
   cronSecret: confEnv.CRON_SECRET,
   monthsSearch: confEnv.MONTHS_SEARCH,
+  googleApiKey: confEnv.GOOGLE_API_KEY,
 };
 
 export default config;
