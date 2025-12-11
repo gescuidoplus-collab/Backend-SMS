@@ -22,7 +22,7 @@ import {
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const app = express();
-const ai = new GoogleGenAI(envConfig.googleApiKey || process.env.GOOGLE_API_KEY || "")
+const ai = new GoogleGenAI(process.env.GOOGLE_API_KEY || "AIzaSyDKchseokzZvIBlNFuw6h2ND6d8Q1pavP8")
 //
 
 app.use(express.json());
@@ -133,12 +133,17 @@ async function prepararDatosPdf(datos) {
     const tipoServicioTexto = tiposServicio.length > 0 
     ? tiposServicio.join(', ') 
     : 'No especificado';
+    const HorariosFormateados = formatearHorarios(datos.horarios); 
+    let textoHorarios = await generarContenido(`Genera un texto corto (máximo dos líneas) que comience con "HORARIO:". El texto debe mostrar únicamente los días y horas actuales en formato ${HorariosFormateados}, sin agregar palabras ni frases adicionales que no estén relacionadas con los horarios. El resultado debe ser limpio y directo, ideal para mostrar a un cliente, Dame el resultado en español`)
+    // Verificar si el texto contiene un mensaje de error
+    if (textoHorarios && textoHorarios.includes('Error al generar contenido:')) {
+      console.error(textoHorarios) // Solo mostrar el error en la consola
+      textoHorarios = '' // Dejar textoHorarios vacío para que no aparezca en el PDF
+    }
 
     const servicioLugar= datos.Servicio;
     const horarioConvenir= datos.horarioConvenir;
     const mensajeHorarioConvenir= datos?.horario_Convenir || "";
-    const HorariosFormateados = formatearHorarios(datos.horarios);
-    const textoHorarios =  await generarContenido(`Genera un texto corto (máximo dos líneas) que comience con “HORARIO:”. El texto debe mostrar únicamente los días y horas actuales en formato ${HorariosFormateados}, sin agregar palabras ni frases adicionales que no estén relacionadas con los horarios. El resultado debe ser limpio y directo, ideal para mostrar a un cliente, Dame el resultado en español`)
     const presupuestos = datos.presupuestos;
 
     return({
