@@ -4,9 +4,7 @@ import { envConfig, mongoClient } from "./app/config/index.js";
 import { router } from "./app/routers/index.js";
 import { createUser } from "./app/utils/create-auth.js";
 import cors from "cors";
-import helmet from "helmet";
 import morgan from "morgan";
-import rateLimit from "express-rate-limit";
 import { engine } from "express-handlebars";
 import { GoogleGenAI } from "@google/genai";
 import puppeteer from 'puppeteer';
@@ -14,9 +12,7 @@ import { fileURLToPath } from "url";
 import { generarCodigoFactura } from "./app/utils/generador-codigo.js";
 import fs from "fs";
 import {
-  processInvoicesTask,
   processMessageQueue,
-  processPayRollsTask,
 } from "./app/tasks/index.js";
 
 const __filename = fileURLToPath(import.meta.url)
