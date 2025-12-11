@@ -22,7 +22,7 @@ import {
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const app = express();
-const ai = new GoogleGenAI({})
+const ai = new GoogleGenAI(envConfig.googleApiKey || process.env.GOOGLE_API_KEY || "")
 //
 
 app.use(express.json());
@@ -38,7 +38,12 @@ app.use(
       "http://localhost:3032",
       "https://frontend-sms.vercel.app",
       "https://frontend-sms-git-main-cuido-farm.vercel.app",
+      "https://frontend-sms-git-feat-walls-migrate-cuido-farm.vercel.app",
+      "https://frontend-sms-cuido-farm.vercel.app",
+      "https://frontend-sms-*.vercel.app",
       "https://backend-sms-three.vercel.app",
+      "https://frontend-e2k70gn7u-cuido-farm.vercel.app",
+      "https://frontend-sms-git-production-cuido-farm.vercel.app"
     ],
     allowedHeaders: ["Content-Type", "Authorization"],
     optionsSuccessStatus: 200,
