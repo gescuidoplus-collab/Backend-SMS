@@ -1,52 +1,71 @@
-import fs from "fs/promises";
-import path from "path";
+import mongoose from 'mongoose';
+import { envConfig } from "../../app/config/index.js";
 
-const DATA_DIR = path.join(process.cwd(), "app", "data");
-const ARCHIVO_PATH = path.join(DATA_DIR, "contador_factura.txt");
+// Esquema para el contador de facturas
+const contadorSchema = new mongoose.Schema({
+  tipo: { type: String, required: true, default: 'factura', index: true },
+  numeroFactura: { type: Number, required: true, default: 0 },
+  mes: { type: Number, required: true },
+  anio: { type: Number, required: true },
+  ultimaActualizacion: { type: Date, default: Date.now }
+});
 
+// Si el modelo ya existe, lo usamos, sino lo creamos
+let ContadorModel;
+try {
+  ContadorModel = mongoose.model('Contador');
+} catch (error) {
+  ContadorModel = mongoose.model('Contador', contadorSchema);
+}
+
+// Función para obtener/actualizar el contador de facturas
 export async function generarCodigoFactura() {
   try {
-    // Crear carpeta si no existe
-    await fs.mkdir(DATA_DIR, { recursive: true });
-
+    // Verificar que estamos conectados a MongoDB
+    if (mongoose.connection.readyState !== 1) {
+      await mongoose.connect(envConfig.mongoUri);
+    }
+    
     const fecha = new Date();
     const mesActual = fecha.getMonth() + 1;
     const anioActual = fecha.getFullYear();
 
+    // Buscar el contador existente
+    let contador = await ContadorModel.findOne({ tipo: 'factura' });
+    
     let numeroFactura = 0;
-    let mesGuardado = mesActual;
-    let anioGuardado = anioActual;
-
-    try {
-      const contenido = await fs.readFile(ARCHIVO_PATH, "utf-8");
-      const datos = JSON.parse(contenido);
-      numeroFactura = datos.numeroFactura || 0;
-      mesGuardado = datos.mes || mesActual;
-      anioGuardado = datos.anio || anioActual;
-    } catch (error) {
-      console.log("Archivo no existe, empezando en 0");
+    
+    if (contador) {
+      // Si existe el contador, verificar si necesitamos reiniciar por cambio de mes/año
+      if (contador.mes !== mesActual || contador.anio !== anioActual) {
+        // Reiniciar para el nuevo mes
+        numeroFactura = 1;
+        contador.numeroFactura = numeroFactura;
+        contador.mes = mesActual;
+        contador.anio = anioActual;
+      } else {
+        // Incrementar el contador existente
+        numeroFactura = contador.numeroFactura + 1;
+        contador.numeroFactura = numeroFactura;
+      }
+      contador.ultimaActualizacion = fecha;
+      await contador.save();
+    } else {
+      // Si no existe el contador, lo creamos empezando en 1
+      numeroFactura = 1;
+      contador = new ContadorModel({
+        tipo: 'factura',
+        numeroFactura,
+        mes: mesActual,
+        anio: anioActual,
+        ultimaActualizacion: fecha
+      });
+      await contador.save();
     }
-
-    // Reiniciar contador si cambió el mes o año
-    if (mesGuardado !== mesActual || anioGuardado !== anioActual) {
-      numeroFactura = 0;
-    }
-
-    // Incrementar
-    numeroFactura += 1;
-
+    
+    // Generar el código con el formato requerido
     const mes = String(mesActual).padStart(2, "0");
     const codigo = `${String(numeroFactura).padStart(2, "0")}${mes}${anioActual}`;
-
-    // Guardar el nuevo número
-    const datosAGuardar = {
-      numeroFactura,
-      mes: mesActual,
-      anio: anioActual,
-      ultimaActualizacion: fecha.toISOString(),
-    };
-
-    await fs.writeFile(ARCHIVO_PATH, JSON.stringify(datosAGuardar, null, 2), "utf-8");
 
     return {
       success: true,
@@ -64,29 +83,46 @@ export async function generarCodigoFactura() {
 
 export async function obtenerUltimoNumeroFactura() {
   try {
-    await fs.mkdir(DATA_DIR, { recursive: true });
-    const contenido = await fs.readFile(ARCHIVO_PATH, 'utf-8');
-    const datos = JSON.parse(contenido);
+    // Verificar que estamos conectados a MongoDB
+    if (mongoose.connection.readyState !== 1) {
+      await mongoose.connect(envConfig.mongoUri);
+    }
     
+    const contador = await ContadorModel.findOne({ tipo: 'factura' });
     const fecha = new Date();
     const mesActual = fecha.getMonth() + 1;
     const anioActual = fecha.getFullYear();
     
-    let numeroFactura = datos.numeroFactura || 0;
-    if (datos.mes !== mesActual || datos.anio !== anioActual) {
-      numeroFactura = 0; 
+    if (!contador) {
+      return {
+        success: true, 
+        numeroFactura: 0,
+        mes: mesActual,
+        anio: anioActual,
+        mesActual,
+        anioActual,
+        seResetearaEnProximaFactura: false
+      };
+    }
+    
+    let numeroFactura = contador.numeroFactura || 0;
+    const seResetearaEnProximaFactura = contador.mes !== mesActual || contador.anio !== anioActual;
+    
+    if (seResetearaEnProximaFactura) {
+      numeroFactura = 0;
     }
     
     return {
       success: true, 
       numeroFactura,
-      mes: datos.mes,
-      anio: datos.anio,
+      mes: contador.mes,
+      anio: contador.anio,
       mesActual,
       anioActual,
-      seResetearaEnProximaFactura: datos.mes !== mesActual || datos.anio !== anioActual
+      seResetearaEnProximaFactura
     };
   } catch (error) {
+    console.error("Error al obtener último número de factura:", error);
     const fecha = new Date();
     return {
       success: true, 
@@ -99,7 +135,28 @@ export async function obtenerUltimoNumeroFactura() {
 
 export async function resetearContador() {
   try {
-    await fs.writeFile(ARCHIVO_PATH, JSON.stringify({ numeroFactura: 0, mes: new Date().getMonth() + 1, anio: new Date().getFullYear() }, null, 2), 'utf-8');
+    // Verificar que estamos conectados a MongoDB
+    if (mongoose.connection.readyState !== 1) {
+      await mongoose.connect(envConfig.mongoUri);
+    }
+    
+    const contador = await ContadorModel.findOne({ tipo: 'factura' });
+    if (contador) {
+      contador.numeroFactura = 0;
+      contador.mes = new Date().getMonth() + 1;
+      contador.anio = new Date().getFullYear();
+      await contador.save();
+    } else {
+      const nuevoContador = new ContadorModel({
+        tipo: 'factura',
+        numeroFactura: 0,
+        mes: new Date().getMonth() + 1,
+        anio: new Date().getFullYear(),
+        ultimaActualizacion: new Date()
+      });
+      await nuevoContador.save();
+    }
+    
     return { success: true, message: 'Contador reseteado a 0' };
   } catch (error) {
     return { success: false, error: error.message };
