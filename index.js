@@ -311,7 +311,5 @@ app.get("/api/cron-send", async (req, res) => {
 app.use(envConfig.urlPath, router);
 
 app.listen(envConfig.port, () => {
-  // runAllTasks();
-  // processMessageQueue()
   console.log(`Running in proyect port : ${envConfig.port}`);
 });
