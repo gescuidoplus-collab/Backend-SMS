@@ -6,14 +6,52 @@ import fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 
-const CLOUDNAVIS_BASE_URL = envConfig.cloudNavisUrl;
+const CLOUDNAVIS_BASE_URL = String(envConfig.cloudNavisUrl || "").replace(/\/+$/, "");
+const CLOUDNAVIS_CONTEXT_PREFIX = "/edades/cuidofam";
 
 const cookieJar = new CookieJar();
+
+// Mutex simple para evitar condiciones de carrera en login concurrente
+let sessionLock = null;
+let sessionValid = false;
+let lastLoginTime = 0;
+const SESSION_TTL_MS = 60000; // 1 minuto de validez de sesión
+
+async function acquireSession() {
+  // Si hay un login en progreso, esperar a que termine
+  if (sessionLock) {
+    await sessionLock;
+  }
+  
+  // Si la sesión aún es válida, reutilizarla
+  const now = Date.now();
+  if (sessionValid && (now - lastLoginTime) < SESSION_TTL_MS) {
+    return { reused: true };
+  }
+  
+  // Crear nuevo lock para este login
+  let resolveLock;
+  sessionLock = new Promise((resolve) => { resolveLock = resolve; });
+  
+  return { reused: false, release: (success) => {
+    if (success) {
+      sessionValid = true;
+      lastLoginTime = Date.now();
+    }
+    sessionLock = null;
+    resolveLock();
+  }};
+}
+
+export function invalidateSession() {
+  sessionValid = false;
+  lastLoginTime = 0;
+}
 
 const axiosInstance = wrapper(
   axios.create({
     withCredentials: true,
-    timeout: 30000,
+    timeout: 60000,
     headers: {
       "User-Agent":
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
@@ -24,42 +62,77 @@ const axiosInstance = wrapper(
 
 export async function setCookie() {
   try {
-    const resp = await axiosInstance.get(`${CLOUDNAVIS_BASE_URL}/login/home`, {
-      jar: cookieJar,
-    });
-    return resp.status;
+    const primaryUrl = `${CLOUDNAVIS_BASE_URL}/login/home`;
+    try {
+      const resp = await axiosInstance.get(primaryUrl, {
+        jar: cookieJar,
+      });
+      return resp.status;
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        const fallbackUrl = `${CLOUDNAVIS_BASE_URL}${CLOUDNAVIS_CONTEXT_PREFIX}/login/home`;
+        const resp = await axiosInstance.get(fallbackUrl, {
+          jar: cookieJar,
+        });
+        return resp.status;
+      }
+      throw error;
+    }
   } catch (error) {
+    const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+    const url = axios.isAxiosError(error) ? error.config?.url : undefined;
+    console.error("Error setCookie:", error.message, { status, url });
     return 500;
   }
 }
 
 export async function loginCloudnavis() {
+  // Usar mutex para evitar logins concurrentes
+  const session = await acquireSession();
+  
+  // Si la sesión ya es válida, reutilizarla
+  if (session.reused) {
+    return 200;
+  }
+  
   try {
     const params = new URLSearchParams();
     params.append("j_username", envConfig.cloudNavisUsername);
     params.append("j_password", envConfig.cloudNavisPassword);
     params.append("submit", "");
 
-    const response = await axiosInstance.post(
-      `${CLOUDNAVIS_BASE_URL}/login/j_security_check`,
-      params.toString(),
-      {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        maxRedirects: 0,
-        validateStatus: (status) => status >= 200 && status < 400,
-        jar: cookieJar,
+    const requestOptions = {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      maxRedirects: 0,
+      validateStatus: (status) => status >= 200 && status < 400,
+      jar: cookieJar,
+    };
+
+    const primaryUrl = `${CLOUDNAVIS_BASE_URL}/login/j_security_check`;
+    let response;
+    try {
+      response = await axiosInstance.post(primaryUrl, params.toString(), requestOptions);
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        const fallbackUrl = `${CLOUDNAVIS_BASE_URL}${CLOUDNAVIS_CONTEXT_PREFIX}/login/j_security_check`;
+        response = await axiosInstance.post(fallbackUrl, params.toString(), requestOptions);
+      } else {
+        throw error;
       }
-    );
+    }
     if (response.headers.location) {
+      session.release(true);
       return 200;
     }
     const sessionCookie = cookieJar.getCookiesSync(`${CLOUDNAVIS_BASE_URL}/`);
     const jSessionId = sessionCookie.find((c) => c.key === "JSESSIONID");
     if (jSessionId) {
+      session.release(true);
       return 200;
     }
+    session.release(false);
     return 400;
   } catch (error) {
     if (
@@ -68,10 +141,12 @@ export async function loginCloudnavis() {
       error.response.status === 302
     ) {
       console.log("Login exitoso, redirigido.");
+      session.release(true);
       return 200;
     }
 
     console.error("Error durante el login:", error.message);
+    session.release(false);
     return 400;
   }
 }
@@ -323,16 +398,28 @@ export async function setWhatsappPayrollStatus(idNomina, status) {
 
 export async function logout() {
   try {
-    const response = await axiosInstance.get(
-      `${CLOUDNAVIS_BASE_URL}/login/logout`,
-      {
+    const primaryUrl = `${CLOUDNAVIS_BASE_URL}/login/logout`;
+    let response;
+    try {
+      response = await axiosInstance.get(primaryUrl, {
         jar: cookieJar,
+      });
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        const fallbackUrl = `${CLOUDNAVIS_BASE_URL}${CLOUDNAVIS_CONTEXT_PREFIX}/login/logout`;
+        response = await axiosInstance.get(fallbackUrl, {
+          jar: cookieJar,
+        });
+      } else {
+        throw error;
       }
-    );
+    }
     console.log("Status del logout:", response.status);
     cookieJar.removeAllCookiesSync();
+    invalidateSession();
     return "¡Sesión cerrada exitosamente! 👋";
   } catch (error) {
+    invalidateSession();
     throw new Error(
       "Error en el proceso de cierre de sesión. Por favor intente de nuevo."
     );

@@ -75,8 +75,6 @@ export const sendInvoceTemplate = async (to, name, mediaUrl, data) => {
       console.log("Twilio Invoice mediaUrl:", mediaUrl);
     }
     
-    // console.log(toWhatsApp)
-    // console.log(envConfig.twilioWhatsappNumber)
     const result = await client.messages.create({
       from: envConfig.twilioWhatsappNumber,
       to: toWhatsApp,

@@ -27,8 +27,8 @@ export const INVOICE_TEMPLATES_BY_MONTH = [
  * Se selecciona una al azar para cada envío
  */
 export const PAYROLL_TEMPLATES_BY_MONTH = [
-  'HX9d3ae88be2dedfb8ad17e80c3209cc78',
-  'HXcd84d440355613e363dd00120218a411'
+'HX39d612c1fb2388c611dc54c509469cb2',
+'HXac9dce24cb63f1a0ecadffe8ba36a208'
 ];
 
 /**
@@ -36,9 +36,8 @@ export const PAYROLL_TEMPLATES_BY_MONTH = [
  * Se selecciona una al azar para cada envío
  */
 export const PAYROLL_EMPLOYE_TEMPLATES_BY_MONTH = [
-  'HX755c00f2be822e0da88f8685309272cc',
-  'HX9013695e1dbba62e3cb46286ae2150bf',
-  'HX72462f72ead61d3e380a352c8b4850f7',
+  'HX0d8631982eaf90802abe4d51bed0b4ac',
+  'HX99d849be132f929fdfa89f4517e88f27'
 ]
 /**
  * Helper: Selecciona aleatoriamente un elemento de un array

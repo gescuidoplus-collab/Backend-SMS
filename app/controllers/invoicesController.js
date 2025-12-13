@@ -10,6 +10,41 @@ function esperar(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function sanitizeFilenamePart(value) {
+  if (value === null || value === undefined) return "";
+  return String(value)
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function buildInvoicePdfFilename(log, fallbackId) {
+  const parts = ["FACTURA"];
+
+  if (log?.ano && log?.mes) {
+    parts.push(`${log.ano}-${String(log.mes).padStart(2, "0")}`);
+  }
+
+  const serie = sanitizeFilenamePart(log?.serie);
+  const separador = sanitizeFilenamePart(log?.separador);
+  const numero = log?.numero !== undefined && log?.numero !== null
+    ? sanitizeFilenamePart(log.numero)
+    : "";
+  const serieNumero = [serie, separador, numero].filter(Boolean).join("");
+  if (serieNumero) parts.push(serieNumero);
+
+  const recipientName = sanitizeFilenamePart(log?.recipient?.fullName);
+  if (recipientName) parts.push(recipientName);
+
+  let base = parts.filter(Boolean).join("_");
+  if (!base) base = `FACTURA_${sanitizeFilenamePart(fallbackId) || "documento"}`;
+
+  if (base.length > 150) base = base.slice(0, 150).trim();
+  return `${base}.pdf`;
+}
+
 async function withRetries(task, maxRetries, delay) {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
@@ -43,27 +78,14 @@ export const downloadInvoicePdf = async (req, res) => {
     }
 
   const timestamp = new Date().toISOString().replace(/[:.\-]/g, '');
-  let filename = `factura_${timestamp}.pdf`;
+  let filename = `FACTURA_${timestamp}.pdf`;
   try {
     const log = await MessageLog.findOne(
       { source: id },
-      { serie: 1, separador: 1, numero: 1, _id: 0 }
-    ).lean();
-
+      { serie: 1, separador: 1, numero: 1, recipient: 1, mes: 1, ano: 1, _id: 0 }
+    );
     if (log) {
-      const { serie, separador, numero } = log;
-      if (
-        typeof serie !== 'undefined' &&
-        typeof separador !== 'undefined' &&
-        typeof numero !== 'undefined'
-      ) {
-        filename = `${String(serie)}${String(separador)}${String(numero)}.pdf`;
-      } else {
-        const parts = [serie, separador, numero]
-          .filter((v) => v !== undefined && v !== null && v !== '')
-          .map((v) => String(v));
-        if (parts.length > 0) filename = `${parts.join('')}.pdf`;
-      }
+      filename = buildInvoicePdfFilename(log, id);
     }
   } catch (e) {
   }

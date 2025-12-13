@@ -45,20 +45,21 @@ export const downloadPayrollPdf = async (req, res) => {
       return res.status(500).json({ message: 'No se pudo iniciar sesión en CloudNavis' });
     }
 
-    const buffer = await withRetries(() => fetchPayrollBuffer(id), 3, 3000);
-
-    let filename = `nomina_${id}.pdf`;
+    const timestamp = new Date().toISOString().replace(/[:.\-]/g, '');
+    let filename = `NOMINA_${timestamp}.pdf`;
     try {
       const log = await MessageLog.findOne(
         { source: id },
-        { serie: 1, _id: 0 }
-      ).lean();
-      if (log && typeof log.serie !== 'undefined' && log.serie !== null && log.serie !== '') {
-        const sanitize = (s) => String(s).replace(/[^a-zA-Z0-9._-]+/g, '_');
-        filename = `${sanitize(log.serie)}.pdf`;
+        { serie: 1, separador: 1, numero: 1, recipient: 1, employe: 1, mes: 1, ano: 1, _id: 0 }
+      );
+      if (log) {
+        filename = buildPayrollPdfFilename(log, id);
       }
     } catch (e) {
     }
+
+    const buffer = await withRetries(() => fetchPayrollBuffer(id), 3, 3000);
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
     return res.status(200).end(buffer);
