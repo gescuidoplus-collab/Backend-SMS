@@ -14,16 +14,16 @@ export const processMessageQueue = async () => {
   return executeTask();
 };
 
-let isProcessMessageQueueExecuting = false;
+// let isProcessMessageQueueExecuting = false;
 
-if (envConfig.env !== "development") {
-  cron.schedule("10 * * * *", async () => {
-    if (isProcessMessageQueueExecuting) return;
-    isProcessMessageQueueExecuting = true;
-    try {
-      await processMessageQueue();
-    } finally {
-      isProcessMessageQueueExecuting = false;
-    }
-  });
-}
+// if (envConfig.env !== "development") {
+//   cron.schedule("10 * * * *", async () => {
+//     if (isProcessMessageQueueExecuting) return;
+//     isProcessMessageQueueExecuting = true;
+//     try {
+//       await processMessageQueue();
+//     } finally {
+//       isProcessMessageQueueExecuting = false;
+//     }
+//   });
+// }
