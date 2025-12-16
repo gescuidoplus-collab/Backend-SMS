@@ -261,6 +261,7 @@ La configuración se valida en `app/config/enviroments.js`.
 | `REDIRECT_NUMBER_TWO` | Opcional | `app/controllers/twilioContextController.js` / otros | Segundo número de redirección (si aplica al flujo). |
 | `CRON_SECRET` | Opcional | `index.js` (endpoints `/api/cron*`) | Secreto para autorizar crons via header `x-cron-secret`. |
 | `GOOGLE_API_KEY` | Opcional | `index.js` | API key para Google GenAI (Gemini). |
+| `TWILIO_ENVIROMENT` | Opcional | `app/services/twilioService.js` | Entorno de Twilio (DUMMY para pruebas). |
 
 ### 5.2) Ejemplo mínimo de `.env`
 

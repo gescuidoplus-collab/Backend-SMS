@@ -31,7 +31,8 @@ const confEnvSchema = Joi.object({
   REDIRECT_NUMBER_TWO: Joi.string() || "",
   CRON_SECRET: Joi.string().optional(),
   MONTHS_SEARCH: Joi.number().default(1).min(0).max(12),
-  GOOGLE_API_KEY: Joi.string().optional()
+  GOOGLE_API_KEY: Joi.string().optional(),
+  TWILIO_ENVIROMENT: Joi.string().valid('DUMMY', 'PRODUCTION').default('PRODUCTION')
 })
   .unknown()
   .required();
@@ -69,6 +70,7 @@ const config = {
   cronSecret: confEnv.CRON_SECRET,
   monthsSearch: confEnv.MONTHS_SEARCH,
   googleApiKey: confEnv.GOOGLE_API_KEY,
+  twilioEnviroment: confEnv.TWILIO_ENVIROMENT,
 };
 
 export default config;

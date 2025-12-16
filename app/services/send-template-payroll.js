@@ -117,6 +117,20 @@ export const sendInvocePayRool = async (
     }
     // console.log(toWhatsApp)
     // console.log(payload)
+    // Si TWILIO_ENVIROMENT es DUMMY, solo loguear y no enviar
+    if (envConfig.twilioEnviroment === 'DUMMY') {
+      console.log('=== TWILIO DUMMY MODE (Payroll) ===');
+      console.log('From:', envConfig.twilioWhatsappNumber);
+      console.log('To:', toWhatsApp);
+      console.log('ContentSid:', contentSid);
+      console.log('ContentVariables:', JSON.stringify(payload));
+      console.log('MediaUrl:', mediaUrl);
+      console.log('Type:', type);
+      console.log('Mes:', mes);
+      console.log('===================================');
+      return { success: true, messageId: 'DUMMY_MODE', status: 'dummy', templateContent: null, contentSid };
+    }
+
     const result = await client.messages.create({
       from: envConfig.twilioWhatsappNumber,
        to:  toWhatsApp,
