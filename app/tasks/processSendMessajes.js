@@ -16,7 +16,7 @@ export const processMessageQueue = async () => {
 
 let isProcessMessageQueueExecuting = false;
 
-cron.schedule("10 * * * *", async () => {
+cron.schedule("10 8-14 * * 1-5", async () => {
     if (isProcessMessageQueueExecuting) return;
     isProcessMessageQueueExecuting = true;
     try {

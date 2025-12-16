@@ -26,7 +26,7 @@ export { runAllTasks };
 let isRunAllTasksExecuting = false;
 
 
-cron.schedule("0 * * * *", async () => {
+cron.schedule("0 8-14 * * 1-5", async () => {
     if (isRunAllTasksExecuting) return;
     isRunAllTasksExecuting = true;
     try {
