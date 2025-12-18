@@ -142,6 +142,9 @@ async function prepararDatosPdf(datos) {
     const horarioConvenir= datos.horarioConvenir;
     const mensajeHorarioConvenir= datos?.horario_Convenir || "";
     const presupuestos = datos.presupuestos;
+    const considerationOne = datos?.considerationOne || "Salario según SMI (Salario Mínimo Interprofesional La cuota de la Seguridad Social y el SMI segun legislación)";
+    const considerationTwo = datos?.considerationTwo || "Pagas Prorrateadas Incluidas. Vacaciones NO incluidas.";
+    const considerationThree = datos?.considerationThree || "Relalizacion de altas, bajas, contratos, nominas. Festivos NO incluidos";
 
     return({
       nombreContrato,
@@ -152,7 +155,10 @@ async function prepararDatosPdf(datos) {
       horarioConvenir,
       mensajeHorarioConvenir,
       textoHorarios,
-      presupuestos
+      presupuestos,
+      considerationOne,
+      considerationTwo,
+      considerationThree
     })
 
 }
