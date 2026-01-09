@@ -33,6 +33,7 @@ pipeline {
 						ssh jenkins@aquila.emiliollbb.net 'tar xvf /tmp/gescuidoplus_backend_sms.tar.gz --one-top-level=/var/lib/nodejs/nodeapps/gescuidoplus_backend_sms'
 						ssh jenkins@aquila.emiliollbb.net 'rm /tmp/gescuidoplus_backend_sms.tar.gz'
 						ssh jenkins@aquila.emiliollbb.net 'cd /var/lib/nodejs/nodeapps/gescuidoplus_backend_sms && npm install'
+						ssh jenkins@aquila.emiliollbb.net 'cd /var/lib/nodejs/nodeapps/gescuidoplus_backend_sms && ln -s /etc/navis/gescuidoplus/gescuidoplus_backend_sms.env .env'
                 	'''
             	}
             }
