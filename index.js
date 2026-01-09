@@ -138,6 +138,7 @@ async function prepararDatosPdf(datos) {
     }
 
     const servicioLugar= datos.Servicio;
+    const complementoTitulo = datos?.titleComplement || "";
     const horarioConvenir= datos.horarioConvenir;
     const mensajeHorarioConvenir= datos?.horario_Convenir || "";
     const presupuestos = datos.presupuestos;
@@ -147,6 +148,7 @@ async function prepararDatosPdf(datos) {
       nombrePueblo,
       tipoServicioTexto,
       servicioLugar,
+      complementoTitulo,
       horarioConvenir,
       mensajeHorarioConvenir,
       textoHorarios,

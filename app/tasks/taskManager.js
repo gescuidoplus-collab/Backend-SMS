@@ -23,16 +23,16 @@ async function runAllTasks() {
 
 export { runAllTasks };
 
-// let isRunAllTasksExecuting = false;
+let isRunAllTasksExecuting = false;
 
-// if (envConfig.env !== "development") {
-//   cron.schedule("0 * * * *", async () => {
-//     if (isRunAllTasksExecuting) return;
-//     isRunAllTasksExecuting = true;
-//     try {
-//       await runAllTasks();
-//     } finally {
-//       isRunAllTasksExecuting = false;
-//     }
-//   });
-// }
+
+cron.schedule("0 8-14 * * 1-5", async () => {
+    if (isRunAllTasksExecuting) return;
+    isRunAllTasksExecuting = true;
+    try {
+      await runAllTasks();
+    } finally {
+      isRunAllTasksExecuting = false;
+    }
+});
+
