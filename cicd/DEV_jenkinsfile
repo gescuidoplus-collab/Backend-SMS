@@ -1,0 +1,41 @@
+pipeline {
+    agent any
+    
+    stages {
+        stage('Build') {
+            steps {
+                echo 'Building....'
+                sh '''
+					rm -rf target
+					rm -rf gescuidoplus_backend_sms.tar.gz
+					tar czvf gescuidoplus_backend_sms.tar.gz *
+					mkdir target
+					mv gescuidoplus_backend_sms.tar.gz target/
+                '''
+            }
+        }
+        stage('Undeploy') {
+            steps {
+            	script {
+	            	echo 'Undeploy...'
+            		sh(script: "ssh jenkins@aquila.emiliollbb.net 'sudo rm -rf /var/lib/nodejs/nodeapps/gescuidoplus_backend_sms'")
+            	}
+            }
+        }
+        stage('Deploy') {
+            steps {
+            	script {
+	            	echo 'Deploy...'
+	            	sh '''
+	            		scp $WORKSPACE/target/gescuidoplus_backend_sms.tar.gz jenkins@aquila.emiliollbb.net:/tmp/
+						ssh jenkins@aquila.emiliollbb.net 'sudo mkdir /var/lib/nodejs/nodeapps/gescuidoplus_backend_sms'
+						ssh jenkins@aquila.emiliollbb.net 'sudo chown jenkins:jenkins /var/lib/nodejs/nodeapps/gescuidoplus_backend_sms'
+						ssh jenkins@aquila.emiliollbb.net 'tar xvf /tmp/gescuidoplus_backend_sms.tar.gz --one-top-level=/var/lib/nodejs/nodeapps/gescuidoplus_backend_sms'
+						ssh jenkins@aquila.emiliollbb.net 'rm /tmp/gescuidoplus_backend_sms.tar.gz'
+						ssh jenkins@aquila.emiliollbb.net 'cd /var/lib/nodejs/nodeapps/gescuidoplus_backend_sms && npm install'
+                	'''
+            	}
+            }
+        }
+    }
+}
