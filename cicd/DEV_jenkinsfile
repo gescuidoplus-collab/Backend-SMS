@@ -38,20 +38,6 @@ pipeline {
 						ssh jenkins@aquila.emiliollbb.net 'sudo chown -R nodejs:nodejs /var/lib/nodejs/nodeapps/gescuidoplus_backend_sms'
 						ssh jenkins@aquila.emiliollbb.net 'sudo systemctl start gescuidoplus_backend_sms.service'
                 	'''
-					
-	            	
-	            	def status_code = 0
-	            	def retries = 0
-	            	while(status_code != '200' && retries < 10) {
-	            		sleep(time:30,unit:"SECONDS")
-	            		status_code = sh(script: "curl -sLI -w '%{http_code}' http://dev.cloudnavis.com:3001 -o /dev/null", returnStdout: true)
-	            		retries++
-	            		echo ('retry: ' + retries)
-	            		echo status_code	
-	            	}
-	            	if (status_code != '200') {
-					    error("Deploy failed. HTTP status: $status_code")
-					}
             	}
             }
         }
