@@ -37,11 +37,19 @@ export const downloadPayrollPdf = async (req, res) => {
   try {
     const cookieStatus = await withRetries(setCookie, 3, 3000);
     if (cookieStatus !== 200) {
+      await MessageLog.findOneAndUpdate(
+        { source: id },
+        { status: 'failure', reason: 'No se pudo establecer la cookie de sesión en CloudNavis' }
+      ).catch(() => {});
       return res.status(500).json({ message: 'No se pudo establecer la cookie de sesión' });
     }
 
     const loginStatus = await withRetries(loginCloudnavis, 3, 3000);
     if (loginStatus !== 200) {
+      await MessageLog.findOneAndUpdate(
+        { source: id },
+        { status: 'failure', reason: 'No se pudo iniciar sesión en CloudNavis' }
+      ).catch(() => {});
       return res.status(500).json({ message: 'No se pudo iniciar sesión en CloudNavis' });
     }
 
@@ -56,6 +64,7 @@ export const downloadPayrollPdf = async (req, res) => {
         filename = buildPayrollPdfFilename(log, id);
       }
     } catch (e) {
+      // aqui
     }
 
     const buffer = await withRetries(() => fetchPayrollBuffer(id), 3, 3000);
@@ -65,6 +74,17 @@ export const downloadPayrollPdf = async (req, res) => {
     return res.status(200).end(buffer);
   } catch (error) {
     console.error('Error en descarga puntual de nómina:', error.message);
+    try {
+      await MessageLog.findOneAndUpdate(
+        { source: id },
+        { 
+          status: 'failure', 
+          reason: `Error al obtener archivo de nómina desde API externa: ${error.message}` 
+        }
+      );
+    } catch (updateError) {
+      console.error('Error actualizando MessageLog:', updateError.message);
+    }
     if (!res.headersSent) {
       res.status(500).json({ message: 'Error procesando la nómina', detail: error.message });
     }

@@ -130,7 +130,6 @@ const saveInvoicesTask = async () => {
           if (invoice.tipoPago !== "Remesa") {
             continue;
           }
-
           const validation = canSendInvoice(invoice);
           if (!validation.valid) {
             continue;
@@ -166,7 +165,9 @@ const saveInvoicesTask = async () => {
               numero: invoice.numero,
               messageType: "invoice",
             });
+
             await log.save();
+
 
             if (user.nombre2?.trim() && user.telefono2?.trim()) {
               const secondLog = new MessageLog({
@@ -192,6 +193,7 @@ const saveInvoicesTask = async () => {
 
             await esperar(150);
           } catch (error) {
+            console.error(`Error procesando factura ${invoice.id}:`, error);
             send_telegram_message(`Error procesando factura ${invoice.id}: ${error.message}`);
           }
         }

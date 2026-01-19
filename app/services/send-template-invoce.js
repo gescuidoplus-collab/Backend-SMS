@@ -86,7 +86,6 @@ export const sendInvoceTemplate = async (to, name, mediaUrl, data) => {
       console.log('===================================');
       return { success: true, messageId: 'DUMMY_MODE', status: 'dummy', templateContent: null, contentSid };
     }
-
     const result = await client.messages.create({
       from: envConfig.twilioWhatsappNumber,
       to: toWhatsApp,
