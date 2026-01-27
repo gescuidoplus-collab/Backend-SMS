@@ -5,6 +5,7 @@ import {
   loginCloudnavis,
   logout,
 } from "./apiCloudnavis.js";
+import { logger } from "../config/index.js";
 
 // Pausa entre llamadas para evitar 403
 function esperar(ms) {
@@ -18,9 +19,7 @@ async function withRetries(task, maxRetries, delay) {
       return await task();
     } catch (error) {
       if (attempt < maxRetries - 1) {
-        console.log(
-          `Reintento ${attempt + 1}/${maxRetries} fallido. Esperando...`
-        );
+        logger.warn({ attempt: attempt + 1, maxRetries }, "Reintento fallido, esperando...");
         await esperar(delay);
       } else {
         throw error;
@@ -75,13 +74,13 @@ export const updateWhatsappStatuses = async (items) => {
         const res = await withRetries(fn, 3, 3000);
         results.push(res);
       } catch (err) {
-        console.log(`Error actualizando estado para ${source}: ${err.message}`);
+        logger.error({ source, err }, "Error actualizando estado");
         results.push(null);
       }
       await esperar(300); // Pausa entre llamadas
     }
   } catch (err) {
-    console.log(`Error en updateWhatsappStatuses: ${err.message}`);
+    logger.error({ err }, "Error en updateWhatsappStatuses");
     results = null;
   } finally {
     if (sessionReady) {

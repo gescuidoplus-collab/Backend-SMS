@@ -1,7 +1,7 @@
 import axios from "axios";
 import { CookieJar } from "tough-cookie";
 import { wrapper } from "axios-cookiejar-support";
-import { envConfig } from "../config/index.js";
+import { envConfig, logger } from "../config/index.js";
 import fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
@@ -81,7 +81,7 @@ export async function setCookie() {
   } catch (error) {
     const status = axios.isAxiosError(error) ? error.response?.status : undefined;
     const url = axios.isAxiosError(error) ? error.config?.url : undefined;
-    console.error("Error setCookie:", error.message, { status, url });
+    logger.error({ err: error, status, url }, "Error setCookie");
     return 500;
   }
 }
@@ -140,12 +140,12 @@ export async function loginCloudnavis() {
       error.response &&
       error.response.status === 302
     ) {
-      console.log("Login exitoso, redirigido.");
+      logger.info("Login exitoso, redirigido");
       session.release(true);
       return 200;
     }
 
-    console.error("Error durante el login:", error.message);
+    logger.error({ err: error }, "Error durante el login");
     session.release(false);
     return 400;
   }
@@ -169,7 +169,7 @@ export async function listInvoices(year, month) {
     );
     return response.data;
   } catch (error) {
-    console.error("Error obteniendo facturas:", error.message);
+    logger.error({ err: error }, "Error obteniendo facturas");
     throw new Error("Error al obtener las facturas.");
   }
 }
@@ -189,7 +189,7 @@ export async function getUsers(userID) {
     );
     return response.data;
   } catch (error) {
-    console.error("Error obteniendo facturas:", error.message);
+    logger.error({ err: error }, "Error obteniendo usuario");
     throw new Error("Error al obtener las facturas.");
   }
 }
@@ -209,7 +209,7 @@ export async function getEmpleados(empleadoid) {
     );
     return response.data;
   } catch (error) {
-    console.error("Error obteniendo facturas:", error.message);
+    logger.error({ err: error }, "Error obteniendo empleados");
     throw new Error("Error al obtener las facturas.");
   }
 }
@@ -232,7 +232,7 @@ export async function ListPayRolls(year, month) {
     );
     return response.data;
   } catch (error) {
-    console.error("Error obteniendo facturas:", error.message);
+    logger.error({ err: error }, "Error obteniendo nóminas");
     throw new Error("Error al obtener las facturas.");
   }
 }
@@ -273,7 +273,7 @@ export async function downloadInvoce(invoceID) {
       buffer: Buffer.from(response.data)
     };
   } catch (error) {
-    console.error("Error al descargar y guardar la factura:", error.message);
+    logger.error({ err: error }, "Error al descargar y guardar la factura");
     throw new Error("Error al descargar y guardar la factura.");
   }
 }
@@ -313,7 +313,7 @@ export async function downloadPayrolls(payRollID) {
       buffer: Buffer.from(response.data)
     };
   } catch (error) {
-    console.error("Error al descargar y guardar la nómina:", error.message);
+    logger.error({ err: error }, "Error al descargar y guardar la nómina");
     throw new Error("Error al descargar y guardar la nómina.");
   }
 }
@@ -331,7 +331,7 @@ export async function fetchInvoiceBuffer(invoceID) {
     );
     return Buffer.from(response.data);
   } catch (error) {
-    console.error('Error fetchInvoiceBuffer:', error.message);
+    logger.error({ err: error }, "Error fetchInvoiceBuffer");
     throw new Error('Error al descargar la factura.');
   }
 }
@@ -349,7 +349,7 @@ export async function fetchPayrollBuffer(payRollID) {
     );
     return Buffer.from(response.data);
   } catch (error) {
-    console.error('Error fetchPayrollBuffer:', error.message);
+    logger.error({ err: error }, "Error fetchPayrollBuffer");
     throw new Error('Error al descargar la nómina.');
   }
 }
@@ -370,7 +370,7 @@ export async function setWhatsappInvoiceStatus(idFactura, status) {
     );
     return response.data;
   } catch (error) {
-    console.error("Error al actualizar el estado WhatsApp de la factura:", error.message);
+    logger.error({ err: error }, "Error al actualizar el estado WhatsApp de la factura");
     throw new Error("Error al actualizar el estado WhatsApp de la factura.");
   }
 }
@@ -391,7 +391,7 @@ export async function setWhatsappPayrollStatus(idNomina, status) {
     );
     return response.data;
   } catch (error) {
-    console.error("Error al actualizar el estado WhatsApp de la nómina:", error.message);
+    logger.error({ err: error }, "Error al actualizar el estado WhatsApp de la nómina");
     throw new Error("Error al actualizar el estado WhatsApp de la nómina.");
   }
 }
@@ -414,7 +414,7 @@ export async function logout() {
         throw error;
       }
     }
-    console.log("Status del logout:", response.status);
+    logger.info({ status: response.status }, "Logout status");
     cookieJar.removeAllCookiesSync();
     invalidateSession();
     return "¡Sesión cerrada exitosamente! 👋";

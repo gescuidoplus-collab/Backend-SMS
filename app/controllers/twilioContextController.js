@@ -1,5 +1,5 @@
 import { initializeContextWindow, hasActiveContextWindow, cleanupExpiredContextWindows } from "../services/twilioContextManager.js";
-import { envConfig } from "../config/index.js";
+import { envConfig, logger } from "../config/index.js";
 
 /**
  * Inicializa la ventana de contexto para el número de redirección
@@ -9,7 +9,7 @@ import { envConfig } from "../config/index.js";
 export const initializeRedirectNumberContext = async (req, res) => {
   try {
     const redirectNumber = `+34${envConfig.redirectNumber}`;
-    console.log(`🔄 Inicializando contexto para ${redirectNumber}...`);
+    logger.info({ phoneNumber: redirectNumber }, "Inicializando contexto");
     
     const result = await initializeContextWindow(redirectNumber, "Automatizador");
 
@@ -35,7 +35,7 @@ export const initializeRedirectNumberContext = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("Error inicializando contexto:", error);
+    logger.error({ err: error }, "Error inicializando contexto");
     return res.status(500).json({
       success: false,
       error: error.message,
@@ -63,7 +63,7 @@ export const checkRedirectNumberContext = async (req, res) => {
         : "❌ Sin contexto - Necesitas enviar una plantilla primero",
     });
   } catch (error) {
-    console.error("Error verificando contexto:", error);
+    logger.error({ err: error }, "Error verificando contexto");
     return res.status(500).json({
       success: false,
       error: error.message,
@@ -86,7 +86,7 @@ export const cleanupExpiredContext = async (req, res) => {
       deletedCount,
     });
   } catch (error) {
-    console.error("Error limpiando contexto:", error);
+    logger.error({ err: error }, "Error limpiando contexto");
     return res.status(500).json({
       success: false,
       error: error.message,

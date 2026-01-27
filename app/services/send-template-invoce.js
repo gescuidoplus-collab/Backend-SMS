@@ -1,5 +1,5 @@
 import twilio from "twilio";
-import { envConfig } from "../config/index.js";
+import { envConfig, logger } from "../config/index.js";
 import { formatWhatsAppNumber } from "../utils/formatWhatsAppNumber.js";
 import { getInvoiceTemplateSid, getTemplateFromTwilio, getTemplateContent, replaceTemplateVariables } from "../config/twilioTemplates.js";
 
@@ -21,7 +21,7 @@ export const sendInvoceTemplate = async (to, name, mediaUrl, data) => {
   const contentSid = getInvoiceTemplateSid(mes);
   
   if (!contentSid) {
-    console.error(`No se encontró plantilla de factura para el mes: ${mes}`);
+    logger.error({ mes }, "No se encontró plantilla de factura para el mes");
     return { 
       success: false, 
       error: `No hay plantilla configurada para el mes ${mes}` 
@@ -70,20 +70,12 @@ export const sendInvoceTemplate = async (to, name, mediaUrl, data) => {
     
     // Log de debug acotado
     if (process.env.NODE_ENV !== "production") {
-      console.log("Twilio Invoice ContentSid:", contentSid);
-      console.log("Twilio Invoice ContentVars:", vars);
-      console.log("Twilio Invoice mediaUrl:", mediaUrl);
+      logger.debug({ contentSid, vars, mediaUrl }, "Twilio Invoice debug");
     }
     
     // Si TWILIO_ENVIROMENT es DUMMY, solo loguear y no enviar
     if (envConfig.twilioEnviroment === 'DUMMY') {
-      console.log('=== TWILIO DUMMY MODE (Invoice) ===');
-      console.log('From:', envConfig.twilioWhatsappNumber);
-      console.log('To:', toWhatsApp);
-      console.log('ContentSid:', contentSid);
-      console.log('ContentVariables:', JSON.stringify(vars));
-      console.log('MediaUrl:', mediaUrl);
-      console.log('===================================');
+      logger.info({ from: envConfig.twilioWhatsappNumber, to: toWhatsApp, contentSid, vars, mediaUrl }, "TWILIO DUMMY MODE (Invoice)");
       return { success: true, messageId: 'DUMMY_MODE', status: 'dummy', templateContent: null, contentSid };
     }
     const result = await client.messages.create({
@@ -104,11 +96,7 @@ export const sendInvoceTemplate = async (to, name, mediaUrl, data) => {
     
     return { success: true, messageId: result.sid, status: result.status, templateContent, contentSid };
   } catch (err) {
-    console.error(
-      "Error al enviar factura por WhatsApp:",
-      err.message,
-      { to: toWhatsApp, contentSid: contentSid, mes: mes }
-    );
+    logger.error({ err, to: toWhatsApp, contentSid, mes }, "Error al enviar factura por WhatsApp");
     return { success: false, error: err.message };
   }
 };

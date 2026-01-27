@@ -5,6 +5,7 @@ import {
   logout
 } from '../services/apiCloudnavis.js';
 import { MessageLog } from '../schemas/index.js';
+import { logger } from '../config/index.js';
 
 
 function esperar(ms) {
@@ -18,7 +19,7 @@ async function withRetries(task, maxRetries, delay) {
       return await task();
     } catch (error) {
       if (attempt < maxRetries - 1) {
-        console.log(`Reintento ${attempt + 1}/${maxRetries} fallido. Esperando...`);
+        logger.warn({ attempt: attempt + 1, maxRetries }, "Reintento fallido, esperando...");
         await esperar(delay);
       } else {
         throw error;
@@ -73,7 +74,7 @@ export const downloadPayrollPdf = async (req, res) => {
     res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
     return res.status(200).end(buffer);
   } catch (error) {
-    console.error('Error en descarga puntual de nómina:', error.message);
+    logger.error({ err: error }, "Error en descarga puntual de nómina");
     try {
       await MessageLog.findOneAndUpdate(
         { source: id },
@@ -83,7 +84,7 @@ export const downloadPayrollPdf = async (req, res) => {
         }
       );
     } catch (updateError) {
-      console.error('Error actualizando MessageLog:', updateError.message);
+      logger.error({ err: updateError }, "Error actualizando MessageLog");
     }
     if (!res.headersSent) {
       res.status(500).json({ message: 'Error procesando la nómina', detail: error.message });

@@ -1,6 +1,6 @@
 import express from "express";
 import path from "path";
-import { envConfig, mongoClient } from "./app/config/index.js";
+import { envConfig, mongoClient, logger } from "./app/config/index.js";
 import { router } from "./app/routers/index.js";
 import { createUser } from "./app/utils/create-auth.js";
 import cors from "cors";
@@ -65,7 +65,7 @@ app.engine('handlebars', engine({
                 const mimeType = ext === 'png' ? 'image/png' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/png';
                 return `data:${mimeType};base64,${imageBuffer.toString('base64')}`;
             } catch (error) {
-                console.error(`Error loading image ${imageName}:`, error);
+                logger.error({ err: error, imageName }, `Error loading image ${imageName}`);
                 return '';
             }
         },
@@ -103,19 +103,19 @@ app.post('/api/v1/generate-pdf', async (req, res) => {
     });
     res.end(pdfBuffer);
   } catch (error) {
-    console.error(error);
+    logger.error({ err: error }, "Error al generar el PDF");
     res.status(500).json({ error: 'Error al generar el PDF.' });
   }
 });
 
 async function generarContenido(prompt) {
   try {
-    console.log(prompt)
+    logger.info({ prompt }, "Generating content")
     const response = await ai.models.generateContent({
       model: "gemini-2.0-flash", // El modelo que desees usar
       contents: prompt,
     });
-    console.log(response.text)
+    logger.info({ response: response.text }, "Content generated")
     return response.text;
   } catch (error) {
     return `Error al generar contenido: ${error}`;
@@ -133,7 +133,7 @@ async function prepararDatosPdf(datos) {
     let textoHorarios = await generarContenido(`Genera un texto corto (máximo dos líneas) que comience con "HORARIO:". El texto debe mostrar únicamente los días y horas actuales en formato ${HorariosFormateados}, sin agregar palabras ni frases adicionales que no estén relacionadas con los horarios. El resultado debe ser limpio y directo, ideal para mostrar a un cliente, Dame el resultado en español`)
     // Verificar si el texto contiene un mensaje de error
     if (textoHorarios && textoHorarios.includes('Error al generar contenido:')) {
-      console.error(textoHorarios) // Solo mostrar el error en la consola
+      logger.error({ textoHorarios }, "Error en textoHorarios")
       textoHorarios = '' // Dejar textoHorarios vacío para que no aparezca en el PDF
     }
 
@@ -251,10 +251,10 @@ createUser({
   password: envConfig.passwordUser,
 })
   .then(() => {
-    console.log("✅ User Admin created successfully");
+    logger.info("User Admin created successfully");
   })
   .catch((error) => {
-    console.log("❌ User Admin was not created:", error.message);
+    logger.warn({ err: error }, "User Admin was not created");
   });
 
 app.get(`${envConfig.urlPath}healtcheck`, (req, res) => {
@@ -267,7 +267,7 @@ app.get(`${envConfig.urlPath}healtcheck`, (req, res) => {
 
 app.get("/api/cron", async (req, res) => {
   try {
-    console.log("Cron job triggered")
+    logger.info("Cron job triggered")
     const ua = (req.headers["user-agent"] || "").toLowerCase();
     const isVercel = ua.includes("vercel-cron");
     const provided = req.headers["x-cron-secret"];
@@ -281,7 +281,7 @@ app.get("/api/cron", async (req, res) => {
     await runAllTasks();
     res.json({ ok: true, runAt: new Date().toISOString() });
   } catch (e) {
-    console.error("Cron endpoint error", e);
+    logger.error({ err: e }, "Cron endpoint error");
     res.status(500).json({ ok: false, error: e.message });
   }
 });
@@ -289,7 +289,7 @@ app.get("/api/cron", async (req, res) => {
 app.get("/api/cron-send", async (req, res) => {
   try {
 
-    console.log("Cron SEND job triggered");
+    logger.info("Cron SEND job triggered");
     const ua = (req.headers["user-agent"] || "").toLowerCase();
     const isVercel = ua.includes("vercel-cron");
     const provided = req.headers["x-cron-secret"];
@@ -304,7 +304,7 @@ app.get("/api/cron-send", async (req, res) => {
     await processMessageQueue();
     res.json({ ok: true, runAt: new Date().toISOString(), processed: true });
   } catch (e) {
-    console.error("Cron endpoint error", e);
+    logger.error({ err: e }, "Cron SEND endpoint error");
     res.status(500).json({ ok: false, error: e.message });
   }
 });
@@ -312,7 +312,7 @@ app.get("/api/cron-send", async (req, res) => {
 
 app.use(envConfig.urlPath, router);
 
-app.listen(envConfig.port, () => {
-
-  console.log(`Running in proyect port : ${envConfig.port}`);
+const HOST = "127.0.0.1";
+app.listen(envConfig.port, HOST, () => {
+  logger.info({ port: envConfig.port, host: HOST }, `Server running on ${HOST}:${envConfig.port}`);
 });

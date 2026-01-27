@@ -1,5 +1,5 @@
 import twilio from "twilio";
-import { envConfig } from "../config/index.js";
+import { envConfig, logger } from "../config/index.js";
 import { formatWhatsAppNumber } from "../utils/formatWhatsAppNumber.js";
 import { 
   getPayrollTemplateSid, 
@@ -72,7 +72,7 @@ export const sendInvocePayRool = async (
     // Nómina para empleador: variables 1 (nombre empleador) y 2 (archivo/mes)
     contentSid = getPayrollTemplateSid(mes);
     if (!contentSid) {
-      console.error(`No se encontró plantilla de nómina (empleador) para el mes: ${mes}`);
+      logger.error({ mes }, "No se encontró plantilla de nómina (empleador) para el mes");
       return { 
         success: false, 
         error: `No hay plantilla de nómina (empleador) configurada para el mes ${mes}` 
@@ -86,7 +86,7 @@ export const sendInvocePayRool = async (
     // Nómina para empleado: variables 1 (nombre empleado) y 2 (archivo/mes)
     contentSid = getPayrollEmployeTemplateSid(mes);
     if (!contentSid) {
-      console.error(`No se encontró plantilla de nómina (empleado) para el mes: ${mes}`);
+      logger.error({ mes }, "No se encontró plantilla de nómina (empleado) para el mes");
       return { 
         success: false, 
         error: `No hay plantilla de nómina (empleado) configurada para el mes ${mes}` 
@@ -110,24 +110,13 @@ export const sendInvocePayRool = async (
   const toWhatsApp = formatWhatsAppNumber(to);
   try {
     if (process.env.NODE_ENV !== "production") {
-      console.log("Twilio Payroll ContentSid:", contentSid);
-      console.log("Twilio Payroll ContentVars:", payload);
-      console.log("Twilio Payroll Type:", type);
-      console.log("Twilio Payroll Mes:", mes);
+      logger.debug({ contentSid, payload, type, mes }, "Twilio Payroll debug");
     }
     // console.log(toWhatsApp)
     // console.log(payload)
     // Si TWILIO_ENVIROMENT es DUMMY, solo loguear y no enviar
     if (envConfig.twilioEnviroment === 'DUMMY') {
-      console.log('=== TWILIO DUMMY MODE (Payroll) ===');
-      console.log('From:', envConfig.twilioWhatsappNumber);
-      console.log('To:', toWhatsApp);
-      console.log('ContentSid:', contentSid);
-      console.log('ContentVariables:', JSON.stringify(payload));
-      console.log('MediaUrl:', mediaUrl);
-      console.log('Type:', type);
-      console.log('Mes:', mes);
-      console.log('===================================');
+      logger.info({ from: envConfig.twilioWhatsappNumber, to: toWhatsApp, contentSid, payload, mediaUrl, type, mes }, "TWILIO DUMMY MODE (Payroll)");
       return { success: true, messageId: 'DUMMY_MODE', status: 'dummy', templateContent: null, contentSid };
     }
 
@@ -149,11 +138,7 @@ export const sendInvocePayRool = async (
 
     return { success: true, messageId: result.sid, status: result.status, templateContent, contentSid };
   } catch (err) {
-    console.error(
-      "Error al enviar nómina por WhatsApp:",
-      err.message,
-      { to: toWhatsApp, contentSid: contentSid, type: type, mes: mes }
-    );
+    logger.error({ err, to: toWhatsApp, contentSid, type, mes }, "Error al enviar nómina por WhatsApp");
     return { success: false, error: err.message };
   }
 };

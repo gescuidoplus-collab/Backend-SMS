@@ -1,5 +1,5 @@
 import twilio from "twilio";
-import { envConfig } from "../config/index.js";
+import { envConfig, logger } from "../config/index.js";
 import TwilioContextWindow from "../schemas/twilioContextWindow.js";
 import { formatWhatsAppNumber } from "../utils/formatWhatsAppNumber.js";
 import { getInvoiceTemplateSid, getTemplateContent, replaceTemplateVariables } from "../config/twilioTemplates.js";
@@ -42,7 +42,7 @@ export const hasActiveContextWindow = async (phoneNumber) => {
 
     return !!contextWindow;
   } catch (error) {
-    console.error("Error verificando ventana de contexto:", error);
+    logger.error({ err: error }, "Error verificando ventana de contexto");
     return false;
   }
 };
@@ -63,7 +63,7 @@ export const initializeContextWindow = async (phoneNumber, senderName = "Usuario
     // Verificar si ya tiene contexto activo
     const hasContext = await hasActiveContextWindow(phoneNumber);
     if (hasContext) {
-      console.log(`✅ ${formattedNumber} ya tiene contexto activo`);
+      logger.info({ phoneNumber: formattedNumber }, "Ya tiene contexto activo");
       return { success: true, alreadyActive: true };
     }
 
@@ -79,7 +79,7 @@ export const initializeContextWindow = async (phoneNumber, senderName = "Usuario
     // 3: Mensaje que envió el usuario
     const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
     
-    console.log(`📱 Enviando a: whatsapp:${formattedNumber}`);
+    logger.info({ to: `whatsapp:${formattedNumber}` }, "Enviando plantilla");
     const result = await client.messages.create({
       from: envConfig.twilioWhatsappNumber,
       to: `whatsapp:${formattedNumber}`,
@@ -108,7 +108,7 @@ export const initializeContextWindow = async (phoneNumber, senderName = "Usuario
       { upsert: true, new: true }
     );
 
-    console.log(`✅ Contexto inicializado para ${formattedNumber} (expira en 24h)`);
+    logger.info({ phoneNumber: formattedNumber, expiresAt }, "Contexto inicializado (expira en 24h)");
     
     return {
       success: true,
@@ -117,7 +117,7 @@ export const initializeContextWindow = async (phoneNumber, senderName = "Usuario
       expiresAt,
     };
   } catch (error) {
-    console.error("Error inicializando contexto:", error);
+    logger.error({ err: error }, "Error inicializando contexto");
     return {
       success: false,
       error: error.message,
@@ -151,9 +151,9 @@ export const recordMessageSent = async (phoneNumber, messageType = "message", te
       { upsert: true, new: true }
     );
 
-    console.log(`📝 Contexto renovado para ${normalizedNumber}`);
+    logger.info({ phoneNumber: normalizedNumber }, "Contexto renovado");
   } catch (error) {
-    console.error("Error registrando envío de mensaje:", error);
+    logger.error({ err: error }, "Error registrando envío de mensaje");
   }
 };
 
@@ -178,7 +178,7 @@ export const sendTemplateWithinContextWindow = async (phoneNumber, senderName = 
     // Enviar plantilla a Twilio con 3 variables
     const client = twilio(envConfig.twilioAccountSid, envConfig.twilioAuthToken);
     
-    console.log(`📱 Enviando plantilla a: whatsapp:${normalizedNumber}`);
+    logger.info({ to: `whatsapp:${normalizedNumber}` }, "Enviando plantilla dentro de contexto");
 
     const result = await client.messages.create({
       from: envConfig.twilioWhatsappNumber,
@@ -191,7 +191,7 @@ export const sendTemplateWithinContextWindow = async (phoneNumber, senderName = 
       }),
     });
 
-    console.log(`✅ Plantilla enviada exitosamente a ${normalizedNumber}`);
+    logger.info({ phoneNumber: normalizedNumber }, "Plantilla enviada exitosamente");
     
     return {
       success: true,
@@ -199,7 +199,7 @@ export const sendTemplateWithinContextWindow = async (phoneNumber, senderName = 
       phoneNumber: normalizedNumber,
     };
   } catch (error) {
-    console.error("Error enviando plantilla dentro de contexto:", error);
+    logger.error({ err: error }, "Error enviando plantilla dentro de contexto");
     return {
       success: false,
       error: error.message,
@@ -216,10 +216,10 @@ export const cleanupExpiredContextWindows = async () => {
     const result = await TwilioContextWindow.deleteMany({
       expiresAt: { $lt: new Date() },
     });
-    console.log(`🧹 Limpieza: ${result.deletedCount} ventanas de contexto expiradas eliminadas`);
+    logger.info({ deletedCount: result.deletedCount }, "Limpieza de ventanas de contexto expiradas");
     return result.deletedCount;
   } catch (error) {
-    console.error("Error limpiando ventanas expiradas:", error);
+    logger.error({ err: error }, "Error limpiando ventanas expiradas");
     return 0;
   }
 };
