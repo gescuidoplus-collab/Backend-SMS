@@ -39,7 +39,9 @@ app.use(
       "https://frontend-sms-*.vercel.app",
       "https://backend-sms-three.vercel.app",
       "https://frontend-e2k70gn7u-cuido-farm.vercel.app",
-      "https://frontend-sms-git-production-cuido-farm.vercel.app"
+      "https://frontend-sms-git-production-cuido-farm.vercel.app",
+      "http://dev.cloudnavis.com",
+      "http://dev.cloudnavis.com:3000"
     ],
     allowedHeaders: ["Content-Type", "Authorization"],
     optionsSuccessStatus: 200,
