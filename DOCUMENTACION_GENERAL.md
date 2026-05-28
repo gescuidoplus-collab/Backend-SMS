@@ -144,7 +144,7 @@ API de consulta:
 
 Archivos principales:
 
-- `app/services/redis-messages.js` (a pesar del nombre, hoy opera principalmente con Mongo + lógica de lotes)
+- `app/services/whatsapp-batch-messages.js` (procesa mensajes WhatsApp en lotes con MongoDB)
 - `app/services/twilioService.js`
 - `app/services/send-template-invoce.js`
 - `app/services/send-template-payroll.js`
@@ -247,7 +247,7 @@ La configuración se valida en `app/config/enviroments.js`.
 | `CLOUD_NAVIS_URL` | Sí (para tasks CloudNavis) | `app/services/apiCloudnavis.js` | Base URL de CloudNavis. |
 | `CLOUD_SECRET_KEY` | Sí (para cifrado) | `app/utils/cipher.js`, `app/schemas/messageLog.js` | Key (hex) para cifrar/descifrar datos sensibles. |
 | `CLOUD_SECRET_IV` | Sí (para cifrado) | `app/utils/cipher.js` | IV (hex) para cifrar/descifrar datos sensibles. |
-| `API_URL` | Recomendado | `app/services/apiCloudnavis.js`, `app/services/redis-messages.js` | URL pública base del backend para construir links a PDFs/medias. |
+| `API_URL` | Recomendado | `app/services/apiCloudnavis.js`, `app/services/whatsapp-batch-messages.js` | URL pública base del backend para construir links a PDFs/medias. |
 | `MONTHS_SEARCH` | No (default `1`) | `app/tasks/processInvoicesTask.js`, `app/tasks/processPayRollsTask.js` | Cuántos meses hacia atrás procesar (0..12). |
 | `TELEGRAM_APP_ID` | Recomendado | `app/services/sendMessageTelegram.js` | Chat ID destino para alertas. |
 | `TELEGRAM_TOKEN_SECRET` | Recomendado | `app/services/sendMessageTelegram.js` | Token del bot de Telegram. |
@@ -333,7 +333,7 @@ Esta sección explica de forma clara y sencilla el funcionamiento de la aplicaci
 - **Reintentos:** En caso de encontrar problemas, se reintenta el proceso para asegurar que la nómina se procese correctamente.
 - **Validaciones:** Verifica que la nómina tenga estado "PENDING", que el período sea un mes completo (día 1 al último día), que los IDs de empleador y empleado sean válidos, y que los teléfonos sean válidos.
 
-### 7.5) Gestión de Mensajes en Lotes (archivo: `redis-messages.js`)
+### 7.5) Gestión de Mensajes en Lotes (archivo: `whatsapp-batch-messages.js`)
 
 - **¿Qué es?** Este servicio administra la cola de mensajes que se deben enviar por WhatsApp.
 - **Función principal:** Agrupa y envía los mensajes en lotes, introduciendo pausas entre ellos para evitar la saturación o que se consideren como spam.

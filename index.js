@@ -28,21 +28,25 @@ import { runAllTasks } from "./app/tasks/taskManager.js";
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "http://localhost:3032",
-      "https://frontend-sms.vercel.app",
-      "https://frontend-sms-git-main-cuido-farm.vercel.app",
-      "https://frontend-sms-git-feat-walls-migrate-cuido-farm.vercel.app",
-      "https://frontend-sms-cuido-farm.vercel.app",
-      "https://frontend-sms-*.vercel.app",
-      "https://backend-sms-three.vercel.app",
-      "https://frontend-e2k70gn7u-cuido-farm.vercel.app",
-      "https://frontend-sms-git-production-cuido-farm.vercel.app",
-      "http://dev.cloudnavis.com",
-      "http://dev.cloudnavis.com:3000"
-    ],
+    origin: function (origin, callback) {
+      const allowedOrigins = [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3032",
+        "https://frontend-sms.vercel.app",
+        "https://frontend-sms-git-main-cuido-farm.vercel.app",
+        "https://frontend-sms-git-feat-walls-migrate-cuido-farm.vercel.app",
+        "https://frontend-sms-cuido-farm.vercel.app",
+        "https://frontend-e2k70gn7u-cuido-farm.vercel.app",
+        "https://frontend-sms-git-production-cuido-farm.vercel.app"
+      ];
+
+      if (!origin || allowedOrigins.includes(origin) || origin.includes('.railway.app') || origin.includes('.vercel.app')) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     allowedHeaders: ["Content-Type", "Authorization"],
     optionsSuccessStatus: 200,
   })
