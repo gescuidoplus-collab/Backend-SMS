@@ -324,7 +324,7 @@ app.get("/api/cron-send", async (req, res) => {
 
 app.use(envConfig.urlPath, router);
 
-const HOST = "127.0.0.1";
+const HOST = "0.0.0.0";
 app.listen(envConfig.port, HOST, () => {
-  logger.info({ port: envConfig.port, host: HOST }, `Server running on ${HOST}:${envConfig.port}`);
+  console.log(`✅ Server running on port ${envConfig.port}`);
 });
