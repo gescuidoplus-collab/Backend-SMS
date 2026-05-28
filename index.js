@@ -238,7 +238,20 @@ function formatearHorarios(horarios) {
 app.use(express.json({ limit: "1kb" }));
 app.use(express.urlencoded({ extended: true, limit: "1kb" }));
 
+mongoClient();
+
 app.use("/public", express.static(path.join(process.cwd(), "public")));
+
+createUser({
+  email: envConfig.emailUser,
+  password: envConfig.passwordUser,
+})
+  .then(() => {
+    console.log("✅ User Admin created successfully");
+  })
+  .catch((error) => {
+    console.warn("⚠️ User Admin was not created:", error.message);
+  });
 
 app.get(`${envConfig.urlPath}healtcheck`, (req, res) => {
   res.status(200).json({ message: "version 1.0.0" });
