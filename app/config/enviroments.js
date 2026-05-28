@@ -7,7 +7,7 @@ const confEnvSchema = Joi.object({
   NODE_ENV: Joi.string()
     .valid("development", "production", "test", "staging")
     .default("development"),
-  PORT: Joi.number().default(3000),
+  PORT: Joi.number().default(parseInt(process.env.PORT) || 3000),
   JWT_SECRET_KEY: Joi.string() || "",
   URL_PATH: Joi.string() || "/api/v1/",
   MONGO_URI: Joi.string() || "",
