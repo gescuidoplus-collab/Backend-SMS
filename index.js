@@ -28,25 +28,9 @@ import { runAllTasks } from "./app/tasks/taskManager.js";
 
 app.use(
   cors({
-    origin: function (origin, callback) {
-      const allowedOrigins = [
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:3032",
-        "https://frontend-sms.vercel.app",
-        "https://frontend-sms-git-main-cuido-farm.vercel.app",
-        "https://frontend-sms-git-feat-walls-migrate-cuido-farm.vercel.app",
-        "https://frontend-sms-cuido-farm.vercel.app",
-        "https://frontend-e2k70gn7u-cuido-farm.vercel.app",
-        "https://frontend-sms-git-production-cuido-farm.vercel.app"
-      ];
-
-      if (!origin || allowedOrigins.includes(origin) || origin.includes('.railway.app') || origin.includes('.vercel.app')) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
+    origin: true,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     optionsSuccessStatus: 200,
   })
@@ -263,10 +247,10 @@ createUser({
   password: envConfig.passwordUser,
 })
   .then(() => {
-    logger.info("User Admin created successfully");
+    console.log("✅ User Admin created successfully");
   })
   .catch((error) => {
-    logger.warn({ err: error }, "User Admin was not created");
+    console.warn("⚠️ User Admin was not created:", error.message);
   });
 
 app.get(`${envConfig.urlPath}healtcheck`, (req, res) => {
@@ -325,6 +309,19 @@ app.get("/api/cron-send", async (req, res) => {
 app.use(envConfig.urlPath, router);
 
 const HOST = "0.0.0.0";
-app.listen(envConfig.port, HOST, () => {
-  console.log(`✅ Server running on port ${envConfig.port}`);
+const PORT = process.env.PORT || envConfig.port || 3000;
+
+mongoClient().catch((err) => {
+  console.error("❌ MongoDB connection error:", err);
+});
+
+createUser({
+  email: envConfig.emailUser,
+  password: envConfig.passwordUser,
+}).catch((error) => {
+  console.warn("⚠️ User Admin creation error:", error.message);
+});
+
+app.listen(PORT, HOST, () => {
+  console.log(`✅ Server running on port ${PORT}`);
 });
