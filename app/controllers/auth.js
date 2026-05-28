@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import Auth from "../schemas/auth.js";
 import { validationResult } from "express-validator";
-import { envConfig } from "../config/index.js";
+import { envConfig, logger } from "../config/index.js";
 
 const SALT_ROUNDS = 12;
 
@@ -17,7 +17,7 @@ export const login = async (req, res) => {
     if (!user || user.isBlock)
       return res.status(401).json({ error: "Usuario no autorizado" });
 
-    console.log(password)
+    logger.debug({ email }, "Login attempt")
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch)

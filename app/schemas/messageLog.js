@@ -124,7 +124,7 @@ const MessageLogSchema = new Schema(
   }
 );
 
-MessageLogSchema.pre("save", function (next) {
+MessageLogSchema.pre("save", async function () {
   try {
     if (this.isModified("recipient")) {
       this.recipient = encryptIfObject(this.recipient);
@@ -144,13 +144,12 @@ MessageLogSchema.pre("save", function (next) {
     if (this.isModified("message_employe") && this.message_employe) {
       this.message_employe = encrypt(this.message_employe);
     }
-    next();
   } catch (err) {
-    next(err);
+    throw err;
   }
 });
 
-MessageLogSchema.pre("findOneAndUpdate", function (next) {
+MessageLogSchema.pre("findOneAndUpdate", async function () {
   try {
     const update = this.getUpdate() || {};
     const $set = update.$set || update;
@@ -174,9 +173,8 @@ MessageLogSchema.pre("findOneAndUpdate", function (next) {
     }
     if (update.$set) this.setUpdate({ ...update, $set });
     else this.setUpdate($set);
-    next();
   } catch (err) {
-    next(err);
+    throw err;
   }
 });
 
