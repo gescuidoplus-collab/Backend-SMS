@@ -1,6 +1,6 @@
 import { MessageLog } from "../schemas/index.js";
 import mongoose from "mongoose";
-import { mongoClient } from "../config/index.js";
+import { mongoClient, logger } from "../config/index.js";
 import { formatWhatsAppNumber } from "../utils/formatWhatsAppNumber.js";
 import { sendInvoceTemplate } from "./send-template-invoce.js";
 import { sendInvocePayRool } from "./send-template-payroll.js";
@@ -89,7 +89,7 @@ async function processSingleMessage({
         result = { success: false, error: "Tipo de plantilla no soportado" };
       }
     } catch (err) {
-      console.error("Error enviando plantilla:", err);
+      logger.error({ err }, "Error enviando plantilla");
       result = { success: false, error: err?.message || String(err) };
     }
 
@@ -187,14 +187,14 @@ export const enqueueWhatsAppMessage = async () => {
     status: "pending",
   });
 
-  console.log("🏠 Mensajes a Enviar:", logs.length);
+  logger.info({ count: logs.length }, "Mensajes a Enviar");
 
   if (logs.length > 0) {
     const chunks = chunkArray(logs, BATCH_SIZE);
 
     for (const [i, chunk] of chunks.entries()) {
       for (const log of chunk) {
-        console.log(log.recipient.fullName);
+        logger.info({ recipient: log.recipient.fullName }, "Procesando mensaje");
         let resp = await processSingleMessage({
           logId: log._id,
           recipient: log.recipient,

@@ -13,7 +13,7 @@ async function runAllTasks() {
     await processPayRollsTask();
     const now = new Date();
     send_telegram_message(
-      `Guardo de Facturas y Nominas Finalizado ✅ - Fecha: ${now.toLocaleDateString()} Hora: ${now.toLocaleTimeString()}`
+      `Tarea de Guardo de Facturas y Nominas Finalizado ✅ - Fecha: ${now.toLocaleDateString()} Hora: ${now.toLocaleTimeString()}`
     );
     await new Promise((res) => setTimeout(res, 5000));
   } catch (err) {

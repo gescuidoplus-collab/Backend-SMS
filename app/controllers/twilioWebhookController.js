@@ -1,6 +1,6 @@
 import { send_telegram_message } from "../services/sendMessageTelegram.js";
 import { sendWhatsAppMessage } from "../services/twilioService.js";
-import { envConfig } from "../config/index.js";
+import { envConfig, logger } from "../config/index.js";
 import { hasActiveContextWindow, initializeContextWindow } from "../services/twilioContextManager.js";
 
 /**
@@ -88,19 +88,18 @@ export const handleTwilioWebhook = async (req, res) => {
     // Formato: +numero-mensaje (es una respuesta directa, no necesita plantilla)
     // ═══════════════════════════════════════════════════════════════════════
     if (isFromRedirectNumber(From)) {
-      console.log(`📩 Mensaje recibido del administrador (${From})`);
+      logger.info({ from: From }, "Mensaje recibido del administrador");
       
       const parsed = parseRedirectMessage(Body);
       
       if (!parsed) {
         // Formato inválido, ignorar (no responder)
-        console.log(`⚠️ Formato de mensaje inválido. Esperado: +numero-mensaje`);
-        console.log(`   Recibido: ${Body}`);
+        logger.warn({ body: Body }, "Formato de mensaje inválido. Esperado: +numero-mensaje");
         return res.status(200).send("OK");
       }
 
       const { phoneNumber, message } = parsed;
-      console.log(`📤 Reenviando respuesta a ${phoneNumber}: ${message}`);
+      logger.info({ phoneNumber, message }, "Reenviando respuesta");
 
       // Enviar mensaje directo (es una respuesta, no necesita plantilla)
       const result = await sendWhatsAppMessage(
@@ -109,9 +108,9 @@ export const handleTwilioWebhook = async (req, res) => {
       );
 
       if (result.success) {
-        console.log(`✅ Respuesta enviada exitosamente a ${phoneNumber}`);
+        logger.info({ phoneNumber }, "Respuesta enviada exitosamente");
       } else {
-        console.warn(`⚠️ Fallo al enviar respuesta:`, result.error);
+        logger.warn({ error: result.error }, "Fallo al enviar respuesta");
       }
 
       return res.status(200).send("OK");
@@ -140,7 +139,7 @@ export const handleTwilioWebhook = async (req, res) => {
 
     if (!hasContext) {
       // ❌ SIN contexto: Enviar plantilla de inicialización con 3 variables
-      console.log(`🔄 Enviando plantilla de inicialización para ${redirectNumberFormatted}...`);
+      logger.info({ phoneNumber: redirectNumberFormatted }, "Enviando plantilla de inicialización");
       const initResult = await initializeContextWindow(
         redirectNumberFormatted,
         senderName || "Desconocido",  // Variable 1: Nombre del usuario
@@ -149,13 +148,13 @@ export const handleTwilioWebhook = async (req, res) => {
       );
       
       if (initResult.success) {
-        console.log(`✅ Plantilla de inicialización enviada exitosamente`);
+        logger.info("Plantilla de inicialización enviada exitosamente");
       } else {
-        console.warn(`⚠️ Fallo al enviar plantilla de inicialización:`, initResult.error);
+        logger.warn({ error: initResult.error }, "Fallo al enviar plantilla de inicialización");
       }
     } else {
       // ✅ Hay contexto: Enviar mensaje directo (texto libre)
-      console.log(`✅ Contexto activo para ${redirectNumberFormatted}. Enviando respuesta directa...`);
+      logger.info({ phoneNumber: redirectNumberFormatted }, "Contexto activo, enviando respuesta directa");
       
       const result = await sendWhatsAppMessage(
         `whatsapp:${redirectNumberFormatted}`,
@@ -163,15 +162,15 @@ export const handleTwilioWebhook = async (req, res) => {
       );
 
       if (!result.success) {
-        console.warn(`⚠️ Fallo al enviar respuesta:`, result.error);
+        logger.warn({ error: result.error }, "Fallo al enviar respuesta");
       } else {
-        console.log(`✅ Respuesta enviada exitosamente`);
+        logger.info("Respuesta enviada exitosamente");
       }
     }
 
     res.status(200).send("OK");
   } catch (error) {
-    console.error("Error en handleTwilioWebhook:", error);
+    logger.error({ err: error }, "Error en handleTwilioWebhook");
     res.status(500).json({ error: error.message });
   }
 };

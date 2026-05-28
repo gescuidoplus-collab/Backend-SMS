@@ -1,4 +1,5 @@
 import { MessageLog } from "../schemas/index.js";
+import { logger } from "../config/index.js";
 
 export const getLogs = async (req, res) => {
   try {
@@ -41,7 +42,7 @@ export const getLogs = async (req, res) => {
 
     res.json(responseData);
   } catch (error) {
-    console.error("Error en getLogs:", error);
+    logger.error({ err: error }, "Error en getLogs");
     res.status(500).json({ error: error.message });
   }
 };

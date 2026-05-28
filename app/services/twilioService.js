@@ -1,5 +1,5 @@
 import twilio from "twilio";
-import { envConfig } from "../config/index.js";
+import { envConfig, logger } from "../config/index.js";
 import { formatWhatsAppNumber } from "../utils/formatWhatsAppNumber.js";
 
 /**
@@ -22,7 +22,7 @@ export const sendWhatsAppMessage = async (to, message) => {
       status: result.status,
     };
   } catch (error) {
-    console.error(`Error al enviar mensaje de WhatsApp: ${error.message}`);
+    logger.error({ err: error }, "Error al enviar mensaje de WhatsApp");
     return {
       success: false,
       error: error.message,
@@ -52,7 +52,7 @@ export const sendWhatsAppTemplate = async (to, contentSid, variables = {}) => {
       status: result.status,
     };
   } catch (error) {
-    console.error(`Error al enviar plantilla de WhatsApp: ${error.message}`);
+    logger.error({ err: error }, "Error al enviar plantilla de WhatsApp");
     return {
       success: false,
       error: error.message,
@@ -82,7 +82,7 @@ export const sendWhatsAppPDF = async (to, mediaUrl, caption = "") => {
       status: result.status,
     };
   } catch (error) {
-    console.error(`Error al enviar PDF por WhatsApp: ${error.message}`);
+    logger.error({ err: error }, "Error al enviar PDF por WhatsApp");
     return {
       success: false,
       error: error.message,
@@ -112,7 +112,7 @@ export const sendWhatsAppMessageWithPDF = async (to, message, mediaUrl) => {
       status: result.status,
     };
   } catch (error) {
-    console.error(`Error al enviar mensaje con PDF: ${error.message}`);
+    logger.error({ err: error }, "Error al enviar mensaje con PDF");
     return {
       success: false,
       error: error.message,
@@ -129,7 +129,7 @@ export const sendWhatsAppMessageWithPDF = async (to, message, mediaUrl) => {
  * @param {string} mediaUrl - URL pública de la media (PDF/imagen)
  */
 export const sendInvoceTemplate = async (to, name, mediaUrl, data) => {
-  console.log("\n sendInvoceTemplate called with:", { to, name, mediaUrl, data });
+  logger.debug({ to, name, mediaUrl, data }, "sendInvoceTemplate called");
   return { success: true};
   // const { mes, numero, total, fechaExpedicion } = data || {};
   // const contentSidExample =
@@ -230,7 +230,7 @@ export const sendInvocePayRool = async (
   employe
 ) => {
 
-  console.log("\n sendInvocePayRool called with:", { to, name, mediaUrl, mes, type, recipient, employe });
+  logger.debug({ to, name, mediaUrl, mes, type, recipient, employe }, "sendInvocePayRool called");
 
 
 
