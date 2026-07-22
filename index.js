@@ -17,6 +17,7 @@ import {
   renderQuoteTemplate,
   generateQuotePDF,
 } from "./app/services/quotePdfGenerator.js";
+import createQuotesRouter from "./app/routers/quotes.js";
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -179,6 +180,10 @@ app.get("/api/cron-send", async (req, res) => {
 
 
 app.use(envConfig.urlPath, router);
+
+// Mount quotes router (requires app for pdf generation)
+const quotesRouter = createQuotesRouter(app);
+app.use(`${envConfig.urlPath}quotes`, quotesRouter);
 
 const HOST = "0.0.0.0";
 const PORT = process.env.PORT || envConfig.port || 3000;
