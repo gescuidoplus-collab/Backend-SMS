@@ -24,6 +24,8 @@ export const createQuoteAndSendWhatsApp = async (req, res, app) => {
     const datosParaPdf = await prepareQuoteData(datos);
     const codigoData = await generarCodigoFactura();
 
+    console.log("DEBUG - Presupuestos a renderizar:", JSON.stringify(datosParaPdf.presupuestos, null, 2));
+
     const htmlContent = await renderQuoteTemplate(app, "report", {
       ...datosParaPdf,
       codigoData: codigoData.codigo,
