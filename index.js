@@ -11,21 +11,22 @@ import { generarCodigoFactura } from "./app/utils/generador-codigo.js";
 import fs from "fs";
 import {
   processMessageQueue,
-} from "./app/tasks/index.js";
+} from "./app/tasks/processSendMessajes.js";
+import { processInvoicesTask } from "./app/tasks/processInvoicesTask.js";
+import { processPayRollsTask } from "./app/tasks/processPayRollsTask.js";
 import {
   prepareQuoteData,
   renderQuoteTemplate,
   generateQuotePDF,
 } from "./app/services/quotePdfGenerator.js";
 import createQuotesRouter from "./app/routers/quotes.js";
+import { send_telegram_message } from "./app/services/sendMessageTelegram.js";
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const app = express();
 
 app.use(express.json());
-
-import { runAllTasks } from "./app/tasks/taskManager.js";
 
 
 app.use(
@@ -136,45 +137,62 @@ app.get(`${envConfig.urlPath}healtcheck`, (req, res) => {
 
 app.get("/api/cron", async (req, res) => {
   try {
-    logger.info("Cron job triggered")
-    const ua = (req.headers["user-agent"] || "").toLowerCase();
-    const isVercel = ua.includes("vercel-cron");
-    const provided = req.headers["x-cron-secret"];
-    if (
-      !isVercel &&
-      envConfig.cronSecret &&
-      provided !== envConfig.cronSecret
-    ) {
-      return res.status(401).json({ ok: false, error: "unauthorized" });
-    }
-    await runAllTasks();
-    res.json({ ok: true, runAt: new Date().toISOString() });
-  } catch (e) {
-    logger.error({ err: e }, "Cron endpoint error");
-    res.status(500).json({ ok: false, error: e.message });
-  }
-});
+    const { token, month, year } = req.query;
 
-app.get("/api/cron-send", async (req, res) => {
-  try {
-
-    logger.info("Cron SEND job triggered");
-    const ua = (req.headers["user-agent"] || "").toLowerCase();
-    const isVercel = ua.includes("vercel-cron");
-    const provided = req.headers["x-cron-secret"];
-    if (
-      !isVercel &&
-      envConfig.cronSecret &&
-      provided !== envConfig.cronSecret
-    ) {
-      return res.status(401).json({ ok: false, error: "unauthorized" });
+    // Validar parámetros requeridos
+    if (!token || !month || !year) {
+      return res.status(400).json({
+        ok: false,
+        error: "Parámetros requeridos: token, month, year",
+        example: "/api/cron?token=abc&month=5&year=2026"
+      });
     }
-    await mongoClient(); 
-    await processMessageQueue();
-    res.json({ ok: true, runAt: new Date().toISOString(), processed: true });
-  } catch (e) {
-    logger.error({ err: e }, "Cron SEND endpoint error");
-    res.status(500).json({ ok: false, error: e.message });
+
+    // Validar mes/año
+    const monthNum = parseInt(month, 10);
+    const yearNum = parseInt(year, 10);
+    if (isNaN(monthNum) || isNaN(yearNum) || monthNum < 1 || monthNum > 12) {
+      return res.status(400).json({
+        ok: false,
+        error: "Parámetros inválidos: month (1-12) y year deben ser números válidos"
+      });
+    }
+
+    logger.info(`[Webhook] Iniciando: token=${token.substring(0, 5)}..., month=${month}, year=${year}`);
+
+    // 1. Procesar facturas
+    const invoiceReport = await processInvoicesTask(token, monthNum, yearNum);
+    await new Promise((res) => setTimeout(res, 25000)); // Esperar 25s
+
+    // 2. Procesar nóminas
+    const payrollReport = await processPayRollsTask(token, monthNum, yearNum);
+    await new Promise((res) => setTimeout(res, 5000)); // Esperar 5s
+
+    // 3. Conectar DB y enviar por WhatsApp
+    await mongoClient();
+    const messageReport = await processMessageQueue(token);
+
+    const now = new Date();
+    send_telegram_message(
+      `✅ Ciclo completo finalizado - Facturas: ${invoiceReport.invoicesProcessed}, Nóminas: ${payrollReport.payrollsProcessed}, Mensajes: ${messageReport.messagesSent} - ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`
+    );
+
+    res.json({
+      ok: true,
+      timestamp: new Date().toISOString(),
+      invoices: invoiceReport,
+      payrolls: payrollReport,
+      messages: messageReport,
+    });
+
+  } catch (error) {
+    logger.error({ err: error }, "Webhook /api/cron error");
+    send_telegram_message(`❌ Error en webhook /api/cron: ${error.message}`);
+    res.status(500).json({
+      ok: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
   }
 });
 

@@ -1,12 +1,8 @@
-import cron from "node-cron";
 import {
-  setCookie,
-  loginCloudnavis,
-  listInvoices,
-  logout,
-  getUsers,
-  downloadInvoce,
-} from "../services/apiCloudnavis.js";
+  listInvoicesWithToken,
+  getUserWithToken,
+  downloadInvoiceWithToken,
+} from "../services/apiCloudnavisToken.js";
 import { send_telegram_message } from "../services/sendMessageTelegram.js";
 import { MessageLog } from "../schemas/index.js";
 import { envConfig } from "../config/index.js";
@@ -73,140 +69,139 @@ async function withRetries(task, maxRetries, delay) {
   }
 }
 
-function getMonthsToSearch(currentMonth, currentYear, monthsSearch) {
-  const months = [];
-  
-  if (monthsSearch === 0) {
-    months.push({ month: currentMonth, year: currentYear });
-  } else if (monthsSearch === 1) {
-    months.push({ month: currentMonth, year: currentYear });
-    const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
-    const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
-    months.push({ month: prevMonth, year: prevYear });
-  } else {
-    for (let i = 0; i < monthsSearch; i++) {
-      let month = currentMonth - i;
-      let year = currentYear;
-      
-      if (month < 1) {
-        month += 12;
-        year -= 1;
-      }
-      
-      months.push({ month, year });
-    }
-  }
-  
-  return months;
-}
+/**
+ * Procesar facturas usando token y mes/año específicos
+ * @param {string} token - Token de autenticación CloudNavis
+ * @param {number} month - Mes (1-12)
+ * @param {number} year - Año (ej: 2026)
+ */
+export const processInvoicesTask = async (token, month, year) => {
+  const report = {
+    token: token?.substring(0, 5) + "...",
+    month,
+    year,
+    startTime: new Date().toISOString(),
+    invoicesProcessed: 0,
+    invoicesFailed: 0,
+    logsSaved: 0,
+    errors: [],
+  };
 
-const saveInvoicesTask = async () => {
   try {
-    const status_code = await setCookie();
-    if (status_code !== 200) {
-      throw new Error("No se pudo establecer la cookie.");
+    if (!token) {
+      throw new Error("Token no proporcionado");
     }
 
-    const login_status = await withRetries(loginCloudnavis, 3, 3000);
-    if (login_status !== 200) {
-      send_telegram_message(
-        "No se pudo hacer login después de varios intentos. en saveInvoicesTask"
-      );
-      return;
+    if (!month || !year || month < 1 || month > 12) {
+      throw new Error("Parámetros mes/año inválidos");
     }
 
-    const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
-    const monthsSearch = envConfig.monthsSearch ?? 1;
+    console.log(`[Facturas] Procesando mes ${month}/${year} con token: ${token.substring(0, 5)}...`);
 
-    const monthsToSearch = getMonthsToSearch(currentMonth, currentYear, monthsSearch);
-    console.log(`Iniciando ejecución de Facturas:  procesando ${monthsToSearch.length} mes(es)`);
+    // Obtener facturas del mes/año especificado
+    const invoices = await listInvoicesWithToken(token, year, month);
 
-    for (const { month, year } of monthsToSearch) {
-      const invoices = await listInvoices(year, month);
-      if (invoices && invoices.facturas.length > 0) {
-        for (const invoice of invoices.facturas) {
-          if (invoice.tipoPago !== "Remesa") {
-            continue;
-          }
-          const validation = canSendInvoice(invoice);
-          if (!validation.valid) {
-            continue;
-          }
+    if (!invoices || !invoices.facturas || invoices.facturas.length === 0) {
+      console.log(`[Facturas] No se encontraron facturas para ${month}/${year}`);
+      report.invoicesProcessed = 0;
+      return report;
+    }
 
-          try {
-            const user = await withRetries(
-              () => getUsers(invoice.idUsuario),
-              3,
-              3000
-            );
+    console.log(`[Facturas] Encontradas ${invoices.facturas.length} facturas`);
 
-            if (!isValidPhoneNumber(user.telefono1)) {
-              continue;
-            }
-
-            const log = new MessageLog({
-              source: invoice.id,
-              recipient: {
-                id: invoice.idUsuario,
-                fullName: user?.nombre1.trim() || null,
-                phoneNumber: user.telefono1,
-              },
-              status: "pending",
-              mes: invoice.mes,
-              ano: invoice.ano,
-              numero: invoice.numero,
-              serie: invoice.serie,
-              fechaExpedicion: invoice.fechaExpedicion,
-              total: invoice.total,
-              tipoPago: invoice.tipoPago,
-              separador: invoice.separador,
-              numero: invoice.numero,
-              messageType: "invoice",
-            });
-
-            await log.save();
-
-
-            if (user.nombre2?.trim() && user.telefono2?.trim()) {
-              const secondLog = new MessageLog({
-                source: invoice.id,
-                recipient: {
-                  id: invoice.idUsuario,
-                  fullName: user?.nombre2.trim() || null,
-                  phoneNumber: user.telefono2.trim(),
-                },
-                status: "pending",
-                mes: invoice.mes,
-                ano: invoice.ano,
-                numero: invoice.numero,
-                serie: invoice.serie,
-                fechaExpedicion: invoice.fechaExpedicion,
-                total: invoice.total,
-                tipoPago: invoice.tipoPago,
-                separador: invoice.separador,
-                messageType: "invoice",
-              });
-              await secondLog.save();
-            }
-
-            await esperar(150);
-          } catch (error) {
-            console.error(`Error procesando factura ${invoice.id}:`, error);
-            send_telegram_message(`Error procesando factura ${invoice.id}: ${error.message}`);
-          }
+    for (const invoice of invoices.facturas) {
+      try {
+        // Filtrar solo facturas tipo Remesa
+        if (invoice.tipoPago !== "Remesa") {
+          console.log(`[Facturas] Omitiendo factura ${invoice.id} (tipoPago: ${invoice.tipoPago})`);
+          continue;
         }
+
+        // Validar campos requeridos
+        const validation = canSendInvoice(invoice);
+        if (!validation.valid) {
+          console.log(`[Facturas] Factura ${invoice.id} inválida: ${validation.reason}`);
+          continue;
+        }
+
+        // Obtener datos del usuario
+        const user = await getUserWithToken(token, invoice.idUsuario);
+
+        if (!isValidPhoneNumber(user.telefono1)) {
+          console.log(`[Facturas] Usuario ${invoice.idUsuario} sin teléfono válido`);
+          continue;
+        }
+
+        // Crear log para primer teléfono
+        const log = new MessageLog({
+          source: invoice.id,
+          recipient: {
+            id: invoice.idUsuario,
+            fullName: user?.nombre1?.trim() || null,
+            phoneNumber: user.telefono1,
+          },
+          status: "pending",
+          mes: invoice.mes,
+          ano: invoice.ano,
+          numero: invoice.numero,
+          serie: invoice.serie,
+          fechaExpedicion: invoice.fechaExpedicion,
+          total: invoice.total,
+          tipoPago: invoice.tipoPago,
+          separador: invoice.separador,
+          messageType: "invoice",
+        });
+
+        await log.save();
+        report.logsSaved++;
+        console.log(`[Facturas] Log guardado para ${user.nombre1}`);
+
+        // Crear log para segundo teléfono si existe
+        if (user.nombre2?.trim() && user.telefono2?.trim()) {
+          const secondLog = new MessageLog({
+            source: invoice.id,
+            recipient: {
+              id: invoice.idUsuario,
+              fullName: user.nombre2.trim(),
+              phoneNumber: user.telefono2.trim(),
+            },
+            status: "pending",
+            mes: invoice.mes,
+            ano: invoice.ano,
+            numero: invoice.numero,
+            serie: invoice.serie,
+            fechaExpedicion: invoice.fechaExpedicion,
+            total: invoice.total,
+            tipoPago: invoice.tipoPago,
+            separador: invoice.separador,
+            messageType: "invoice",
+          });
+          await secondLog.save();
+          report.logsSaved++;
+          console.log(`[Facturas] Log guardado para ${user.nombre2}`);
+        }
+
+        report.invoicesProcessed++;
+        await esperar(150);
+      } catch (error) {
+        report.invoicesFailed++;
+        const errMsg = `Error procesando factura ${invoice.id}: ${error.message}`;
+        report.errors.push(errMsg);
+        console.error(`[Facturas] ${errMsg}`);
+        send_telegram_message(errMsg);
       }
     }
-  } catch (err) {
-    send_telegram_message(`Error en la tarea de facturas: ${err.message}`);
-  } finally {
-    await logout();
-  }
-};
 
-export const processInvoicesTask = async () => {
-  await saveInvoicesTask();
-  send_telegram_message("Guardado de facturas completado");
+    report.endTime = new Date().toISOString();
+    console.log(`[Facturas] Completado: ${report.invoicesProcessed} procesadas, ${report.invoicesFailed} errores`);
+    return report;
+
+  } catch (err) {
+    report.endTime = new Date().toISOString();
+    report.errors.push(err.message);
+    const errMsg = `Error en processInvoicesTask: ${err.message}`;
+    console.error(`[Facturas] ${errMsg}`);
+    send_telegram_message(errMsg);
+    throw err;
+  }
 };
