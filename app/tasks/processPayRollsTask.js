@@ -1,16 +1,10 @@
-import cron from "node-cron";
 import {
-  setCookie,
-  loginCloudnavis,
-  ListPayRolls,
-  logout,
-  downloadPayrolls,
-  getUsers,
-  getEmpleados,
-} from "../services/apiCloudnavis.js";
+  listPayrollsWithToken,
+  getUserWithToken,
+  getEmpleadoWithToken,
+} from "../services/apiCloudnavisToken.js";
 import { send_telegram_message } from "../services/sendMessageTelegram.js";
 import { MessageLog } from "../schemas/index.js";
-import { envConfig } from "../config/index.js";
 
 function esperar(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -24,68 +18,27 @@ function isValidUUID(uuid) {
 
 function canSendPayroll(payRoll) {
   if (payRoll.whatsappStatus !== 'PENDING' && payRoll.whatsappStatus !== null) {
-    return { 
-      valid: false, 
-      reason: `whatsappStatus es "${payRoll.whatsappStatus}", debe ser "PENDING"` 
+    return {
+      valid: false,
+      reason: `whatsappStatus es "${payRoll.whatsappStatus}", debe ser "PENDING"`
     };
   }
 
   if (!isValidUUID(payRoll.idEmpleador)) {
-    return { 
-      valid: false, 
-      reason: `idEmpleador "${payRoll.idEmpleador}" no es un UUID válido` 
+    return {
+      valid: false,
+      reason: `idEmpleador "${payRoll.idEmpleador}" no es un UUID válido`
     };
   }
 
   if (!isValidUUID(payRoll.idTrabajador)) {
-    return { 
-      valid: false, 
-      reason: `idTrabajador "${payRoll.idTrabajador}" no es un UUID válido` 
+    return {
+      valid: false,
+      reason: `idTrabajador "${payRoll.idTrabajador}" no es un UUID válido`
     };
   }
 
   return { valid: true };
-}
-
-async function withRetries(task, maxRetries, delay) {
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      return await task();
-    } catch (error) {
-      if (attempt < maxRetries - 1) {
-        await esperar(delay);
-      } else {
-        throw error;
-      }
-    }
-  }
-}
-
-function getMonthsToSearch(currentMonth, currentYear, monthsSearch) {
-  const months = [];
-  
-  if (monthsSearch === 0) {
-    months.push({ month: currentMonth, year: currentYear });
-  } else if (monthsSearch === 1) {
-    months.push({ month: currentMonth, year: currentYear });
-    const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
-    const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
-    months.push({ month: prevMonth, year: prevYear });
-  } else {
-    for (let i = 0; i < monthsSearch; i++) {
-      let month = currentMonth - i;
-      let year = currentYear;
-      
-      if (month < 1) {
-        month += 12;
-        year -= 1;
-      }
-      
-      months.push({ month, year });
-    }
-  }
-  
-  return months;
 }
 
 function isValidPhoneNumber(phone) {
@@ -134,115 +87,135 @@ function createPayrollMessageLog(payRoll, recipient, employe) {
     ano: payRoll.ano,
     serie: `N${payRoll.ano}${String(payRoll.mes).padStart(2, "0")}`,
     separador: "-",
-    numbero: 0,
+    numero: 0,
     messageType: "payRoll",
   });
 }
 
-const savePayRollsTask = async () => {
+/**
+ * Procesar nóminas usando token y mes/año específicos
+ * @param {string} token - Token de autenticación CloudNavis
+ * @param {number} month - Mes (1-12)
+ * @param {number} year - Año (ej: 2026)
+ */
+export const processPayRollsTask = async (token, month, year) => {
+  const report = {
+    token: token?.substring(0, 5) + "...",
+    month,
+    year,
+    startTime: new Date().toISOString(),
+    payrollsProcessed: 0,
+    payrollsFailed: 0,
+    logsSaved: 0,
+    errors: [],
+  };
+
   try {
-    const status_code = await setCookie();
-    if (status_code !== 200) {
-      throw new Error("No se pudo establecer la cookie.");
+    if (!token) {
+      throw new Error("Token no proporcionado");
     }
 
-    const login_status = await withRetries(loginCloudnavis, 3, 3000);
-    if (login_status !== 200) {
-      send_telegram_message(
-        "No se pudo hacer login después de varios intentos. en savePayRollsTask"
-      );
-      return;
+    if (!month || !year || month < 1 || month > 12) {
+      throw new Error("Parámetros mes/año inválidos");
     }
 
-    const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
-    const monthsSearch = envConfig.monthsSearch ?? 1;
+    console.log(`[Nóminas] Procesando mes ${month}/${year} con token: ${token.substring(0, 5)}...`);
 
-    const monthsToSearch = getMonthsToSearch(currentMonth, currentYear, monthsSearch);
-    console.log(`Iniciando ejecución de Nominas: procesando ${monthsToSearch.length} mes(es)`);
+    // Obtener nóminas del mes/año especificado
+    const payRolls = await listPayrollsWithToken(token, year, month);
 
-    for (const { month, year } of monthsToSearch) {
-      const payRolls = await ListPayRolls(year, month);
-      if (payRolls && payRolls.nominas.length > 0) {
-        for (const payRoll of payRolls.nominas) {
-          try {
-            if (
-              !isFullMonthPeriod(
-                payRoll.inicioLiquidacion,
-                payRoll.finLiquidacion
-              )
-            ) {
-              continue;
-            }
+    if (!payRolls || !payRolls.nominas || payRolls.nominas.length === 0) {
+      console.log(`[Nóminas] No se encontraron nóminas para ${month}/${year}`);
+      report.payrollsProcessed = 0;
+      return report;
+    }
 
-            const validation = canSendPayroll(payRoll);
-            if (!validation.valid) {
-              continue;
-            }
+    console.log(`[Nóminas] Encontradas ${payRolls.nominas.length} nóminas`);
 
-            const user = await withRetries(
-              () => getUsers(payRoll.idEmpleador),
-              3,
-              3000
-            );
-
-            const employe = await withRetries(
-              () => getEmpleados(payRoll.idTrabajador),
-              3,
-              3000
-            );
-
-            if (!isValidPhoneNumber(user.telefono1)) {
-              continue;
-            }
-
-            if (!isValidPhoneNumber(employe.telefono1)) {
-              continue;
-            }
-
-            const employeData = {
-              fullName: employe.nombre.trim(),
-              phoneNumber: employe.telefono1,
-            };
-
-            const log = createPayrollMessageLog(
-              payRoll,
-              {
-                fullName: user.nombre1.trim(),
-                phoneNumber: user.telefono1,
-              },
-              employeData
-            );
-            await log.save();
-
-            if (user.nombre2?.trim() && user.telefono2?.trim()) {
-              const secondLog = createPayrollMessageLog(
-                payRoll,
-                {
-                  fullName: user.nombre2.trim(),
-                  phoneNumber: user.telefono2.trim(),
-                },
-                employeData
-              );
-              await secondLog.save();
-            }
-          } catch (error) {
-            send_telegram_message(
-              `Fallo al guardar nómina: ${payRoll.id}. Error: ${error.message}`
-            );
-          }
+    for (const payRoll of payRolls.nominas) {
+      try {
+        // Validar que es período completo del mes
+        if (!isFullMonthPeriod(payRoll.inicioLiquidacion, payRoll.finLiquidacion)) {
+          console.log(`[Nóminas] Omitiendo nómina ${payRoll.id} (período incompleto)`);
+          continue;
         }
+
+        // Validar campos requeridos
+        const validation = canSendPayroll(payRoll);
+        if (!validation.valid) {
+          console.log(`[Nóminas] Nómina ${payRoll.id} inválida: ${validation.reason}`);
+          continue;
+        }
+
+        // Obtener datos del empleador y empleado
+        const user = await getUserWithToken(token, payRoll.idEmpleador);
+        const employe = await getEmpleadoWithToken(token, payRoll.idTrabajador);
+
+        if (!isValidPhoneNumber(user.telefono1)) {
+          console.log(`[Nóminas] Empleador ${payRoll.idEmpleador} sin teléfono válido`);
+          continue;
+        }
+
+        if (!isValidPhoneNumber(employe.telefono1)) {
+          console.log(`[Nóminas] Empleado ${payRoll.idTrabajador} sin teléfono válido`);
+          continue;
+        }
+
+        const employeData = {
+          fullName: employe.nombre?.trim(),
+          phoneNumber: employe.telefono1,
+        };
+
+        // Crear log para primer contacto del empleador
+        const log = createPayrollMessageLog(
+          payRoll,
+          {
+            fullName: user.nombre1?.trim(),
+            phoneNumber: user.telefono1,
+          },
+          employeData
+        );
+        await log.save();
+        report.logsSaved++;
+        console.log(`[Nóminas] Log guardado para ${user.nombre1}`);
+
+        // Crear log para segundo contacto del empleador si existe
+        if (user.nombre2?.trim() && user.telefono2?.trim()) {
+          const secondLog = createPayrollMessageLog(
+            payRoll,
+            {
+              fullName: user.nombre2.trim(),
+              phoneNumber: user.telefono2.trim(),
+            },
+            employeData
+          );
+          await secondLog.save();
+          report.logsSaved++;
+          console.log(`[Nóminas] Log guardado para ${user.nombre2}`);
+        }
+
+        report.payrollsProcessed++;
+        await esperar(150);
+
+      } catch (error) {
+        report.payrollsFailed++;
+        const errMsg = `Error procesando nómina ${payRoll.id}: ${error.message}`;
+        report.errors.push(errMsg);
+        console.error(`[Nóminas] ${errMsg}`);
+        send_telegram_message(errMsg);
       }
     }
-  } catch (err) {
-    send_telegram_message(`Error en la tarea de nóminas: ${err.message}`);
-  } finally {
-    await logout();
-  }
-};
 
-export const processPayRollsTask = async () => {
-  await savePayRollsTask();
-  send_telegram_message("Guardado de nóminas completado");
+    report.endTime = new Date().toISOString();
+    console.log(`[Nóminas] Completado: ${report.payrollsProcessed} procesadas, ${report.payrollsFailed} errores`);
+    return report;
+
+  } catch (err) {
+    report.endTime = new Date().toISOString();
+    report.errors.push(err.message);
+    const errMsg = `Error en processPayRollsTask: ${err.message}`;
+    console.error(`[Nóminas] ${errMsg}`);
+    send_telegram_message(errMsg);
+    throw err;
+  }
 };

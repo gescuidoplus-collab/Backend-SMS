@@ -11,15 +11,5 @@
       "src": "/(.*)",
       "dest": "index.js"
     }
-  ],
-  "crons": [
-    {
-      "path": "/api/cron",
-      "schedule": "15 8 * * *"
-    },
-    {
-      "path": "/api/cron-send",
-      "schedule": "45 9 * * *"
-    }
   ]
 }

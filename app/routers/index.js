@@ -12,7 +12,7 @@ const cleanFileName = (fileName) => {
 };
 
 const files = fs.readdirSync(__dirname).filter((file) => {
-    return file !== 'index.js' && file.endsWith('.js');
+    return file !== 'index.js' && file !== 'quotes.js' && file.endsWith('.js');
 });
 
 for (const file of files) {

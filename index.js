@@ -6,24 +6,27 @@ import { createUser } from "./app/utils/create-auth.js";
 import cors from "cors";
 import morgan from "morgan";
 import { engine } from "express-handlebars";
-import { GoogleGenAI } from "@google/genai";
-import puppeteer from 'puppeteer';
 import { fileURLToPath } from "url";
 import { generarCodigoFactura } from "./app/utils/generador-codigo.js";
 import fs from "fs";
 import {
   processMessageQueue,
-} from "./app/tasks/index.js";
+} from "./app/tasks/processSendMessajes.js";
+import { processInvoicesTask } from "./app/tasks/processInvoicesTask.js";
+import { processPayRollsTask } from "./app/tasks/processPayRollsTask.js";
+import {
+  prepareQuoteData,
+  renderQuoteTemplate,
+  generateQuotePDF,
+} from "./app/services/quotePdfGenerator.js";
+import createQuotesRouter from "./app/routers/quotes.js";
+import { send_telegram_message } from "./app/services/sendMessageTelegram.js";
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const app = express();
-const ai = new GoogleGenAI(process.env.GOOGLE_API_KEY || "AIzaSyDKchseokzZvIBlNFuw6h2ND6d8Q1pavP8")
-//
 
 app.use(express.json());
-
-import { runAllTasks } from "./app/tasks/taskManager.js";
 
 
 app.use(
@@ -72,154 +75,25 @@ app.get("/view-pdf-html", (req, res) => {
 
 app.post('/api/v1/generate-pdf', async (req, res) => {
   try {
-
     const datos = req.body;
-    //console.log('Datos recibidos del frontend:', datos);
     const codigoData = await generarCodigoFactura();
-    //console.log(codigoData.codigo)
-
-
-    const datosParaPdf = await prepararDatosPdf(datos)
-    // Renderizar la plantilla con los datos del servidor
-    const htmlContent = await renderTemplate("report", {...datosParaPdf,codigoData:codigoData.codigo});
-
-    // Generar el PDF con Puppeteer
-    const pdfBuffer = await generatePDF(htmlContent);
-
+    const datosParaPdf = await prepareQuoteData(datos);
+    const htmlContent = await renderQuoteTemplate(app, "report", {
+      ...datosParaPdf,
+      codigoData: codigoData.codigo,
+    });
+    const pdfBuffer = await generateQuotePDF(htmlContent);
     res.writeHead(200, {
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': 'attachment; filename="seguros.pdf"',
-      'Content-Length': pdfBuffer.length,
+      "Content-Type": "application/pdf",
+      "Content-Disposition": 'attachment; filename="presupuesto.pdf"',
+      "Content-Length": pdfBuffer.length,
     });
     res.end(pdfBuffer);
-  } catch (error) {
-    logger.error({ err: error }, "Error al generar el PDF");
-    res.status(500).json({ error: 'Error al generar el PDF.' });
+  } catch (err) {
+    logger.error({ err }, "Error generando PDF:");
+    res.status(500).json({ error: err.message });
   }
 });
-
-async function generarContenido(prompt) {
-  try {
-    logger.info({ prompt }, "Generating content")
-    const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash", // El modelo que desees usar
-      contents: prompt,
-    });
-    logger.info({ response: response.text }, "Content generated")
-    return response.text;
-  } catch (error) {
-    return `Error al generar contenido: ${error}`;
-  }
-}
-async function prepararDatosPdf(datos) {
-    const nombreContrato = datos.nameContrato || 'No especificado';
-    const nombrePueblo = datos.NombrePueblo || 'No especificado';
-
-    const tiposServicio = datos.TipoServicio || [];
-    const tipoServicioTexto = tiposServicio.length > 0 
-    ? tiposServicio.join(', ') 
-    : 'No especificado';
-    const HorariosFormateados = formatearHorarios(datos.horarios); 
-    let textoHorarios = await generarContenido(`Genera un texto corto (máximo dos líneas) que comience con "HORARIO:". El texto debe mostrar únicamente los días y horas actuales en formato ${HorariosFormateados}, sin agregar palabras ni frases adicionales que no estén relacionadas con los horarios. El resultado debe ser limpio y directo, ideal para mostrar a un cliente, Dame el resultado en español`)
-    // Verificar si el texto contiene un mensaje de error
-    if (textoHorarios && textoHorarios.includes('Error al generar contenido:')) {
-      logger.error({ textoHorarios }, "Error en textoHorarios")
-      textoHorarios = '' // Dejar textoHorarios vacío para que no aparezca en el PDF
-    }
-
-    const servicioLugar= datos.Servicio;
-    const complementoTitulo = datos?.titleComplement || "";
-    const horarioConvenir= datos.horarioConvenir;
-    const mensajeHorarioConvenir= datos?.horario_Convenir || "";
-    const presupuestos = datos.presupuestos;
-    const considerationOne = datos?.considerationOne || "Salario según SMI (Salario Mínimo Interprofesional La cuota de la Seguridad Social y el SMI segun legislación)";
-    const considerationTwo = datos?.considerationTwo || "Pagas Prorrateadas Incluidas. Vacaciones NO incluidas.";
-    const considerationThree = datos?.considerationThree || "Relalizacion de altas, bajas, contratos, nominas. Festivos NO incluidos";
-
-    return({
-      nombreContrato,
-      nombrePueblo,
-      tipoServicioTexto,
-      servicioLugar,
-      complementoTitulo,
-      horarioConvenir,
-      mensajeHorarioConvenir,
-      textoHorarios,
-      presupuestos,
-      considerationOne,
-      considerationTwo,
-      considerationThree
-    })
-
-}
-// Función para renderizar la plantilla Handlebars
-async function renderTemplate(templateName, data) {
-  return new Promise((resolve, reject) => {
-    app.render(templateName, data, (err, html) => {
-      if (err) reject(err);
-      else resolve(html);
-    });
-  });
-}
-
-//FUNCIÓN MEJORADA PARA GENERAR PDF
-async function generatePDF(htmlContent) {
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: [
-      '--no-sandbox', 
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage'
-    ],
-  });
-  
-  const page = await browser.newPage();
-  
-  page.setDefaultNavigationTimeout(120000);
-  page.setDefaultTimeout(120000);
-  
-  await page.setContent(htmlContent, {
-    waitUntil: 'load',
-    timeout: 120000
-  });
-  
-  const pdfBuffer = await page.pdf({ 
-    format: 'A4',
-    landscape: true,  //ESTO CAMBIA A HORIZONTAL
-    printBackground: true,
-    margin: {
-      top: '0mm',
-      right: '0mm',
-      bottom: '0mm',
-      left: '0mm'
-    },
-    preferCSSPageSize: true,
-    displayHeaderFooter: false,
-    timeout: 120000
-  });
-  
-  await browser.close();
-  return pdfBuffer;
-}
-
-function formatearHorarios(horarios) {
-  if (!horarios || typeof horarios !== 'object') {
-    return 'No se especificaron horarios';
-  }
-
-  const diasActivos = Object.entries(horarios)
-    .filter(([_, valor]) => valor && valor.inicio && valor.fin)
-    .map(([dia, valor]) => {
-      const diaCapitalizado = dia.charAt(0).toUpperCase() + dia.slice(1);
-      return `${diaCapitalizado}: ${valor.inicio} - ${valor.fin}`;
-    });
-
-  if (diasActivos.length === 0) {
-    return 'No hay horarios configurados';
-  }
-
-  return diasActivos.join(', ');
-}
 
 // app.use(helmet());
 
@@ -263,50 +137,71 @@ app.get(`${envConfig.urlPath}healtcheck`, (req, res) => {
 
 app.get("/api/cron", async (req, res) => {
   try {
-    logger.info("Cron job triggered")
-    const ua = (req.headers["user-agent"] || "").toLowerCase();
-    const isVercel = ua.includes("vercel-cron");
-    const provided = req.headers["x-cron-secret"];
-    if (
-      !isVercel &&
-      envConfig.cronSecret &&
-      provided !== envConfig.cronSecret
-    ) {
-      return res.status(401).json({ ok: false, error: "unauthorized" });
-    }
-    await runAllTasks();
-    res.json({ ok: true, runAt: new Date().toISOString() });
-  } catch (e) {
-    logger.error({ err: e }, "Cron endpoint error");
-    res.status(500).json({ ok: false, error: e.message });
-  }
-});
+    const { token, month, year } = req.query;
 
-app.get("/api/cron-send", async (req, res) => {
-  try {
-
-    logger.info("Cron SEND job triggered");
-    const ua = (req.headers["user-agent"] || "").toLowerCase();
-    const isVercel = ua.includes("vercel-cron");
-    const provided = req.headers["x-cron-secret"];
-    if (
-      !isVercel &&
-      envConfig.cronSecret &&
-      provided !== envConfig.cronSecret
-    ) {
-      return res.status(401).json({ ok: false, error: "unauthorized" });
+    // Validar parámetros requeridos
+    if (!token || !month || !year) {
+      return res.status(400).json({
+        ok: false,
+        error: "Parámetros requeridos: token, month, year",
+        example: "/api/cron?token=abc&month=5&year=2026"
+      });
     }
-    await mongoClient(); 
-    await processMessageQueue();
-    res.json({ ok: true, runAt: new Date().toISOString(), processed: true });
-  } catch (e) {
-    logger.error({ err: e }, "Cron SEND endpoint error");
-    res.status(500).json({ ok: false, error: e.message });
+
+    // Validar mes/año
+    const monthNum = parseInt(month, 10);
+    const yearNum = parseInt(year, 10);
+    if (isNaN(monthNum) || isNaN(yearNum) || monthNum < 1 || monthNum > 12) {
+      return res.status(400).json({
+        ok: false,
+        error: "Parámetros inválidos: month (1-12) y year deben ser números válidos"
+      });
+    }
+
+    logger.info(`[Webhook] Iniciando: token=${token.substring(0, 5)}..., month=${month}, year=${year}`);
+
+    // 1. Procesar facturas
+    const invoiceReport = await processInvoicesTask(token, monthNum, yearNum);
+    await new Promise((res) => setTimeout(res, 25000)); // Esperar 25s
+
+    // 2. Procesar nóminas
+    const payrollReport = await processPayRollsTask(token, monthNum, yearNum);
+    await new Promise((res) => setTimeout(res, 5000)); // Esperar 5s
+
+    // 3. Conectar DB y enviar por WhatsApp
+    await mongoClient();
+    const messageReport = await processMessageQueue(token);
+
+    const now = new Date();
+    send_telegram_message(
+      `✅ Ciclo completo finalizado - Facturas: ${invoiceReport.invoicesProcessed}, Nóminas: ${payrollReport.payrollsProcessed}, Mensajes: ${messageReport.messagesSent} - ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`
+    );
+
+    res.json({
+      ok: true,
+      timestamp: new Date().toISOString(),
+      invoices: invoiceReport,
+      payrolls: payrollReport,
+      messages: messageReport,
+    });
+
+  } catch (error) {
+    logger.error({ err: error }, "Webhook /api/cron error");
+    send_telegram_message(`❌ Error en webhook /api/cron: ${error.message}`);
+    res.status(500).json({
+      ok: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
   }
 });
 
 
 app.use(envConfig.urlPath, router);
+
+// Mount quotes router (requires app for pdf generation)
+const quotesRouter = createQuotesRouter(app);
+app.use(`${envConfig.urlPath}quotes`, quotesRouter);
 
 const HOST = "0.0.0.0";
 const PORT = process.env.PORT || envConfig.port || 3000;
