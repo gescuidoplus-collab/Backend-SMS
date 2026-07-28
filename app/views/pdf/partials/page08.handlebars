@@ -1,19 +1,14 @@
-<div class="page cover">
-     <img class="page-logo-ocho" src="{{imagePath 'logo.png'}}" alt="" width="120px">
-      <div class="page-second">
-        <div>
-            <img src="{{imagePath 'gris.png'}}" style="width: 400px; height: auto;" alt="">
-        </div>   
-        <div style="text-align: center;">
-            <h1 style="background-color: rgb(255, 191, 0); border-radius: 10px; padding: 3px; text-align: center;  padding: 5px;font-size: 30px !important;">Coste Total y Activación Servicio <br/> </h1>
-            <span style="background-color: rgb(255, 191, 0); border-bottom-left-radius: 5px; border-bottom-right-radius: 5px; font-size: 30px !important; width: 400px; margin-left: 50px; font-weight: bold;">{{tipoServicioTexto}}         {{mensajesActivacion}}</span>
-            <div style="margin-top: 20px;">
-                <div style="display: flex; flex-direction: column; justify-content: space-between; height: 400px;">
-                    <p style="color: rgb(255, 191, 0); background: rgb(255, 249, 230); ">Cuota de Activación <br/> {{resultados.cuotaActivacion}} € + IVA (pago único) </p>
-                    <p style="color: rgb(255, 191, 0); background: rgb(255, 249, 230); ">Cuota Total <br/> {{resultados.totalEmpleador}} €/mes </p>
-                    <p style="color: rgb(255, 191, 0); background: rgb(255, 249, 230); ">Pago Activación <br/> A la Aceptación del Presupuesto </p>
-                </div>
-            </div>
+<div class="page cover" style="display: flex; width: 100%; height: 100%;">
+    <div style="flex: 1; height: 100%; overflow: hidden;">
+        <img src="{{imagePath 'gris.png'}}" alt="" style="width: 100%; height: 100%; object-fit: cover;">
+    </div>
+    <div style="flex: 1; padding: 40px 30px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+        <h1 style="background-color: rgb(255, 191, 0); border-radius: 10px; padding: 15px 20px; text-align: center; font-size: 30px; margin-bottom: 20px; font-weight: bold;">Coste Total y Activación Servicio</h1>
+        <span style="background-color: rgb(255, 191, 0); border-bottom-left-radius: 5px; border-bottom-right-radius: 5px; font-size: 30px; padding: 10px 20px; margin-bottom: 30px; font-weight: bold; display: block; text-align: center;">{{tipoServicioTexto}} {{mensajesActivacion}}</span>
+        <div style="display: flex; flex-direction: column; justify-content: space-between; height: auto; width: 100%; gap: 15px;">
+            <p style="color: rgb(255, 191, 0); background: rgb(255, 249, 230); padding: 12px 25px; text-align: center; margin: 0; font-size: 22px; font-weight: bold; width: 50%;">Cuota de Activación <br/> {{resultados.cuotaActivacion}} € + IVA (pago único)</p>
+            <p style="color: rgb(255, 191, 0); background: rgb(255, 249, 230); padding: 12px 25px; text-align: center; margin: 0; font-size: 22px; font-weight: bold; width: 50%; margin-left: auto;">Cuota Total <br/> {{resultados.totalEmpleador}} €/mes</p>
+            <p style="color: rgb(255, 191, 0); background: rgb(255, 249, 230); padding: 12px 25px; text-align: center; margin: 0; font-size: 22px; font-weight: bold; width: 50%;">Pago Activación <br/> A la Aceptación del Presupuesto</p>
         </div>
     </div>
 </div>

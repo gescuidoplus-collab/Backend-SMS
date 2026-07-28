@@ -1,21 +1,23 @@
-<div class="page cover">
-    <img class="page-logo-quinto" src="{{imagePath 'logo.png'}}" alt="" width="120px">
-    <div class="page-second">
-        <div>
-            <h1 style="background-color: rgb(255, 191, 0); border-radius: 10px; padding: 3px; text-align: center; width: 500px; padding: 5px;font-size: 35px !important;">Consideraciones Adicionales</h1>
-            <div class="service-item">
-                <img src="{{imagePath '1.png'}}" alt="">
-                <p>{{considerationOne}}</p>
-            </div>
-            <div class="service-item">
-                <img src="{{imagePath '2.png'}}" alt="">
-                <p>{{considerationTwo}}</p>
-            </div>
-            <div class="service-item">
-                <img src="{{imagePath '3.png'}}" alt="">
-                <p>{{considerationThree}}</p>
-            </div>
+<div class="page cover" style="display: flex; width: 100%; height: 100%;">
+    <div style="flex: 1; padding: 40px 30px; display: flex; flex-direction: column; justify-content: center;">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 40px;">
+            <img src="{{imagePath 'logo.png'}}" alt="" width="110px" height="auto" style="flex-shrink: 0; object-fit: contain;">
+            <h1 style="background-color: rgb(255, 191, 0); border-radius: 10px; padding: 15px 20px; text-align: center; font-size: 30px; margin: 0; font-weight: bold; color: rgb(39, 35, 107); flex: 1;">Consideraciones Adicionales</h1>
         </div>
-        <img src="{{imagePath 'señora.png'}}" alt="" style="object-fit: contain;">
+        <div class="service-item" style="margin-bottom: 20px;">
+            <img src="{{imagePath '1.png'}}" alt="">
+            <p style="font-size: 22px; color: rgb(39, 35, 107); line-height: 1.4;">{{considerationOne}}</p>
+        </div>
+        <div class="service-item" style="margin-bottom: 20px;">
+            <img src="{{imagePath '2.png'}}" alt="">
+            <p style="font-size: 22px; color: rgb(39, 35, 107); line-height: 1.4;">{{considerationTwo}}</p>
+        </div>
+        <div class="service-item">
+            <img src="{{imagePath '3.png'}}" alt="">
+            <p style="font-size: 22px; color: rgb(39, 35, 107); line-height: 1.4;">{{considerationThree}}</p>
+        </div>
+    </div>
+    <div style="flex: 1; height: 100%; overflow: hidden;">
+        <img src="{{imagePath 'señora.png'}}" alt="" style="width: 100%; height: 100%; object-fit: cover;">
     </div>
 </div>
