@@ -32,7 +32,6 @@ export const prepareQuoteData = async (datos) => {
     tipoServicioTexto,
     servicioLugar,
     complementoTitulo,
-    horarioConvenir,
     mensajeHorarioConvenir,
     textoHorarios,
     presupuestos,
