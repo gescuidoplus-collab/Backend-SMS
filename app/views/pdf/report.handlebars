@@ -49,6 +49,10 @@ body {
     overflow: hidden;
 }
 
+.page.final {
+    background-color: #ebf5f9 !important;
+}
+
 /* LOGO EN PORTADA */
 .page.cover .page-logo {
     position: absolute;
@@ -314,7 +318,6 @@ body {
 </head>
 <body>
      {{> page01}}
-     {{> page02}}
      {{> page03}}
      {{> page04}}
      {{> page05}}
@@ -322,8 +325,8 @@ body {
         {{> page06 this tipoServicioTexto=../tipoServicioTexto complementoTitulo=../complementoTitulo}}
         {{> page08 this tipoServicioTexto=../tipoServicioTexto complementoTitulo=../complementoTitulo}}
      {{/each}}
-     {{> page09}}
-     {{> page10}}
-     {{> page11}}
+     {{> page09 pageClass="final"}}
+     {{> page10 pageClass="final"}}
+     {{> page11 pageClass="final"}}
 </body>
 </html>
