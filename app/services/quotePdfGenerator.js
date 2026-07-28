@@ -44,20 +44,27 @@ export const prepareQuoteData = async (datos) => {
   const tiposServicio = datos.TipoServicio || [];
   const tipoServicioTexto =
     tiposServicio.length > 0 ? tiposServicio.join(", ") : "No especificado";
-  const HorariosFormateados = formatearHorarios(datos.horarios);
-  let textoHorarios = await generarContenido(
-    `Genera un texto corto (máximo dos líneas) que comience con "HORARIO:". El texto debe mostrar únicamente los días y horas actuales en formato ${HorariosFormateados}, sin agregar palabras ni frases adicionales que no estén relacionadas con los horarios. El resultado debe ser limpio y directo, ideal para mostrar a un cliente, Dame el resultado en español`
-  );
-  // Verificar si el texto contiene un mensaje de error
-  if (textoHorarios && textoHorarios.includes("Error al generar contenido:")) {
-    logger.error({ textoHorarios }, "Error en textoHorarios");
-    textoHorarios = ""; // Dejar textoHorarios vacío para que no aparezca en el PDF
+
+  const horarioConvenir = datos.horarioConvenir;
+  const mensajeHorarioConvenir = datos?.horario_Convenir || "";
+
+  let textoHorarios = "";
+
+  // Solo procesar horarios específicos si no es "horario a convenir"
+  if (!horarioConvenir) {
+    const HorariosFormateados = formatearHorarios(datos.horarios);
+    textoHorarios = await generarContenido(
+      `Genera un texto corto (máximo dos líneas) que comience con "HORARIO:". El texto debe mostrar únicamente los días y horas actuales en formato ${HorariosFormateados}, sin agregar palabras ni frases adicionales que no estén relacionadas con los horarios. El resultado debe ser limpio y directo, ideal para mostrar a un cliente, Dame el resultado en español`
+    );
+    // Verificar si el texto contiene un mensaje de error
+    if (textoHorarios && textoHorarios.includes("Error al generar contenido:")) {
+      logger.error({ textoHorarios }, "Error en textoHorarios");
+      textoHorarios = "";
+    }
   }
 
   const servicioLugar = datos.Servicio;
   const complementoTitulo = datos?.titleComplement || "";
-  const horarioConvenir = datos.horarioConvenir;
-  const mensajeHorarioConvenir = datos?.horario_Convenir || "";
   const presupuestos = datos.presupuestos;
   const considerationOne =
     datos?.considerationOne ||
