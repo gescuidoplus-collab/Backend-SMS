@@ -10,9 +10,6 @@ export const prepareQuoteData = async (datos) => {
   const tipoServicioTexto =
     tiposServicio.length > 0 ? tiposServicio.join(", ") : "No especificado";
 
-  const mensajeHorarioConvenir = datos?.horario_Convenir || "";
-  const textoHorarios = "";
-
   const servicioLugar = datos.Servicio;
   const complementoTitulo = datos?.titleComplement || "";
   const presupuestos = datos.presupuestos;
@@ -32,8 +29,6 @@ export const prepareQuoteData = async (datos) => {
     tipoServicioTexto,
     servicioLugar,
     complementoTitulo,
-    mensajeHorarioConvenir,
-    textoHorarios,
     presupuestos,
     considerationOne,
     considerationTwo,
