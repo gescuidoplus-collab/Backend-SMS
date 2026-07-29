@@ -38,7 +38,7 @@ export const PAYROLL_TEMPLATES_BY_MONTH = [
 export const PAYROLL_EMPLOYE_TEMPLATES_BY_MONTH = [
   'HX0d8631982eaf90802abe4d51bed0b4ac',
   'HX99d849be132f929fdfa89f4517e88f27'
-]
+];
 
 /**
  * Array de plantillas de presupuestos
