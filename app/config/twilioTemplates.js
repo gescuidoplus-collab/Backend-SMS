@@ -39,6 +39,15 @@ export const PAYROLL_EMPLOYE_TEMPLATES_BY_MONTH = [
   'HX0d8631982eaf90802abe4d51bed0b4ac',
   'HX99d849be132f929fdfa89f4517e88f27'
 ]
+
+/**
+ * Array de plantillas de presupuestos
+ * Se selecciona una al azar para cada envío
+ */
+export const QUOTE_TEMPLATES_BY_MONTH = [
+  'HX5bf7f8d6bb7635d6e9647cf531aa1b71',
+];
+
 /**
  * Helper: Selecciona aleatoriamente un elemento de un array
  * @param {array} arr - Array de elementos
@@ -94,6 +103,20 @@ export function getPayrollEmployeTemplateSid(month) {
 }
 
 /**
+ * Obtiene el Content SID de presupuesto de forma ALEATORIA
+ * Selecciona una plantilla al azar del array disponible
+ * @param {number} month - Mes (no se usa, solo para compatibilidad)
+ * @returns {string|null} Content SID aleatorio o null si no hay plantillas
+ */
+export function getQuoteTemplateSid(month) {
+  if (!Array.isArray(QUOTE_TEMPLATES_BY_MONTH) || QUOTE_TEMPLATES_BY_MONTH.length === 0) {
+    console.warn(`No hay plantillas de presupuesto disponibles`);
+    return null;
+  }
+  return getRandomElement(QUOTE_TEMPLATES_BY_MONTH);
+}
+
+/**
  * Mapeo de Content SIDs a contenido de plantillas
  * El contenido es el texto que se envía en el mensaje
  */
@@ -110,6 +133,9 @@ export const TEMPLATE_CONTENT_MAP = {
   'HX755c00f2be822e0da88f8685309272cc': 'Hola {{1}}, su nómina de {{2}} está disponible. Revise el documento adjunto.',
   'HX9013695e1dbba62e3cb46286ae2150bf': 'Estimado {{1}}, le compartimos su nómina del mes de {{2}}. Gracias.',
   'HX72462f72ead61d3e380a352c8b4850f7': 'Buenos días {{1}}, su nómina de {{2}} está lista. Consulte el archivo adjunto.',
+
+  // Presupuestos
+  'HX5bf7f8d6bb7635d6e9647cf531aa1b71': 'Estimado/a {{1}}, le compartimos su presupuesto solicitado. Descargue el PDF adjunto para revisar los detalles.',
 };
 
 /**

@@ -2,7 +2,7 @@ import twilio from "twilio";
 import { envConfig, logger } from "../config/index.js";
 import { formatWhatsAppNumber } from "../utils/formatWhatsAppNumber.js";
 import {
-  getInvoiceTemplateSid,
+  getQuoteTemplateSid,
   getTemplateFromTwilio,
   getTemplateContent,
   replaceTemplateVariables,
@@ -19,7 +19,7 @@ export const sendTemplateQuote = async (to, quoteId, mediaUrl) => {
       envConfig.twilioAuthToken
     );
 
-    const contentSid = getInvoiceTemplateSid();
+    const contentSid = getQuoteTemplateSid();
     if (!contentSid) {
       return {
         success: false,
