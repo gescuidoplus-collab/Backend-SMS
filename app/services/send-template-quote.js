@@ -29,7 +29,7 @@ export const sendTemplateQuote = async (to, quoteId, mediaUrl) => {
 
     const toWhatsApp = formatWhatsAppNumber(to);
     const quoteName = `Presupuesto ${quoteId}`;
-    const vars = { 1: quoteName, 2: mediaUrl };
+    const vars = { 1: quoteName };
 
     if (envConfig.twilioEnviroment === "DUMMY") {
       logger.info(
