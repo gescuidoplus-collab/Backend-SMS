@@ -8,6 +8,9 @@ import {
 import { sendTemplateQuote } from "../services/send-template-quote.js";
 import { envConfig, logger } from "../config/index.js";
 import { generarCodigoFactura } from "../utils/generador-codigo.js";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 export const createQuoteAndSendWhatsApp = async (req, res, app) => {
   try {
@@ -39,6 +42,14 @@ export const createQuoteAndSendWhatsApp = async (req, res, app) => {
       });
     }
 
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const pdfDir = path.join(process.cwd(), "public", "media", "pdfs");
+    if (!fs.existsSync(pdfDir)) {
+      fs.mkdirSync(pdfDir, { recursive: true });
+    }
+    const pdfPath = path.join(pdfDir, "Presupuesto.pdf");
+    fs.writeFileSync(pdfPath, pdfBuffer);
+
     const quote = new Quote({
       nameContrato: datosParaPdf.nombreContrato,
       titleComplement: datos?.titleComplement || "",
@@ -54,18 +65,14 @@ export const createQuoteAndSendWhatsApp = async (req, res, app) => {
       considerationTwo: datosParaPdf.considerationTwo,
       considerationThree: datosParaPdf.considerationThree,
       numeroWhatsApp: numeroWhatsApp.trim(),
-      pdfUrl: "",
+      pdfUrl: `${envConfig.apiUrl.replace(/\/api\/v1$/, "")}/public/media/pdfs/presupuesto-actual.pdf`,
     });
 
     const savedQuote = await quote.save();
 
-    savedQuote.pdfUrl = `${envConfig.apiUrl}/quotes/${savedQuote._id}/presupuesto.pdf`;
-    await savedQuote.save();
-
     const whatsappResult = await sendTemplateQuote(
       numeroWhatsApp,
-      savedQuote._id.toString(),
-      savedQuote.pdfUrl
+      savedQuote._id.toString()
     );
 
     if (whatsappResult.success) {
