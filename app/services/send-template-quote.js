@@ -41,6 +41,41 @@ export const sendTemplateQuote = async (to, quoteId) => {
       contentVariables: JSON.stringify({ 1: quoteName }),
     });
 
+    // Validar que el mensaje se envió correctamente
+    if (!result.sid || result.errorCode) {
+      const errorMsg = result.errorMessage || "Error desconocido al enviar mensaje";
+      logger.error(
+        {
+          to: toWhatsApp,
+          quoteId,
+          errorCode: result.errorCode,
+          errorMessage: errorMsg,
+        },
+        "Twilio API returned error"
+      );
+      return {
+        success: false,
+        error: `Error de Twilio: ${errorMsg}`,
+      };
+    }
+
+    // Status debe ser "queued" o "sent", no "failed"
+    if (result.status === "failed") {
+      logger.error(
+        {
+          to: toWhatsApp,
+          quoteId,
+          status: result.status,
+          errorCode: result.errorCode,
+        },
+        "Message failed to send"
+      );
+      return {
+        success: false,
+        error: `Mensaje no se pudo enviar (${result.status})`,
+      };
+    }
+
     logger.info(
       {
         messageId: result.sid,
