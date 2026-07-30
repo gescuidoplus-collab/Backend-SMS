@@ -59,7 +59,7 @@ export const createQuoteAndSendWhatsApp = async (req, res, app) => {
 
     const savedQuote = await quote.save();
 
-    savedQuote.pdfUrl = `${envConfig.apiUrl}/api/v1/quotes/${savedQuote._id}/presupuesto.pdf`;
+    savedQuote.pdfUrl = `${envConfig.apiUrl}/quotes/${savedQuote._id}/presupuesto.pdf`;
     await savedQuote.save();
 
     const whatsappResult = await sendTemplateQuote(
