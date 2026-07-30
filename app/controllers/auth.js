@@ -23,7 +23,7 @@ export const login = async (req, res) => {
     if (!isMatch)
       return res.status(401).json({ error: "Credenciales inválidas" });
     const token = jwt.sign({ sub: user.id }, envConfig.jwtSecretKey, {
-      expiresIn: "1h",
+      expiresIn: "7d",
       algorithm: "HS256",
       audience : "IsOuSEMiatHA",
       issuer : "4j:lNHtZ89-1"
