@@ -1,6 +1,8 @@
 import twilio from "twilio";
 import { envConfig, logger } from "../config/index.js";
 import { formatWhatsAppNumber } from "../utils/formatWhatsAppNumber.js";
+import fs from "fs";
+import path from "path";
 
 export const sendTemplateQuote = async (to, quoteId) => {
   try {
@@ -51,6 +53,12 @@ export const sendTemplateQuote = async (to, quoteId) => {
       },
       "Quote sent successfully via WhatsApp"
     );
+
+    const pdfPath = path.join(process.cwd(), "public", "media", "pdfs", "presupuesto-actual.pdf");
+    if (fs.existsSync(pdfPath)) {
+      fs.unlinkSync(pdfPath);
+      logger.info({ pdfPath }, "Presupuesto PDF deleted after successful send");
+    }
 
     return {
       success: true,
