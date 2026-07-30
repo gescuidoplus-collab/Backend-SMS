@@ -201,7 +201,7 @@ app.use(envConfig.urlPath, router);
 
 // Mount quotes router (requires app for pdf generation)
 const quotesRouter = createQuotesRouter(app);
-app.use(`${envConfig.urlPath}quotes`, quotesRouter);
+app.use(`${envConfig.urlPath}/quotes`, quotesRouter);
 
 const HOST = "0.0.0.0";
 const PORT = process.env.PORT || envConfig.port || 3000;
