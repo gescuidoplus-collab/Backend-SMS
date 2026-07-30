@@ -2,7 +2,7 @@ import twilio from "twilio";
 import { envConfig, logger } from "../config/index.js";
 import { formatWhatsAppNumber } from "../utils/formatWhatsAppNumber.js";
 
-export const sendTemplateQuote = async (to, quoteId, mediaUrl) => {
+export const sendTemplateQuote = async (to, quoteId) => {
   try {
     if (!to || typeof to !== "string" || to.trim() === "") {
       return { success: false, error: "Número de destino 'to' no proporcionado" };
@@ -14,13 +14,15 @@ export const sendTemplateQuote = async (to, quoteId, mediaUrl) => {
     );
 
     const toWhatsApp = formatWhatsAppNumber(to);
+    const quoteName = `Presupuesto ${quoteId}`;
+    const contentSid = "HX39ecf3b7f6382be9fa18e8b39d5bd97d";
 
     if (envConfig.twilioEnviroment === "DUMMY") {
       logger.info(
         {
           to: toWhatsApp,
           quoteId,
-          mediaUrl,
+          contentSid,
           mode: "DUMMY",
         },
         "TWILIO DUMMY MODE (Quote)"
@@ -29,15 +31,14 @@ export const sendTemplateQuote = async (to, quoteId, mediaUrl) => {
         success: true,
         messageId: "DUMMY_MODE",
         status: "dummy",
-        templateContent: null,
       };
     }
 
     const result = await client.messages.create({
       from: envConfig.twilioWhatsappNumber,
       to: toWhatsApp,
-      body: "Estimado/a, le compartimos su presupuesto solicitado. Descargue el PDF adjunto para revisar los detalles.",
-      mediaUrl: [mediaUrl],
+      contentSid: contentSid,
+      contentVariables: JSON.stringify({ 1: quoteName }),
     });
 
     logger.info(
@@ -45,6 +46,7 @@ export const sendTemplateQuote = async (to, quoteId, mediaUrl) => {
         messageId: result.sid,
         to: toWhatsApp,
         quoteId,
+        contentSid,
         status: result.status,
       },
       "Quote sent successfully via WhatsApp"
@@ -54,6 +56,7 @@ export const sendTemplateQuote = async (to, quoteId, mediaUrl) => {
       success: true,
       messageId: result.sid,
       status: result.status,
+      contentSid,
     };
   } catch (err) {
     logger.error(
