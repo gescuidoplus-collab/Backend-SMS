@@ -44,11 +44,17 @@ export const createQuoteAndSendWhatsApp = async (req, res, app) => {
 
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
     const pdfDir = path.join(process.cwd(), "public", "media", "pdfs");
-    if (!fs.existsSync(pdfDir)) {
-      fs.mkdirSync(pdfDir, { recursive: true });
+    try {
+      if (!fs.existsSync(pdfDir)) {
+        fs.mkdirSync(pdfDir, { recursive: true });
+        logger.info({ pdfDir }, "Created PDF directory");
+      }
+      const pdfPath = path.join(pdfDir, "Presupuesto.pdf");
+      fs.writeFileSync(pdfPath, pdfBuffer);
+      logger.info({ pdfPath, size: pdfBuffer.length }, "PDF saved successfully");
+    } catch (fileErr) {
+      logger.error({ error: fileErr.message, pdfDir }, "Failed to save PDF file");
     }
-    const pdfPath = path.join(pdfDir, "Presupuesto.pdf");
-    fs.writeFileSync(pdfPath, pdfBuffer);
 
     const quote = new Quote({
       nameContrato: datosParaPdf.nombreContrato,
