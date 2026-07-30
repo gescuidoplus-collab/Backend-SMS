@@ -110,6 +110,7 @@ export const createQuoteAndSendWhatsApp = async (req, res, app) => {
       success: true,
       quoteId: savedQuote._id,
       whatsappSuccess: whatsappResult.success,
+      messageId: whatsappResult.messageId || null,
       error: whatsappResult.error || null,
     });
   } catch (err) {
