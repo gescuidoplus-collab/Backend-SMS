@@ -1,12 +1,6 @@
 import twilio from "twilio";
 import { envConfig, logger } from "../config/index.js";
 import { formatWhatsAppNumber } from "../utils/formatWhatsAppNumber.js";
-import {
-  getQuoteTemplateSid,
-  getTemplateFromTwilio,
-  getTemplateContent,
-  replaceTemplateVariables,
-} from "../config/twilioTemplates.js";
 
 export const sendTemplateQuote = async (to, quoteId, mediaUrl) => {
   try {
@@ -19,24 +13,14 @@ export const sendTemplateQuote = async (to, quoteId, mediaUrl) => {
       envConfig.twilioAuthToken
     );
 
-    const contentSid = getQuoteTemplateSid();
-    if (!contentSid) {
-      return {
-        success: false,
-        error: "No hay plantilla disponible para envío de presupuesto",
-      };
-    }
-
     const toWhatsApp = formatWhatsAppNumber(to);
-    const quoteName = `Presupuesto ${quoteId}`;
-    const vars = { 1: quoteName };
 
     if (envConfig.twilioEnviroment === "DUMMY") {
       logger.info(
         {
           to: toWhatsApp,
           quoteId,
-          contentSid,
+          mediaUrl,
           mode: "DUMMY",
         },
         "TWILIO DUMMY MODE (Quote)"
@@ -46,32 +30,21 @@ export const sendTemplateQuote = async (to, quoteId, mediaUrl) => {
         messageId: "DUMMY_MODE",
         status: "dummy",
         templateContent: null,
-        contentSid,
       };
     }
 
     const result = await client.messages.create({
       from: envConfig.twilioWhatsappNumber,
       to: toWhatsApp,
-      contentSid: contentSid,
-      contentVariables: JSON.stringify(vars),
+      body: "Estimado/a, le compartimos su presupuesto solicitado. Descargue el PDF adjunto para revisar los detalles.",
       mediaUrl: [mediaUrl],
     });
-
-    let rawTemplateContent = await getTemplateFromTwilio(contentSid, client);
-    if (!rawTemplateContent) {
-      rawTemplateContent = getTemplateContent(contentSid);
-    }
-    const templateContent = rawTemplateContent
-      ? replaceTemplateVariables(rawTemplateContent, vars)
-      : null;
 
     logger.info(
       {
         messageId: result.sid,
         to: toWhatsApp,
         quoteId,
-        contentSid,
         status: result.status,
       },
       "Quote sent successfully via WhatsApp"
@@ -81,8 +54,6 @@ export const sendTemplateQuote = async (to, quoteId, mediaUrl) => {
       success: true,
       messageId: result.sid,
       status: result.status,
-      templateContent,
-      contentSid,
     };
   } catch (err) {
     logger.error(
