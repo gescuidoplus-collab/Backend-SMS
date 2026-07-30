@@ -47,7 +47,7 @@ export const createQuoteAndSendWhatsApp = async (req, res, app) => {
     if (!fs.existsSync(pdfDir)) {
       fs.mkdirSync(pdfDir, { recursive: true });
     }
-    const pdfPath = path.join(pdfDir, "presupuesto-actual.pdf");
+    const pdfPath = path.join(pdfDir, "Presupuesto.pdf");
     fs.writeFileSync(pdfPath, pdfBuffer);
 
     const quote = new Quote({

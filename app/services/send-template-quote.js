@@ -54,7 +54,7 @@ export const sendTemplateQuote = async (to, quoteId) => {
       "Quote sent successfully via WhatsApp"
     );
 
-    const pdfPath = path.join(process.cwd(), "public", "media", "pdfs", "presupuesto-actual.pdf");
+    const pdfPath = path.join(process.cwd(), "public", "media", "pdfs", "Presupuesto.pdf");
     if (fs.existsSync(pdfPath)) {
       fs.unlinkSync(pdfPath);
       logger.info({ pdfPath }, "Presupuesto PDF deleted after successful send");
