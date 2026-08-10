@@ -78,7 +78,7 @@ export const createQuoteAndSendWhatsApp = async (req, res, app) => {
 
     const whatsappResult = await sendTemplateQuote(
       numeroWhatsApp,
-      savedQuote._id.toString()
+      savedQuote.nameContrato
     );
 
     if (whatsappResult.success) {
@@ -163,7 +163,7 @@ export const downloadQuotePdf = async (req, res, app) => {
 
     res.writeHead(200, {
       "Content-Type": "application/pdf",
-      "Content-Disposition": "inline; filename=presupuesto.pdf",
+      "Content-Disposition": `inline; filename="${quote.nameContrato}.pdf"`,
       "Content-Length": pdfBuffer.length,
     });
     res.end(pdfBuffer);
