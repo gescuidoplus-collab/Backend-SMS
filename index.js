@@ -109,8 +109,8 @@ app.post('/api/v1/generate-pdf', async (req, res) => {
 // });
 // app.use(limiter);
 
-app.use(express.json({ limit: "1kb" }));
-app.use(express.urlencoded({ extended: true, limit: "1kb" }));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 mongoClient();
 

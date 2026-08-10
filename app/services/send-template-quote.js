@@ -2,7 +2,7 @@ import twilio from "twilio";
 import { envConfig, logger } from "../config/index.js";
 import { formatWhatsAppNumber } from "../utils/formatWhatsAppNumber.js";
 
-export const sendTemplateQuote = async (to, quoteId) => {
+export const sendTemplateQuote = async (to, clientName) => {
   try {
     if (!to || typeof to !== "string" || to.trim() === "") {
       return { success: false, error: "Número de destino 'to' no proporcionado" };
@@ -14,14 +14,14 @@ export const sendTemplateQuote = async (to, quoteId) => {
     );
 
     const toWhatsApp = formatWhatsAppNumber(to);
-    const quoteName = `Presupuesto ${quoteId}`;
+    const quoteName = clientName;
     const contentSid = "HX39ecf3b7f6382be9fa18e8b39d5bd97d";
 
     if (envConfig.twilioEnviroment === "DUMMY") {
       logger.info(
         {
           to: toWhatsApp,
-          quoteId,
+          clientName,
           contentSid,
           mode: "DUMMY",
         },
@@ -47,7 +47,7 @@ export const sendTemplateQuote = async (to, quoteId) => {
       logger.error(
         {
           to: toWhatsApp,
-          quoteId,
+          clientName,
           errorCode: result.errorCode,
           errorMessage: errorMsg,
         },
@@ -64,7 +64,7 @@ export const sendTemplateQuote = async (to, quoteId) => {
       logger.error(
         {
           to: toWhatsApp,
-          quoteId,
+          clientName,
           status: result.status,
           errorCode: result.errorCode,
         },
@@ -80,7 +80,7 @@ export const sendTemplateQuote = async (to, quoteId) => {
       {
         messageId: result.sid,
         to: toWhatsApp,
-        quoteId,
+        clientName,
         contentSid,
         status: result.status,
       },
@@ -97,7 +97,7 @@ export const sendTemplateQuote = async (to, quoteId) => {
     logger.error(
       {
         to,
-        quoteId,
+        clientName,
         error: err.message,
       },
       "Failed to send quote via WhatsApp"
