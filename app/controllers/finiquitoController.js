@@ -1,10 +1,17 @@
+import crypto from 'crypto';
 import Finiquito from '../schemas/finiquito.js';
-import signNowService from '../services/signNowService.js';
 import twilioService from '../services/twilioService.js';
 import logger from '../config/logger.js';
+import { envConfig } from '../config/index.js';
 import { send_telegram_message } from '../services/sendMessageTelegram.js';
-
-const TEMPLATE_ID = '84c4c9a33dbc4621ab3a4f3d924aed8bd446017a';
+import {
+  generarFiniquitoPdf,
+  FIRMAS_FINIQUITO,
+  TEXTO_INTRO_DEFAULT,
+  TEXTO_VACACIONES_DEFAULT,
+  TEXTO_INDEMNIZACION_DEFAULT,
+  TEXTO_PREAVISO_DEFAULT,
+} from '../services/pdfFillService.js';
 
 const formatMoney = (value) => {
   const n = Number(value) || 0;
@@ -14,6 +21,68 @@ const formatMoney = (value) => {
 const formatDias = (value) => {
   const n = Number(value) || 0;
   return `${n.toFixed(2).replace('.', ',')} días`;
+};
+
+/**
+ * Construye el mapa de valores que se escriben en el PDF a partir de un
+ * registro de finiquito. Se usa tanto al crearlo como al volver a descargarlo.
+ */
+export const construirValoresPdf = (f) => ({
+  ciudad_fecha_finiquito: `En ${f.lugarFirma} ${f.fecha}`,
+  fecha_inicio_ultimo_periodo: `${f.diasalario} al ${f.fechasalariofinalconanio}`,
+  monto_salario: formatMoney(f.salarioLiquidacionImporte),
+  monto_preaviso: f.aplicaPreaviso ? formatMoney(f.preaviso) : '',
+  monto_vaciones: formatMoney(f.vacacionesimporte),
+  monto_indemnizacion: f.aplicaIndemnizacion ? formatMoney(f.indemnizacion) : '',
+  monto_total: formatMoney(f.total),
+});
+
+/**
+ * Resuelve los {{campos}} del texto declarativo con los datos del finiquito.
+ */
+export const construirTextoIntro = (f) => {
+  const plantilla = f.textoIntro || TEXTO_INTRO_DEFAULT;
+  const sustituciones = {
+    empleada: `${f.nomempleada || ''} ${f.tipoDocumentoEmpleada || ''} ${f.niempleada || ''}`
+      .replace(/\s+/g, ' ')
+      .trim(),
+    empleadora: f.nomempleador || '',
+    fechaEfectos: f.fechasalariofinalconanio || '',
+  };
+
+  return plantilla.replace(/\{\{(\w+)\}\}/g, (original, clave) =>
+    sustituciones[clave] !== undefined ? sustituciones[clave] : original
+  );
+};
+
+/**
+ * Resuelve la línea del concepto de vacaciones.
+ */
+export const construirTextoVacaciones = (f) =>
+  (f.textoVacaciones || TEXTO_VACACIONES_DEFAULT).replace(
+    /\{\{vacacionesDias\}\}/g,
+    formatDias(f.vacacionesdias)
+  );
+
+/**
+ * Resuelve la línea del concepto de indemnización. Cuando no procede se deja
+ * el texto fijo del documento original.
+ */
+export const construirTextoIndemnizacion = (f) => {
+  if (!f.aplicaIndemnizacion) return '-Indemnización (no procede)';
+  return (f.textoIndemnizacion || TEXTO_INDEMNIZACION_DEFAULT).replace(
+    /\{\{baseReguladora\}\}/g,
+    `${formatMoney(f.baseReguladora)}/día`
+  );
+};
+
+/**
+ * Resuelve la línea del concepto de falta de preaviso. Solo se marca como
+ * "(no procede)" cuando efectivamente no se abona.
+ */
+export const construirTextoPreaviso = (f) => {
+  if (!f.aplicaPreaviso) return '- Falta preaviso (no procede)';
+  return f.textoPreaviso || TEXTO_PREAVISO_DEFAULT;
 };
 
 export const crearYEnviarFiniquito = async (req, res) => {
@@ -29,6 +98,11 @@ export const crearYEnviarFiniquito = async (req, res) => {
       nomempleada,
       tipoDocumentoEmpleada,
       niempleada,
+      textoIntro,
+      textoVacaciones,
+      textoIndemnizacion,
+      textoPreaviso,
+      baseReguladora,
       correoempleada,
       nomempleador,
       nifempleador,
@@ -38,6 +112,8 @@ export const crearYEnviarFiniquito = async (req, res) => {
       fechasalariofinalconanio,
       salarioNeto,
       tipoJornada,
+      enPruebas,
+      diasVacacionesDisfrutadas,
       diasLaborablesMes,
       salarioLiquidacionImporte,
       vacacionesdias,
@@ -70,11 +146,12 @@ export const crearYEnviarFiniquito = async (req, res) => {
       anofirma,
     } = req.body;
 
-    // Validación básica
-    if (!correoempleada || !correoempleador) {
+    // El PDF se genera localmente y la firma se reparte mediante links embebidos,
+    // así que no hacen falta los correos de los firmantes.
+    if (!nomempleada || !nomempleador) {
       return res.status(400).json({
         success: false,
-        message: 'Email del empleado y empleador son requeridos',
+        message: 'El nombre de la empleada y del empleador son requeridos',
       });
     }
 
@@ -87,6 +164,11 @@ export const crearYEnviarFiniquito = async (req, res) => {
       nomempleada,
       tipoDocumentoEmpleada,
       niempleada,
+      textoIntro,
+      textoVacaciones,
+      textoIndemnizacion,
+      textoPreaviso,
+      baseReguladora,
       correoempleado: correoempleada,
       nomempleador,
       nifempleador,
@@ -96,6 +178,8 @@ export const crearYEnviarFiniquito = async (req, res) => {
       fechasalariofinalconanio,
       salarioNeto,
       tipoJornada,
+      enPruebas,
+      diasVacacionesDisfrutadas,
       diasLaborablesMes,
       salarioLiquidacionImporte,
       vacacionesdias,
@@ -121,7 +205,6 @@ export const crearYEnviarFiniquito = async (req, res) => {
       nacionalidadtrabajador,
       municipiodomtrabaajdor,
       paisdomtrabajador,
-      templateId: TEMPLATE_ID,
     });
 
     await finiquito.save();
@@ -131,97 +214,86 @@ export const crearYEnviarFiniquito = async (req, res) => {
     });
     logger.info(`✓ Registro guardado en MongoDB`, { finiquitoId: finiquito._id });
 
-    // 2. CREAR DOCUMENTO EN SIGNNOW
-    logger.info('🔗 Creando documento en SignNow desde template');
+    // 2. GENERAR EL PDF YA RELLENO (localmente, sin depender de SignNow)
+    logger.info('📄 Generando PDF del finiquito localmente');
     const documentName = `Finiquito - ${nomempleada} - ${fecha}`;
 
-    let createDocResult;
+    let pdfBuffer;
     try {
-      createDocResult = await signNowService.createDocumentFromTemplate(
-        TEMPLATE_ID,
-        documentName
+      pdfBuffer = await generarFiniquitoPdf(
+        construirValoresPdf(finiquito),
+        [],
+        construirTextoIntro(finiquito),
+        construirTextoVacaciones(finiquito),
+        construirTextoIndemnizacion(finiquito),
+        construirTextoPreaviso(finiquito)
       );
-      finiquito.signNowDocumentId = createDocResult.documentId;
-      finiquito.status = 'documento_creado';
-      finiquito.timeline.push({
-        action: 'documento_creado',
-        details: { documentId: createDocResult.documentId },
-      });
-      await finiquito.save();
-      logger.info(`✓ Documento creado en SignNow`, {
-        finiquitoId: finiquito._id,
-        documentId: createDocResult.documentId,
-      });
-    } catch (error) {
-      throw {
-        stage: 'create_document',
-        message: error.message,
-        details: error,
-      };
-    }
-
-    // 2.5. LLENAR CAMPOS DEL DOCUMENTO
-    logger.info('✏️ Llenando campos del documento en SignNow');
-    try {
-      const fieldMap = {};
-      if (createDocResult.fields && Array.isArray(createDocResult.fields)) {
-        createDocResult.fields.forEach((field) => {
-          fieldMap[field.json_attributes?.name || field.name] = field.id;
-        });
-      }
-
-      const valores = {
-        ciudad_fecha_finiquito: `En ${lugarFirma} ${fecha}`,
-        num_nomb_documento_empleada: `${nomempleada} ${tipoDocumentoEmpleada} ${niempleada}`,
-        nombre_empleadora: nomempleador,
-        fecha_inicio_ultimo_periodo: `${diasalario} al ${fechasalariofinalconanio}`,
-        monto_salario: formatMoney(salarioLiquidacionImporte),
-        monto_preaviso: aplicaPreaviso ? formatMoney(preaviso) : '',
-        vacaciones_dias: formatDias(vacacionesdias),
-        monto_vacaciones: formatMoney(vacacionesimporte),
-        monto_indemnizacion: aplicaIndemnizacion ? formatMoney(indemnizacion) : '',
-        monto_total: formatMoney(total),
-      };
-
-      const fieldsToFill = Object.entries(valores)
-        .filter(([name]) => fieldMap[name])
-        .map(([name, value]) => ({ id: fieldMap[name], prefilled_text: value }));
-
-      await signNowService.fillDocumentFields(createDocResult.documentId, fieldsToFill);
 
       finiquito.status = 'campos_llenados';
       finiquito.timeline.push({
         action: 'campos_llenados',
-        details: { fieldCount: fieldsToFill.length },
+        details: { bytes: pdfBuffer.length },
       });
       await finiquito.save();
-      logger.info(`✓ Campos del documento llenados correctamente`, {
+      logger.info(`✓ PDF generado con los datos del finiquito`, {
         finiquitoId: finiquito._id,
-        fieldCount: fieldsToFill.length,
+        bytes: pdfBuffer.length,
       });
     } catch (error) {
       throw {
-        stage: 'fill_fields',
+        stage: 'generar_pdf',
         message: error.message,
         details: error,
       };
     }
 
-    // 3. MAPEAR ROLES PARA INVITACIÓN
-    logger.info('📊 Preparando roles para invitación');
+    // 3. GENERAR LOS LINKS DE FIRMA PROPIOS
+    try {
+      const baseUrl = envConfig.frontendUrl.replace(/\/$/, '');
 
-    const roleMap = {};
-    if (createDocResult.roles && Array.isArray(createDocResult.roles)) {
-      createDocResult.roles.forEach((role) => {
-        roleMap[role.name] = role.unique_id;
+      const firmantes = FIRMAS_FINIQUITO.map((f) => ({
+        role: f.role,
+        token: crypto.randomBytes(24).toString('hex'),
+        firmado: false,
+      }));
+
+      finiquito.firmantes = firmantes;
+      finiquito.signingLinks = firmantes.map((f) => ({
+        role: f.role,
+        link: `${baseUrl}/firmar/${f.token}`,
+      }));
+      finiquito.status = 'invitacion_enviada';
+      finiquito.signerStatus = firmantes.map((f) => ({
+        role: f.role,
+        status: 'pending',
+      }));
+      finiquito.timeline.push({
+        action: 'invitacion_enviada',
+        details: { linkCount: firmantes.length },
       });
-      logger.info('Roles mapeados correctamente', { roleMap });
+      await finiquito.save();
+      logger.info(`✓ Links de firma generados`, {
+        finiquitoId: finiquito._id,
+        linkCount: firmantes.length,
+      });
+    } catch (error) {
+      throw {
+        stage: 'links_firma',
+        message: error.message,
+        details: error,
+      };
     }
 
-    // 5. ENVIAR WHATSAPP DE NOTIFICACIÓN
+    // 4. ENVIAR WHATSAPP DE NOTIFICACIÓN
     logger.info('💬 Enviando notificación por WhatsApp');
     try {
-      const whatsappMessage = `Hola ${nomempleada},\n\nTe informamos que tu documento de finiquito está listo. Pronto recibirás una invitación de firma en tu correo electrónico.\n\nQuedamos atenta a cualquier duda.\n\nCuidoFam 💙`;
+      const linkTrabajador = (finiquito.signingLinks || []).find(
+        (l) => l.role === 'Trabajador'
+      )?.link;
+
+      const whatsappMessage = linkTrabajador
+        ? `Hola ${nomempleada},\n\nTu documento de finiquito está listo para firmar. Puedes revisarlo y firmarlo desde este enlace:\n\n${linkTrabajador}\n\nQuedamos atenta a cualquier duda.\n\nCuidoFam 💙`
+        : `Hola ${nomempleada},\n\nTe informamos que tu documento de finiquito ya está listo.\n\nQuedamos atenta a cualquier duda.\n\nCuidoFam 💙`;
 
       // TODO: Obtener número de teléfono del empleado desde CloudNavis o formulario
       // Por ahora lo dejamos como placeholder
@@ -254,57 +326,6 @@ export const crearYEnviarFiniquito = async (req, res) => {
       // No fallar completamente, continuar con la invitación
     }
 
-    // 6. INVITAR A FIRMAR
-    logger.info('📮 Enviando invitación de firma en SignNow');
-    const signers = [
-      {
-        email: correoempleada,
-        role_id: roleMap['Trabajador'],
-        role: 'Trabajador',
-      },
-      {
-        email: correoempleador,
-        role_id: roleMap['Empresa'],
-        role: 'Empresa',
-      },
-    ];
-
-    try {
-      const inviteResult = await signNowService.inviteToSign(
-        createDocResult.documentId,
-        signers,
-        'Invitación de Firma - Finiquito CuidoFam',
-        `Por favor firma el documento de finiquito. El documento está disponible en SignNow.\n\nEmpleado: ${nomempleada}\nEmpleador: ${nomempleador}\nFecha: ${fecha}`
-      );
-
-      finiquito.signNowInvitationId = inviteResult.invitationId;
-      finiquito.status = 'invitacion_enviada';
-      finiquito.signerStatus = signers.map((s) => ({
-        email: s.email,
-        role: s.role,
-        status: 'sent',
-      }));
-      finiquito.timeline.push({
-        action: 'invitacion_enviada',
-        details: {
-          invitationId: inviteResult.invitationId,
-          signerCount: signers.length,
-        },
-      });
-      await finiquito.save();
-      logger.info(`✓ Invitación de firma enviada correctamente`, {
-        finiquitoId: finiquito._id,
-        invitationId: inviteResult.invitationId,
-        signerCount: signers.length,
-      });
-    } catch (error) {
-      throw {
-        stage: 'invite_to_sign',
-        message: error.message,
-        details: error,
-      };
-    }
-
     // ÉXITO - Enviar resumen a Telegram
     const durationMs = Date.now() - startTime;
     logger.info(`✅ FINIQUITO COMPLETADO EXITOSAMENTE`, {
@@ -324,13 +345,11 @@ export const crearYEnviarFiniquito = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: 'Finiquito creado y enviado exitosamente',
+      message: 'Finiquito creado exitosamente',
       data: {
         finiquitoId: finiquito._id,
         status: finiquito.status,
-        signNowDocumentId: finiquito.signNowDocumentId,
-        employeeEmail: correoempleada,
-        employerEmail: correoempleador,
+        signingLinks: finiquito.signingLinks || [],
       },
     });
   } catch (error) {
@@ -428,6 +447,82 @@ export const obtenerFiniquitoDetalle = async (req, res) => {
     });
   } catch (error) {
     logger.error('Error obtieniendo detalle de finiquito', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const eliminarFiniquito = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const finiquito = await Finiquito.findByIdAndDelete(id);
+
+    if (!finiquito) {
+      return res.status(404).json({
+        success: false,
+        message: 'Finiquito no encontrado',
+      });
+    }
+
+    logger.info('🗑️ Finiquito eliminado', {
+      finiquitoId: id,
+      empleada: finiquito.nomempleada,
+    });
+
+    res.status(200).json({ success: true, message: 'Finiquito eliminado' });
+  } catch (error) {
+    logger.error('Error eliminando finiquito', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const obtenerTextoIntroPorDefecto = async (req, res) => {
+  res.status(200).json({
+    success: true,
+    data: {
+      texto: TEXTO_INTRO_DEFAULT,
+      textoVacaciones: TEXTO_VACACIONES_DEFAULT,
+      textoIndemnizacion: TEXTO_INDEMNIZACION_DEFAULT,
+      textoPreaviso: TEXTO_PREAVISO_DEFAULT,
+    },
+  });
+};
+
+export const descargarFiniquito = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const finiquito = await Finiquito.findById(id);
+
+    if (!finiquito) {
+      return res.status(404).json({
+        success: false,
+        message: 'Finiquito no encontrado',
+      });
+    }
+
+    // El PDF se reconstruye siempre desde los datos guardados, incluyendo las
+    // firmas que ya se hayan recogido.
+    const pdfBuffer = await generarFiniquitoPdf(
+      construirValoresPdf(finiquito),
+      finiquito.firmantes || [],
+      construirTextoIntro(finiquito),
+      construirTextoVacaciones(finiquito),
+      construirTextoIndemnizacion(finiquito),
+      construirTextoPreaviso(finiquito)
+    );
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="finiquito-${finiquito.nomempleada || id}.pdf"`
+    );
+    res.send(Buffer.from(pdfBuffer));
+  } catch (error) {
+    logger.error('Error descargando finiquito', error);
     res.status(500).json({
       success: false,
       message: error.message,

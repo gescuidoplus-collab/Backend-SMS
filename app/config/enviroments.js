@@ -47,6 +47,8 @@ const config = {
   env: confEnv.NODE_ENV,
   port: confEnv.PORT,
   urlPath: confEnv.URL_PATH,
+  // Base pública del frontend, usada para construir los links de firma
+  frontendUrl: confEnv.FRONTEND_URL || 'http://localhost:3000',
   mongoUri: confEnv.MONGO_URI,
   jwtSecretKey: confEnv.JWT_SECRET_KEY,
   emailUser: confEnv.EMAIL_USER,
