@@ -76,13 +76,14 @@ const config = {
   twilioEnviroment: confEnv.TWILIO_ENVIROMENT,
 };
 
-// Sin FRONTEND_URL los enlaces de firma se generarían apuntando a localhost y
-// las trabajadoras recibirían un link que no abre. Se avisa al arrancar en vez
-// de descubrirlo cuando alguien intenta firmar.
-if (config.env !== 'development' && !confEnv.FRONTEND_URL) {
-  console.warn(
-    `[config] Falta FRONTEND_URL: los enlaces de firma se generarán con ${config.frontendUrl}`
-  );
-}
+// Se deja constancia al arrancar del dominio con el que se van a construir los
+// enlaces de firma. Sin FRONTEND_URL apuntarían a localhost y la trabajadora
+// recibiría un link que no abre, así que conviene verlo en el log del arranque
+// y no descubrirlo cuando alguien intenta firmar. No se condiciona a NODE_ENV
+// porque no todos los entornos la definen.
+console.log(
+  `[config] Enlaces de firma -> ${config.frontendUrl}` +
+    (confEnv.FRONTEND_URL ? '' : ' (FRONTEND_URL no definida, usando el valor por defecto)')
+);
 
 export default config;
