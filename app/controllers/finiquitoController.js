@@ -2,7 +2,6 @@ import crypto from 'crypto';
 import Finiquito from '../schemas/finiquito.js';
 import twilioService from '../services/twilioService.js';
 import logger from '../config/logger.js';
-import { envConfig } from '../config/index.js';
 import { send_telegram_message } from '../services/sendMessageTelegram.js';
 import {
   generarFiniquitoPdf,
@@ -12,6 +11,7 @@ import {
   TEXTO_INDEMNIZACION_DEFAULT,
   TEXTO_PREAVISO_DEFAULT,
 } from '../services/pdfFillService.js';
+import { enlacesDeFirma, conEnlacesActualizados } from '../utils/signingLinks.js';
 
 const formatMoney = (value) => {
   const n = Number(value) || 0;
@@ -249,8 +249,6 @@ export const crearYEnviarFiniquito = async (req, res) => {
 
     // 3. GENERAR LOS LINKS DE FIRMA PROPIOS
     try {
-      const baseUrl = envConfig.frontendUrl.replace(/\/$/, '');
-
       const firmantes = FIRMAS_FINIQUITO.map((f) => ({
         role: f.role,
         token: crypto.randomBytes(24).toString('hex'),
@@ -258,10 +256,7 @@ export const crearYEnviarFiniquito = async (req, res) => {
       }));
 
       finiquito.firmantes = firmantes;
-      finiquito.signingLinks = firmantes.map((f) => ({
-        role: f.role,
-        link: `${baseUrl}/firmar/${f.token}`,
-      }));
+      finiquito.signingLinks = enlacesDeFirma(firmantes);
       finiquito.status = 'invitacion_enviada';
       finiquito.signerStatus = firmantes.map((f) => ({
         role: f.role,
@@ -287,7 +282,7 @@ export const crearYEnviarFiniquito = async (req, res) => {
     // 4. ENVIAR WHATSAPP DE NOTIFICACIÓN
     logger.info('💬 Enviando notificación por WhatsApp');
     try {
-      const linkTrabajador = (finiquito.signingLinks || []).find(
+      const linkTrabajador = enlacesDeFirma(finiquito.firmantes).find(
         (l) => l.role === 'Trabajador'
       )?.link;
 
@@ -349,7 +344,7 @@ export const crearYEnviarFiniquito = async (req, res) => {
       data: {
         finiquitoId: finiquito._id,
         status: finiquito.status,
-        signingLinks: finiquito.signingLinks || [],
+        signingLinks: enlacesDeFirma(finiquito.firmantes),
       },
     });
   } catch (error) {
@@ -411,7 +406,7 @@ export const obtenerFiniquitos = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: finiquitos,
+      data: finiquitos.map(conEnlacesActualizados),
       pagination: {
         total,
         page,
@@ -443,7 +438,7 @@ export const obtenerFiniquitoDetalle = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: finiquito,
+      data: conEnlacesActualizados(finiquito),
     });
   } catch (error) {
     logger.error('Error obtieniendo detalle de finiquito', error);

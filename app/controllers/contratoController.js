@@ -2,9 +2,9 @@ import crypto from 'crypto';
 import Contrato from '../schemas/contrato.js';
 import twilioService from '../services/twilioService.js';
 import logger from '../config/logger.js';
-import { envConfig } from '../config/index.js';
 import { send_telegram_message } from '../services/sendMessageTelegram.js';
 import { generarContratoPdf, FIRMAS_CONTRATO } from '../services/pdfFillService.js';
+import { enlacesDeFirma, conEnlacesActualizados } from '../utils/signingLinks.js';
 
 /**
  * Traduce un registro de contrato a los campos del modelo oficial en PDF.
@@ -175,8 +175,6 @@ export const crearYEnviarContrato = async (req, res) => {
 
     // 3. GENERAR LOS ENLACES DE FIRMA
     try {
-      const baseUrl = envConfig.frontendUrl.replace(/\/$/, '');
-
       const firmantes = FIRMAS_CONTRATO.map((f) => ({
         role: f.role,
         token: crypto.randomBytes(24).toString('hex'),
@@ -184,10 +182,7 @@ export const crearYEnviarContrato = async (req, res) => {
       }));
 
       contrato.firmantes = firmantes;
-      contrato.signingLinks = firmantes.map((f) => ({
-        role: f.role,
-        link: `${baseUrl}/firmar/${f.token}`,
-      }));
+      contrato.signingLinks = enlacesDeFirma(firmantes);
       contrato.status = 'invitacion_enviada';
       contrato.signerStatus = firmantes.map((f) => ({
         role: f.role,
@@ -213,7 +208,7 @@ export const crearYEnviarContrato = async (req, res) => {
     // 4. ENVIAR WHATSAPP DE NOTIFICACIÓN
     logger.info('💬 Enviando notificación por WhatsApp');
     try {
-      const linkTrabajador = (contrato.signingLinks || []).find(
+      const linkTrabajador = enlacesDeFirma(contrato.firmantes).find(
         (l) => l.role === 'Trabajador'
       )?.link;
 
@@ -271,7 +266,7 @@ export const crearYEnviarContrato = async (req, res) => {
       data: {
         contratoId: contrato._id,
         status: contrato.status,
-        signingLinks: contrato.signingLinks || [],
+        signingLinks: enlacesDeFirma(contrato.firmantes),
       },
     });
   } catch (error) {
@@ -332,7 +327,7 @@ export const obtenerContratos = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: contratos,
+      data: contratos.map(conEnlacesActualizados),
       pagination: {
         total,
         page,
@@ -364,7 +359,7 @@ export const obtenerContratoDetalle = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: contrato,
+      data: conEnlacesActualizados(contrato),
     });
   } catch (error) {
     logger.error('Error obtieniendo detalle de contrato', error);

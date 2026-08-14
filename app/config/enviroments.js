@@ -47,8 +47,14 @@ const config = {
   env: confEnv.NODE_ENV,
   port: confEnv.PORT,
   urlPath: confEnv.URL_PATH,
-  // Base pública del frontend, usada para construir los links de firma
-  frontendUrl: confEnv.FRONTEND_URL || 'http://localhost:3000',
+  // Base pública del frontend, usada para construir los links de firma.
+  // Fuera de desarrollo el valor por defecto es el dominio real: si faltara la
+  // variable, los enlaces enviados a las trabajadoras apuntarían a localhost.
+  frontendUrl:
+    confEnv.FRONTEND_URL ||
+    (confEnv.NODE_ENV === 'development'
+      ? 'http://localhost:3000'
+      : 'https://frontend-sms.vercel.app'),
   mongoUri: confEnv.MONGO_URI,
   jwtSecretKey: confEnv.JWT_SECRET_KEY,
   emailUser: confEnv.EMAIL_USER,
