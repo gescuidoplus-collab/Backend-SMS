@@ -47,7 +47,8 @@ const config = {
   env: confEnv.NODE_ENV,
   port: confEnv.PORT,
   urlPath: confEnv.URL_PATH,
-  // Base pública del frontend, usada para construir los links de firma
+  // Base pública del frontend, usada para construir los links de firma.
+  // El dominio real se configura con FRONTEND_URL en cada entorno.
   frontendUrl: confEnv.FRONTEND_URL || 'http://localhost:3000',
   mongoUri: confEnv.MONGO_URI,
   jwtSecretKey: confEnv.JWT_SECRET_KEY,
@@ -74,5 +75,14 @@ const config = {
   googleApiKey: confEnv.GOOGLE_API_KEY,
   twilioEnviroment: confEnv.TWILIO_ENVIROMENT,
 };
+
+// Sin FRONTEND_URL los enlaces de firma se generarían apuntando a localhost y
+// las trabajadoras recibirían un link que no abre. Se avisa al arrancar en vez
+// de descubrirlo cuando alguien intenta firmar.
+if (config.env !== 'development' && !confEnv.FRONTEND_URL) {
+  console.warn(
+    `[config] Falta FRONTEND_URL: los enlaces de firma se generarán con ${config.frontendUrl}`
+  );
+}
 
 export default config;

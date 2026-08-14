@@ -1,8 +1,8 @@
 import crypto from 'crypto';
 import DocumentoGrupo from '../schemas/documentoGrupo.js';
 import logger from '../config/logger.js';
-import { envConfig } from '../config/index.js';
 import { generarGrupoPdf } from '../services/pdfFillService.js';
+import { enlacesDeFirma, conEnlacesActualizados } from '../utils/signingLinks.js';
 
 const nombreCompleto = (d) =>
   `${d.nombres || ''} ${d.primerApellido || ''} ${d.segundoApellido || ''}`
@@ -117,7 +117,6 @@ export const crearDocumentoGrupo = async (req, res) => {
 
     // 3. ENLACE DE FIRMA (un único firmante para los tres documentos)
     try {
-      const baseUrl = envConfig.frontendUrl.replace(/\/$/, '');
       const firmante = {
         role: 'Trabajadora',
         token: crypto.randomBytes(24).toString('hex'),
@@ -125,9 +124,7 @@ export const crearDocumentoGrupo = async (req, res) => {
       };
 
       documento.firmantes = [firmante];
-      documento.signingLinks = [
-        { role: firmante.role, link: `${baseUrl}/firmar/${firmante.token}` },
-      ];
+      documento.signingLinks = enlacesDeFirma([firmante]);
       documento.signerStatus = [{ role: firmante.role, status: 'pending' }];
       documento.status = 'invitacion_enviada';
       documento.timeline.push({ action: 'invitacion_enviada', details: { linkCount: 1 } });
@@ -143,7 +140,7 @@ export const crearDocumentoGrupo = async (req, res) => {
       data: {
         documentoId: documento._id,
         status: documento.status,
-        signingLinks: documento.signingLinks || [],
+        signingLinks: enlacesDeFirma([firmante]),
       },
     });
   } catch (error) {
@@ -190,7 +187,7 @@ export const obtenerDocumentosGrupo = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: documentos,
+      data: documentos.map(conEnlacesActualizados),
       pagination: { total, page, limit, pages: Math.ceil(total / limit) },
     });
   } catch (error) {
