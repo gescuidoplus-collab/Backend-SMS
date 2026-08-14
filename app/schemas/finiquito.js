@@ -18,10 +18,9 @@ const FiniquitoSchema = new Schema(
       type: String,
       sparse: true,
     },
-    templateId: {
-      type: String,
-      default: '84c4c9a33dbc4621ab3a4f3d924aed8bd446017a',
-    },
+    // Solo para registros antiguos creados desde una plantilla de SignNow.
+    // Los nuevos finiquitos generan el PDF localmente (ver pdfFillService).
+    templateId: String,
 
     // Estados del flujo
     status: {
@@ -57,6 +56,9 @@ const FiniquitoSchema = new Schema(
     municipio: String,
 
     // Datos del trabajador
+    nomempleada: String,
+    niempleada: String,
+    // Nombres antiguos, conservados para registros creados antes de unificar
     nombretrabajador: String,
     niftrabajador: String,
     correoempleado: {
@@ -74,11 +76,20 @@ const FiniquitoSchema = new Schema(
     fecha: String,
     lugarFirma: String,
     tipoDocumentoEmpleada: String,
+    // Texto declarativo del documento. Si viene vacío se usa el de por defecto
+    // (ver TEXTO_INTRO_DEFAULT en pdfFillService).
+    textoIntro: String,
+    textoVacaciones: String,
+    textoIndemnizacion: String,
+    textoPreaviso: String,
+    baseReguladora: String,
     fechadesde: String,
     diasalario: String,
     fechasalariofinalconanio: String,
     salarioNeto: Number,
     tipoJornada: String,
+    enPruebas: Boolean,
+    diasVacacionesDisfrutadas: Number,
     diasLaborablesMes: Number,
 
     // Conceptos del finiquito
@@ -140,6 +151,30 @@ const FiniquitoSchema = new Schema(
       },
     ],
 
+    // Links de firma (no requieren correo del firmante)
+    signingLinks: [
+      {
+        role: String,
+        link: String,
+      },
+    ],
+
+    // Firmantes del documento. El token es lo único que da acceso al link
+    // público de firma, así que se genera aleatorio y es de un solo uso lógico.
+    firmantes: [
+      {
+        role: String, // 'Trabajador' o 'Empresa'
+        token: String,
+        firmado: {
+          type: Boolean,
+          default: false,
+        },
+        firmadoAt: Date,
+        firmaImagen: String, // PNG en data URL
+        ip: String,
+      },
+    ],
+
     // Reintentos automáticos
     retryCount: {
       type: Number,
@@ -166,6 +201,7 @@ FiniquitoSchema.index({ correoempleado: 1 });
 FiniquitoSchema.index({ correoempleador: 1 });
 FiniquitoSchema.index({ signNowDocumentId: 1 });
 FiniquitoSchema.index({ 'lastError.timestamp': 1 });
+FiniquitoSchema.index({ 'firmantes.token': 1 });
 
 const Finiquito = mongoose.model('Finiquito', FiniquitoSchema);
 

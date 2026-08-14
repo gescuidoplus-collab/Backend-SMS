@@ -18,10 +18,9 @@ const ContratoSchema = new Schema(
       type: String,
       sparse: true,
     },
-    templateId: {
-      type: String,
-      default: '58abf49926fe435fac7f94cf61c42af828cbd335',
-    },
+    // Solo para registros antiguos creados desde una plantilla de SignNow.
+    // Los nuevos contratos generan el PDF localmente (ver pdfFillService).
+    templateId: String,
 
     // Estados del flujo
     status: {
@@ -129,6 +128,29 @@ const ContratoSchema = new Schema(
       },
     ],
 
+    // Links de firma (no requieren correo del firmante)
+    signingLinks: [
+      {
+        role: String,
+        link: String,
+      },
+    ],
+
+    // Firmantes del documento. El token del enlace es la única credencial.
+    firmantes: [
+      {
+        role: String, // 'Trabajador' o 'Empresa'
+        token: String,
+        firmado: {
+          type: Boolean,
+          default: false,
+        },
+        firmadoAt: Date,
+        firmaImagen: String, // PNG en data URL
+        ip: String,
+      },
+    ],
+
     // Reintentos automáticos
     retryCount: {
       type: Number,
@@ -155,6 +177,7 @@ ContratoSchema.index({ correoempleado: 1 });
 ContratoSchema.index({ correoempleador: 1 });
 ContratoSchema.index({ signNowDocumentId: 1 });
 ContratoSchema.index({ 'lastError.timestamp': 1 });
+ContratoSchema.index({ 'firmantes.token': 1 });
 
 const Contrato = mongoose.model('Contrato', ContratoSchema);
 

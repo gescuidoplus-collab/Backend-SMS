@@ -1,10 +1,58 @@
+import crypto from 'crypto';
 import Contrato from '../schemas/contrato.js';
-import signNowService from '../services/signNowService.js';
 import twilioService from '../services/twilioService.js';
 import logger from '../config/logger.js';
+import { envConfig } from '../config/index.js';
 import { send_telegram_message } from '../services/sendMessageTelegram.js';
+import { generarContratoPdf, FIRMAS_CONTRATO } from '../services/pdfFillService.js';
 
-const TEMPLATE_ID = '58abf49926fe435fac7f94cf61c42af828cbd335';
+/**
+ * Traduce un registro de contrato a los campos del modelo oficial en PDF.
+ */
+export const construirValoresContratoPdf = (c) => {
+  const esCompleto = c.jornadaTipo === 'completo';
+  const esParcial = c.jornadaTipo === 'parcial';
+  const horas = c.horasJornada ? String(c.horasJornada) : '';
+
+  return {
+    // La jornada se marca con una X en los dos pares de casillas del modelo
+    checkcompleto: esCompleto ? 'X' : '',
+    checkparcial: esParcial ? 'X' : '',
+    tem_compl: esCompleto ? 'X' : '',
+    tem_parcial: esParcial ? 'X' : '',
+    horas_completo: esCompleto ? horas : '',
+    horas_parcial: esParcial ? horas : '',
+
+    nomempleador: c.nomempleador || '',
+    nifempleador: `${c.tipoDocumentoEmpleador || ''} ${c.nifempleador || ''}`.trim(),
+    regimen: c.regimen || '',
+    codigo: c.codigo || '',
+    prov: c.prov || '',
+    numero: c.numero || '',
+    dig: c.dig || '',
+    contr: c.contr || '',
+    cod_postal: c.codPostal || '',
+    domicilio: c.domicilio || '',
+    municipio: c.municipio || '',
+
+    nombretrabajador: c.nombretrabajador || '',
+    niftrabajador: `${c.tipoDocumentoTrabajador || ''} ${c.niftrabajador || ''}`.trim(),
+    fechanactrabajador: c.fechanactrabajador || '',
+    numafiliaciontrabajador: c.numafiliaciontrabajador || '',
+    nivelformativotrabajador: c.nivelformativotrabajador || '',
+    nacionalidadtrabajador: c.nacionalidadtrabajador || '',
+    municipiodomtrabaajdor: c.municipiodomtrabaajdor || '',
+    paisdomtrabajador: c.paisdomtrabajador || '',
+    inter_exter: c.interExterno || '',
+
+    fechacontrato: c.fechacontrato || '',
+    montobruto: c.montobruto ? String(c.montobruto) : '',
+    lugarfirma: c.lugarfirma || '',
+    diafirma: c.diafirma || '',
+    mesfirma: c.mesfirma || '',
+    anofirma: c.anofirma || '',
+  };
+};
 
 export const crearYEnviarContrato = async (req, res) => {
   const startTime = Date.now();
@@ -46,11 +94,12 @@ export const crearYEnviarContrato = async (req, res) => {
       anofirma,
     } = req.body;
 
-    // Validación básica
-    if (!correoempleado || !correoempleador) {
+    // El PDF se genera localmente y la firma se reparte mediante enlaces, así
+    // que no hacen falta los correos de los firmantes.
+    if (!nombretrabajador || !nomempleador) {
       return res.status(400).json({
         success: false,
-        message: 'Email del empleado y empleador son requeridos',
+        message: 'El nombre de la trabajadora y del empleador son requeridos',
       });
     }
 
@@ -90,7 +139,6 @@ export const crearYEnviarContrato = async (req, res) => {
       mesfirma,
       diafirma,
       anofirma,
-      templateId: TEMPLATE_ID,
     });
 
     await contrato.save();
@@ -100,109 +148,78 @@ export const crearYEnviarContrato = async (req, res) => {
     });
     logger.info(`✓ Registro guardado en MongoDB`, { contratoId: contrato._id });
 
-    // 2. CREAR DOCUMENTO EN SIGNNOW
-    logger.info('🔗 Creando documento en SignNow desde template');
-    const documentName = `Contrato - ${nombretrabajador} - ${fechacontrato}`;
+    // 2. GENERAR EL PDF YA RELLENO (localmente, sin servicios externos)
+    logger.info('📄 Generando PDF del contrato localmente');
 
-    let createDocResult;
+    let pdfBuffer;
     try {
-      createDocResult = await signNowService.createDocumentFromTemplate(
-        TEMPLATE_ID,
-        documentName
-      );
-      contrato.signNowDocumentId = createDocResult.documentId;
-      contrato.status = 'documento_creado';
+      pdfBuffer = await generarContratoPdf(construirValoresContratoPdf(contrato));
+
+      contrato.status = 'campos_llenados';
       contrato.timeline.push({
-        action: 'documento_creado',
-        details: { documentId: createDocResult.documentId },
+        action: 'campos_llenados',
+        details: { bytes: pdfBuffer.length },
       });
       await contrato.save();
-      logger.info(`✓ Documento creado en SignNow`, {
+      logger.info(`✓ PDF generado con los datos del contrato`, {
         contratoId: contrato._id,
-        documentId: createDocResult.documentId,
+        bytes: pdfBuffer.length,
       });
     } catch (error) {
       throw {
-        stage: 'create_document',
+        stage: 'generar_pdf',
         message: error.message,
         details: error,
       };
     }
 
-    // 2.5. LLENAR CAMPOS DEL DOCUMENTO
-    // Nota: solo se rellenan los 6 campos nuevos conocidos hasta ahora. El resto de
-    // campos de la plantilla (nombre, documento, régimen, etc.) siguen sin llenado
-    // automático hasta contar con sus nombres de campo en SignNow.
-    logger.info('✏️ Llenando campos nuevos del documento en SignNow');
+    // 3. GENERAR LOS ENLACES DE FIRMA
     try {
-      const fieldMap = {};
-      if (createDocResult.fields && Array.isArray(createDocResult.fields)) {
-        createDocResult.fields.forEach((field) => {
-          fieldMap[field.json_attributes?.name || field.name] = field.id;
-        });
-      }
+      const baseUrl = envConfig.frontendUrl.replace(/\/$/, '');
 
-      const esCompleto = jornadaTipo === 'completo';
-      const esParcial = jornadaTipo === 'parcial';
+      const firmantes = FIRMAS_CONTRATO.map((f) => ({
+        role: f.role,
+        token: crypto.randomBytes(24).toString('hex'),
+        firmado: false,
+      }));
 
-      const valores = {
-        checkcompleto: esCompleto ? 'X' : '',
-        checkparcial: esParcial ? 'X' : '',
-        // TODO: agregar aquí los 2 checks adicionales que marcan lo mismo, en cuanto
-        // se conozcan sus nombres de campo en SignNow.
-        horas_completo: esCompleto ? String(horasJornada || '') : '',
-        horas_parcial: esParcial ? String(horasJornada || '') : '',
-        cod_postal: codPostal || '',
-        inter_exter: interExterno || '',
-      };
-
-      const fieldsToFill = Object.entries(valores)
-        .filter(([name]) => fieldMap[name])
-        .map(([name, value]) => ({ id: fieldMap[name], prefilled_text: value }));
-
-      if (fieldsToFill.length > 0) {
-        await signNowService.fillDocumentFields(createDocResult.documentId, fieldsToFill);
-        contrato.status = 'campos_llenados';
-        contrato.timeline.push({
-          action: 'campos_llenados',
-          details: { fieldCount: fieldsToFill.length },
-        });
-        await contrato.save();
-        logger.info(`✓ Campos nuevos del documento llenados correctamente`, {
-          contratoId: contrato._id,
-          fieldCount: fieldsToFill.length,
-        });
-      } else {
-        logger.warn('⚠️ Ninguno de los campos nuevos se encontró en la plantilla de SignNow');
-      }
-    } catch (error) {
-      logger.warn('⚠️ Error llenando campos nuevos del documento (continuando)', {
-        contratoId: contrato._id,
-        error: error.message,
+      contrato.firmantes = firmantes;
+      contrato.signingLinks = firmantes.map((f) => ({
+        role: f.role,
+        link: `${baseUrl}/firmar/${f.token}`,
+      }));
+      contrato.status = 'invitacion_enviada';
+      contrato.signerStatus = firmantes.map((f) => ({
+        role: f.role,
+        status: 'pending',
+      }));
+      contrato.timeline.push({
+        action: 'invitacion_enviada',
+        details: { linkCount: firmantes.length },
       });
-      contrato.errors.push({
-        stage: 'fill_fields',
+      await contrato.save();
+      logger.info(`✓ Enlaces de firma generados`, {
+        contratoId: contrato._id,
+        linkCount: firmantes.length,
+      });
+    } catch (error) {
+      throw {
+        stage: 'links_firma',
         message: error.message,
         details: error,
-      });
-      // No fallar completamente: el contrato sigue siendo válido sin estos campos extra
+      };
     }
 
-    // 3. MAPEAR ROLES PARA INVITACIÓN
-    logger.info('📊 Preparando roles para invitación');
-
-    const roleMap = {};
-    if (createDocResult.roles && Array.isArray(createDocResult.roles)) {
-      createDocResult.roles.forEach((role) => {
-        roleMap[role.name] = role.unique_id;
-      });
-      logger.info('Roles mapeados correctamente', { roleMap });
-    }
-
-    // 5. ENVIAR WHATSAPP DE NOTIFICACIÓN
+    // 4. ENVIAR WHATSAPP DE NOTIFICACIÓN
     logger.info('💬 Enviando notificación por WhatsApp');
     try {
-      const whatsappMessage = `Hola ${nombretrabajador},\n\nTe informamos que tu contrato está listo. Pronto recibirás una invitación de firma en tu correo electrónico.\n\nQuedamos atenta a cualquier duda.\n\nCuidoFam 💙`;
+      const linkTrabajador = (contrato.signingLinks || []).find(
+        (l) => l.role === 'Trabajador'
+      )?.link;
+
+      const whatsappMessage = linkTrabajador
+        ? `Hola ${nombretrabajador},\n\nTu contrato de trabajo está listo para firmar. Puedes revisarlo y firmarlo desde este enlace:\n\n${linkTrabajador}\n\nQuedamos atenta a cualquier duda.\n\nCuidoFam 💙`
+        : `Hola ${nombretrabajador},\n\nTe informamos que tu contrato ya está listo.\n\nQuedamos atenta a cualquier duda.\n\nCuidoFam 💙`;
 
       // TODO: Obtener número de teléfono del empleado desde CloudNavis o formulario
       const phoneNumber = '+34' + niftrabajador;
@@ -212,15 +229,12 @@ export const crearYEnviarContrato = async (req, res) => {
         body: whatsappMessage,
       });
 
-      contrato.status = 'whatsapp_enviado';
       contrato.timeline.push({
         action: 'whatsapp_enviado',
         details: { message: whatsappMessage },
       });
       await contrato.save();
-      logger.info(`✓ WhatsApp enviado correctamente`, {
-        contratoId: contrato._id,
-      });
+      logger.info(`✓ WhatsApp enviado correctamente`, { contratoId: contrato._id });
     } catch (error) {
       logger.warn('⚠️ Error enviando WhatsApp (continuando)', {
         contratoId: contrato._id,
@@ -231,58 +245,7 @@ export const crearYEnviarContrato = async (req, res) => {
         message: error.message,
         details: error,
       });
-      // No fallar completamente, continuar con la invitación
-    }
-
-    // 4. INVITAR A FIRMAR
-    logger.info('📮 Enviando invitación de firma en SignNow');
-    const signers = [
-      {
-        email: correoempleado,
-        role_id: roleMap['Trabajador'],
-        role: 'Trabajador',
-      },
-      {
-        email: correoempleador,
-        role_id: roleMap['Empresa'],
-        role: 'Empresa',
-      },
-    ];
-
-    try {
-      const inviteResult = await signNowService.inviteToSign(
-        createDocResult.documentId,
-        signers,
-        'Invitación de Firma - Contrato CuidoFam',
-        `Por favor firma el contrato. El documento está disponible en SignNow.\n\nEmpleado: ${nombretrabajador}\nEmpleador: ${nomempleador}\nFecha: ${fechacontrato}`
-      );
-
-      contrato.signNowInvitationId = inviteResult.invitationId;
-      contrato.status = 'invitacion_enviada';
-      contrato.signerStatus = signers.map((s) => ({
-        email: s.email,
-        role: s.role,
-        status: 'sent',
-      }));
-      contrato.timeline.push({
-        action: 'invitacion_enviada',
-        details: {
-          invitationId: inviteResult.invitationId,
-          signerCount: signers.length,
-        },
-      });
-      await contrato.save();
-      logger.info(`✓ Invitación de firma enviada correctamente`, {
-        contratoId: contrato._id,
-        invitationId: inviteResult.invitationId,
-        signerCount: signers.length,
-      });
-    } catch (error) {
-      throw {
-        stage: 'invite_to_sign',
-        message: error.message,
-        details: error,
-      };
+      // No fallar completamente: el contrato y sus enlaces ya existen
     }
 
     // ÉXITO - Enviar resumen a Telegram
@@ -304,13 +267,11 @@ export const crearYEnviarContrato = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: 'Contrato creado y enviado exitosamente',
+      message: 'Contrato creado exitosamente',
       data: {
         contratoId: contrato._id,
         status: contrato.status,
-        signNowDocumentId: contrato.signNowDocumentId,
-        employeeEmail: correoempleado,
-        employerEmail: correoempleador,
+        signingLinks: contrato.signingLinks || [],
       },
     });
   } catch (error) {
@@ -411,5 +372,62 @@ export const obtenerContratoDetalle = async (req, res) => {
       success: false,
       message: error.message,
     });
+  }
+};
+
+export const descargarContrato = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const contrato = await Contrato.findById(id);
+
+    if (!contrato) {
+      return res.status(404).json({
+        success: false,
+        message: 'Contrato no encontrado',
+      });
+    }
+
+    // Se reconstruye siempre desde los datos guardados, incluyendo las firmas
+    // que ya se hayan recogido.
+    const pdfBuffer = await generarContratoPdf(
+      construirValoresContratoPdf(contrato),
+      contrato.firmantes || []
+    );
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="contrato-${contrato.nombretrabajador || id}.pdf"`
+    );
+    res.send(Buffer.from(pdfBuffer));
+  } catch (error) {
+    logger.error('Error descargando contrato', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const eliminarContrato = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const contrato = await Contrato.findByIdAndDelete(id);
+
+    if (!contrato) {
+      return res.status(404).json({
+        success: false,
+        message: 'Contrato no encontrado',
+      });
+    }
+
+    logger.info('🗑️ Contrato eliminado', {
+      contratoId: id,
+      trabajador: contrato.nombretrabajador,
+    });
+
+    res.status(200).json({ success: true, message: 'Contrato eliminado' });
+  } catch (error) {
+    logger.error('Error eliminando contrato', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
