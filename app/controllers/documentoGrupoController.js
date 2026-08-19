@@ -140,7 +140,7 @@ export const crearDocumentoGrupo = async (req, res) => {
       data: {
         documentoId: documento._id,
         status: documento.status,
-        signingLinks: enlacesDeFirma([firmante]),
+        signingLinks: enlacesDeFirma(documento.firmantes),
       },
     });
   } catch (error) {
@@ -208,6 +208,10 @@ export const descargarDocumentoGrupo = async (req, res) => {
     const pdfBuffer = await generarGrupoPdf(construirValoresGrupoPdf(documento), firma);
 
     res.setHeader('Content-Type', 'application/pdf');
+    // El PDF se rehace en cada descarga con las firmas que haya en ese momento.
+    // Sin esto el navegador puede reutilizar la copia anterior y devolver el
+    // documento sin las firmas recién recogidas.
+    res.setHeader('Cache-Control', 'no-store');
     res.setHeader(
       'Content-Disposition',
       `attachment; filename="documentos-${nombreCompleto(documento) || documento._id}.pdf"`

@@ -45,6 +45,35 @@ export const construirValoresContratoPdf = (c) => {
     paisdomtrabajador: c.paisdomtrabajador || '',
     inter_exter: c.interExterno || '',
 
+    // Cláusulas. Los textos llegan ya redactados desde el formulario; aquí solo
+    // se traducen las opciones a la X que marca cada casilla del modelo.
+    cl_puesto: c.clausulaPuesto || '',
+    cl_lugar_trabajo: c.clausulaLugarTrabajo || '',
+    cl_distribucion: c.clausulaDistribucion || '',
+
+    cl_presencia_si: c.clausulaPresencia === 'si' ? 'X' : '',
+    cl_presencia_no: c.clausulaPresencia === 'no' ? 'X' : '',
+    cl_presencia_horas: c.clausulaPresenciaHoras || '',
+    cl_presencia_reparto: c.clausulaPresenciaReparto || '',
+    cl_presencia_compensacion: c.clausulaPresenciaModo === 'compensacion' ? 'X' : '',
+    cl_presencia_retribucion: c.clausulaPresenciaModo === 'retribucion' ? 'X' : '',
+    cl_presencia_ambas: c.clausulaPresenciaModo === 'ambas' ? 'X' : '',
+
+    cl_periodo_prueba: c.clausulaPeriodoPrueba || '',
+
+    cl_pernocta_si: c.clausulaPernocta === 'si' ? 'X' : '',
+    cl_pernocta_no: c.clausulaPernocta === 'no' ? 'X' : '',
+    cl_pernocta_noches: c.clausulaPernoctaNoches || '',
+
+    cl_periodicidad: c.clausulaPeriodicidad || '',
+    cl_conceptos_salariales: c.clausulaConceptosSalariales || '',
+    cl_especie_si: c.clausulaEspecie === 'si' ? 'X' : '',
+    cl_especie_no: c.clausulaEspecie === 'no' ? 'X' : '',
+    cl_especie_detalle: c.clausulaEspecieDetalle || '',
+
+    cl_vacaciones: c.clausulaVacaciones || '',
+    cl_bonificacion: c.clausulaBonificacion ? 'X' : '',
+
     fechacontrato: c.fechacontrato || '',
     montobruto: c.montobruto ? String(c.montobruto) : '',
     lugarfirma: c.lugarfirma || '',
@@ -92,6 +121,23 @@ export const crearYEnviarContrato = async (req, res) => {
       mesfirma,
       diafirma,
       anofirma,
+      // Cláusulas del contrato
+      clausulaPuesto,
+      clausulaLugarTrabajo,
+      clausulaDistribucion,
+      clausulaPresencia,
+      clausulaPresenciaHoras,
+      clausulaPresenciaReparto,
+      clausulaPresenciaModo,
+      clausulaPeriodoPrueba,
+      clausulaPernocta,
+      clausulaPernoctaNoches,
+      clausulaPeriodicidad,
+      clausulaConceptosSalariales,
+      clausulaEspecie,
+      clausulaEspecieDetalle,
+      clausulaVacaciones,
+      clausulaBonificacion,
     } = req.body;
 
     // El PDF se genera localmente y la firma se reparte mediante enlaces, así
@@ -139,6 +185,22 @@ export const crearYEnviarContrato = async (req, res) => {
       mesfirma,
       diafirma,
       anofirma,
+      clausulaPuesto,
+      clausulaLugarTrabajo,
+      clausulaDistribucion,
+      clausulaPresencia,
+      clausulaPresenciaHoras,
+      clausulaPresenciaReparto,
+      clausulaPresenciaModo,
+      clausulaPeriodoPrueba,
+      clausulaPernocta,
+      clausulaPernoctaNoches,
+      clausulaPeriodicidad,
+      clausulaConceptosSalariales,
+      clausulaEspecie,
+      clausulaEspecieDetalle,
+      clausulaVacaciones,
+      clausulaBonificacion,
     });
 
     await contrato.save();
@@ -391,6 +453,10 @@ export const descargarContrato = async (req, res) => {
     );
 
     res.setHeader('Content-Type', 'application/pdf');
+    // El PDF se rehace en cada descarga con las firmas que haya en ese momento.
+    // Sin esto el navegador puede reutilizar la copia anterior y devolver el
+    // documento sin las firmas recién recogidas.
+    res.setHeader('Cache-Control', 'no-store');
     res.setHeader(
       'Content-Disposition',
       `attachment; filename="contrato-${contrato.nombretrabajador || id}.pdf"`

@@ -160,6 +160,9 @@ export const obtenerDocumentoFirma = async (req, res) => {
     const pdfBuffer = await generarPdf(documento, tipo);
 
     res.setHeader('Content-Type', 'application/pdf');
+    // Se regenera con las firmas ya recogidas: si el navegador reutiliza la
+    // copia anterior, el firmante ve el documento sin las firmas previas.
+    res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Content-Disposition', `inline; filename="${tipo}.pdf"`);
     res.send(pdfBuffer);
   } catch (error) {
