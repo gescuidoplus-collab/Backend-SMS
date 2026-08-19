@@ -83,6 +83,25 @@ const ContratoSchema = new Schema(
     diafirma: String,
     anofirma: String,
 
+    // Cláusulas del contrato. Se guardan tal cual se redactan en el formulario
+    // para poder rehacer el PDF idéntico al firmado.
+    clausulaPuesto: String, // PRIMERA: puesto de trabajo
+    clausulaLugarTrabajo: String, // PRIMERA: domicilio donde se presta el servicio
+    clausulaDistribucion: String, // SEGUNDA: distribución del tiempo de trabajo
+    clausulaPresencia: String, // TERCERA: 'si' | 'no' (horas de presencia)
+    clausulaPresenciaHoras: String, // TERCERA: horas semanales de presencia
+    clausulaPresenciaReparto: String, // TERCERA: cómo se distribuyen
+    clausulaPresenciaModo: String, // TERCERA: 'compensacion' | 'retribucion' | 'ambas'
+    clausulaPeriodoPrueba: String, // CUARTA: duración del período de prueba
+    clausulaPernocta: String, // QUINTA: 'si' | 'no'
+    clausulaPernoctaNoches: String, // QUINTA: régimen de pernoctas
+    clausulaPeriodicidad: String, // SEXTA: periodicidad del pago
+    clausulaConceptosSalariales: String, // SEXTA: conceptos salariales
+    clausulaEspecie: String, // SEXTA: 'si' | 'no' (retribución en especie)
+    clausulaEspecieDetalle: String, // SEXTA: en qué consiste
+    clausulaVacaciones: String, // SÉPTIMA: duración de las vacaciones
+    clausulaBonificacion: Boolean, // OCTAVA: casilla de la reducción/bonificación
+
     // Monitoreo y errores
     errors: [
       {

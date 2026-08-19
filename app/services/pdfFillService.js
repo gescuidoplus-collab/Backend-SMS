@@ -141,6 +141,45 @@ const CAMPOS_CONTRATO = [
   { name: 'tem_compl', page: 0, x: 58, y: 613, width: 9, height: 11, size: 7, align: 'center' },
   { name: 'horas_parcial', page: 0, x: 296, y: 636, width: 28, height: 11, size: 7, align: 'center' },
   { name: 'tem_parcial', page: 0, x: 58, y: 641, width: 9, height: 11, size: 7, align: 'center' },
+  // Página 1 — CLÁUSULA PRIMERA
+  // Coordenadas medidas sobre el propio modelo: la posición de cada hueco se
+  // sacó de dónde empiezan los puntos suspensivos impresos.
+  { name: 'cl_puesto', page: 0, x: 270, y: 557, width: 200, height: 11, size: 7, align: 'left' },
+  { name: 'cl_lugar_trabajo', page: 0, x: 197, y: 569, width: 352, height: 11, size: 7, align: 'left' },
+
+  // Página 2 — cierre de la SEGUNDA (distribución del tiempo de trabajo)
+  { name: 'cl_distribucion', page: 1, x: 215, y: 43, width: 328, height: 11, size: 7, align: 'left' },
+
+  // Página 2 — CLÁUSULA TERCERA (horas de presencia)
+  { name: 'cl_presencia_si', page: 1, x: 110, y: 89, width: 11, height: 11, size: 8, align: 'center' },
+  { name: 'cl_presencia_no', page: 1, x: 172, y: 89, width: 11, height: 11, size: 8, align: 'center' },
+  { name: 'cl_presencia_horas', page: 1, x: 88, y: 92, width: 22, height: 11, size: 7, align: 'center' },
+  { name: 'cl_presencia_reparto', page: 1, x: 318, y: 92, width: 144, height: 11, size: 7, align: 'left' },
+  { name: 'cl_presencia_compensacion', page: 1, x: 46, y: 129, width: 11, height: 11, size: 8, align: 'center' },
+  { name: 'cl_presencia_retribucion', page: 1, x: 46, y: 149, width: 11, height: 11, size: 8, align: 'center' },
+  { name: 'cl_presencia_ambas', page: 1, x: 46, y: 169, width: 11, height: 11, size: 8, align: 'center' },
+
+  // Página 2 — CLÁUSULA CUARTA (período de prueba)
+  { name: 'cl_periodo_prueba', page: 1, x: 190, y: 192, width: 170, height: 11, size: 7, align: 'left' },
+
+  // Página 2 — CLÁUSULA QUINTA (pernocta)
+  { name: 'cl_pernocta_si', page: 1, x: 106, y: 229, width: 11, height: 11, size: 8, align: 'center' },
+  { name: 'cl_pernocta_no', page: 1, x: 167, y: 229, width: 11, height: 11, size: 8, align: 'center' },
+  { name: 'cl_pernocta_noches', page: 1, x: 110, y: 232, width: 120, height: 11, size: 7, align: 'left' },
+
+  // Página 2 — CLÁUSULA SEXTA (retribución)
+  { name: 'cl_periodicidad', page: 1, x: 460, y: 277, width: 86, height: 11, size: 7, align: 'left' },
+  { name: 'cl_conceptos_salariales', page: 1, x: 263, y: 287, width: 165, height: 11, size: 7, align: 'left' },
+  { name: 'cl_especie_si', page: 1, x: 107, y: 314, width: 11, height: 11, size: 8, align: 'center' },
+  { name: 'cl_especie_no', page: 1, x: 166, y: 314, width: 11, height: 11, size: 8, align: 'center' },
+  // El hueco tras "consistirán en :" es diminuto, así que el detalle se escribe
+  // en la línea de puntos completa que viene justo debajo.
+  { name: 'cl_especie_detalle', page: 1, x: 37, y: 327, width: 507, height: 11, size: 7, align: 'left' },
+
+  // Página 2 — CLÁUSULAS SÉPTIMA y OCTAVA
+  { name: 'cl_vacaciones', page: 1, x: 276, y: 342, width: 262, height: 11, size: 7, align: 'left' },
+  { name: 'cl_bonificacion', page: 1, x: 226, y: 386, width: 11, height: 11, size: 8, align: 'center' },
+
   // Página 2 — contrato y firma
   { name: 'fechacontrato', page: 1, x: 421, y: 182, width: 99, height: 11, size: 7, align: 'left' },
   { name: 'montobruto', page: 1, x: 262, y: 279, width: 129, height: 11, size: 7, align: 'center' },
