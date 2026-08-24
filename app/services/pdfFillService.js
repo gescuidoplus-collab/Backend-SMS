@@ -136,7 +136,10 @@ const CAMPOS_CONTRATO = [
   { name: 'municipiodomtrabaajdor', page: 0, x: 52, y: 434, width: 133, height: 11, size: 7, align: 'left' },
   { name: 'paisdomtrabajador', page: 0, x: 339, y: 434, width: 165, height: 11, size: 7, align: 'left' },
   // Página 1 — jornada
-  { name: 'inter_exter', page: 0, x: 477, y: 607, width: 54, height: 11, size: 7, align: 'center' },
+  // El hueco se ensancha (mismo centro) para que quepan las variantes de fin
+  // de semana: "Externa fin de semana" necesita 70 pt y en 54 no entraba. La
+  // banda está libre entre el "SEGUNDA:" y la línea de la jornada completa.
+  { name: 'inter_exter', page: 0, x: 459, y: 607, width: 90, height: 11, size: 7, align: 'center' },
   { name: 'horas_completo', page: 0, x: 283, y: 607, width: 28, height: 11, size: 7, align: 'center' },
   { name: 'tem_compl', page: 0, x: 58, y: 613, width: 9, height: 11, size: 7, align: 'center' },
   { name: 'horas_parcial', page: 0, x: 296, y: 636, width: 28, height: 11, size: 7, align: 'center' },
