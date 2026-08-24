@@ -16,9 +16,10 @@ const quoteSchema = new mongoose.Schema(
       {
         numero: Number,
         resultados: mongoose.Schema.Types.Mixed,
+        // Encabeza tanto el desglose como el coste total de este presupuesto.
+        // Antes había además mensajesPresupuesto y mensajesActivacion, uno por
+        // sitio; se unificaron en este porque siempre se escribía lo mismo.
         desglose: String,
-        mensajesPresupuesto: String,
-        mensajesActivacion: String,
       },
     ],
     considerationOne: { type: String, default: "" },
