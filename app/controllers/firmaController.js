@@ -6,6 +6,8 @@ import {
   generarFiniquitoPdf,
   generarContratoPdf,
   generarGrupoPdf,
+  CLAVES_DOCUMENTOS_GRUPO,
+  NOMBRES_DOCUMENTOS_GRUPO,
 } from '../services/pdfFillService.js';
 import {
   construirValoresPdf,
@@ -15,7 +17,7 @@ import {
   construirTextoPreaviso,
 } from './finiquitoController.js';
 import { construirValoresContratoPdf } from './contratoController.js';
-import { construirValoresGrupoPdf } from './documentoGrupoController.js';
+import { construirValoresGrupoPdf, clavesDelGrupo } from './documentoGrupoController.js';
 
 /**
  * Endpoints públicos de firma, comunes a finiquitos y contratos. El único
@@ -60,7 +62,7 @@ const buscarPorToken = async (token) => {
 const generarPdf = (documento, tipo) => {
   if (tipo === 'grupo') {
     const firma = (documento.firmantes || []).find((f) => f.firmado)?.firmaImagen;
-    return generarGrupoPdf(construirValoresGrupoPdf(documento), firma);
+    return generarGrupoPdf(construirValoresGrupoPdf(documento), firma, clavesDelGrupo(documento));
   }
   if (tipo === 'contrato') {
     return generarContratoPdf(
@@ -97,7 +99,13 @@ export const obtenerFirmaInfo = async (req, res) => {
     // Cada tipo expone sus propios campos con nombres distintos
     const resumen = {
       grupo: {
-        titulo: 'Documentos de Alta',
+        // Si el paquete no lleva los tres modelos, el título dice cuáles son
+        titulo:
+          clavesDelGrupo(documento).length === CLAVES_DOCUMENTOS_GRUPO.length
+            ? 'Documentos de Alta'
+            : `Documentos de Alta (${clavesDelGrupo(documento)
+                .map((c) => NOMBRES_DOCUMENTOS_GRUPO[c])
+                .join(', ')})`,
         trabajador: `${documento.nombres || ''} ${documento.primerApellido || ''} ${
           documento.segundoApellido || ''
         }`

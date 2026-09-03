@@ -16,6 +16,14 @@ const DocumentoGrupoSchema = new Schema(
       index: true,
     },
 
+    // Modelos incluidos en este paquete. Por defecto van los tres, pero se
+    // puede elegir generar y firmar solo algunos.
+    documentosSeleccionados: {
+      type: [String],
+      enum: ['fr103', 'ta1', 'fr-ccc', 'sepa'],
+      default: ['fr103', 'ta1', 'fr-ccc'],
+    },
+
     // Datos personales
     primerApellido: String,
     segundoApellido: String,
@@ -48,6 +56,13 @@ const DocumentoGrupoSchema = new Schema(
     numeroCuenta: String,
     cuentaCotizacion: String,
     razonSocial: String,
+
+    // SEPA (TC 1/15-3): orden de domiciliación de cuotas
+    sepaTipoSolicitud: String, // alta | baja | cambio
+    sepaRegimen: String, // autonomos | agrario | hogar | convenio | mar | deudas
+    titularCuenta: String, // si va vacío, la persona del formulario
+    tipoDocumentoEmpleador: String, // dni | nie | pasaporte | cif (responsable del pago)
+    numeroDocumentoEmpleador: String,
 
     // Firma
     lugarFirma: String,

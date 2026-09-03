@@ -1,7 +1,11 @@
 import crypto from 'crypto';
 import DocumentoGrupo from '../schemas/documentoGrupo.js';
 import logger from '../config/logger.js';
-import { generarGrupoPdf } from '../services/pdfFillService.js';
+import {
+  generarGrupoPdf,
+  CLAVES_DOCUMENTOS_GRUPO,
+  NOMBRES_DOCUMENTOS_GRUPO,
+} from '../services/pdfFillService.js';
 import { enlacesDeFirma, conEnlacesActualizados } from '../utils/signingLinks.js';
 
 const nombreCompleto = (d) =>
@@ -22,8 +26,59 @@ const direccionCompleta = (d) =>
     .filter(Boolean)
     .join(', ');
 
+/** Solo la parte de calle de la dirección (el SEPA pide aparte localidad, CP y provincia). */
+const domicilioCalle = (d) =>
+  [
+    [d.tipoVia, d.nombreVia].filter(Boolean).join(' '),
+    d.numero && `nº ${d.numero}`,
+    d.bloque && `bloque ${d.bloque}`,
+    d.puerta && `puerta ${d.puerta}`,
+  ]
+    .filter(Boolean)
+    .join(', ');
+
+const MESES = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+];
+
 /**
- * Reparte los datos del registro entre los campos de cada uno de los tres
+ * Descompone la fecha de firma ("3 de Septiembre 2026" o "03/09/2026") en
+ * día, mes y año, que el SEPA pide en casillas separadas.
+ */
+export const descomponerFecha = (texto) => {
+  const t = String(texto || '').trim().toLowerCase();
+  if (!t) return { dia: '', mes: '', anio: '' };
+
+  let m = t.match(/(\d{1,2})\s+de\s+([a-záéíóúñ]+)\s+(?:de\s+)?(\d{4})/i);
+  if (m) {
+    const idx = MESES.indexOf(m[2].normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
+    return {
+      dia: m[1].padStart(2, '0'),
+      mes: idx >= 0 ? String(idx + 1).padStart(2, '0') : '',
+      anio: m[3],
+    };
+  }
+
+  m = t.match(/(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+  if (m) return { dia: m[1].padStart(2, '0'), mes: m[2].padStart(2, '0'), anio: m[3] };
+
+  return { dia: '', mes: '', anio: '' };
+};
+
+/** Marca con X la casilla del tipo de documento que corresponda. */
+const marcasTipoDocumento = (prefijo, tipo) => {
+  const t = (tipo || '').toLowerCase();
+  return {
+    [`${prefijo}_dni`]: t === 'dni' ? 'X' : '',
+    [`${prefijo}_ext`]: t === 'nie' ? 'X' : '',
+    [`${prefijo}_pas`]: t === 'pasaporte' ? 'X' : '',
+    [`${prefijo}_cif`]: t === 'cif' ? 'X' : '',
+  };
+};
+
+/**
+ * Reparte los datos del registro entre los campos de cada uno de los
  * modelos del paquete.
  */
 export const construirValoresGrupoPdf = (d) => {
@@ -31,7 +86,47 @@ export const construirValoresGrupoPdf = (d) => {
   const documento = d.numeroDocumento || d.nif || '';
   const tipo = (d.tipoDocumento || '').toLowerCase();
 
+  // --- SEPA (TC 1/15-3) ---
+  const solicitud = (d.sepaTipoSolicitud || 'cambio').toLowerCase();
+  const regimen = (d.sepaRegimen || '').toLowerCase();
+  // En una baja el modelo pide no rellenar el IBAN
+  const iban = solicitud === 'baja' ? '' : String(d.numeroCuenta || '').replace(/\s+/g, '').toUpperCase();
+  const titular = d.titularCuenta || nombre;
+  const fecha = descomponerFecha(d.fechaFirma);
+  const sepaComun = {
+    sujeto: d.razonSocial || '',
+    numss: d.cuentaCotizacion || '',
+    ...marcasTipoDocumento('resp', d.tipoDocumentoEmpleador),
+    resp_doc: d.numeroDocumentoEmpleador || '',
+    iban,
+    titular,
+    domicilio: domicilioCalle(d),
+    localidad: d.municipio || '',
+    cp: d.codPostal || '',
+    provincia: d.provincia || '',
+    ...marcasTipoDocumento('tit', tipo),
+    tit_doc: documento,
+  };
+  const sepa = {
+    sol_alta: solicitud === 'alta' ? 'X' : '',
+    sol_baja: solicitud === 'baja' ? 'X' : '',
+    sol_cambio: solicitud === 'cambio' ? 'X' : '',
+    reg_autonomos: regimen === 'autonomos' ? 'X' : '',
+    reg_agrario: regimen === 'agrario' ? 'X' : '',
+    reg_hogar: regimen === 'hogar' ? 'X' : '',
+    reg_convenio: regimen === 'convenio' ? 'X' : '',
+    reg_mar: regimen === 'mar' ? 'X' : '',
+    reg_deudas: regimen === 'deudas' ? 'X' : '',
+    dia: fecha.dia,
+    mes: fecha.mes,
+    anio: fecha.anio,
+    ...sepaComun,
+    // El resguardo de la mitad inferior repite los mismos datos
+    ...Object.fromEntries(Object.entries(sepaComun).map(([k, v]) => [`r_${k}`, v])),
+  };
+
   return {
+    sepa,
     fr103: {
       nombreafiliado: nombre,
       nifafiliado: documento,
@@ -85,11 +180,47 @@ export const construirValoresGrupoPdf = (d) => {
   };
 };
 
+/**
+ * Modelos que lleva un registro. Los paquetes antiguos no guardaban la
+ * selección, así que se asume que llevan los tres.
+ */
+export const clavesDelGrupo = (documento) => {
+  const claves = (documento?.documentosSeleccionados || []).filter((c) =>
+    CLAVES_DOCUMENTOS_GRUPO.includes(c)
+  );
+  return claves.length > 0 ? claves : CLAVES_DOCUMENTOS_GRUPO;
+};
+
+/**
+ * Normaliza la selección que llega del formulario. Si no viene nada se
+ * generan los tres; si viene algo, tiene que ser al menos un modelo válido.
+ */
+const normalizarSeleccion = (entrada) => {
+  if (entrada === undefined || entrada === null) return { claves: CLAVES_DOCUMENTOS_GRUPO };
+  if (!Array.isArray(entrada)) {
+    return { error: 'El campo "documentos" debe ser una lista de modelos' };
+  }
+
+  const invalidas = entrada.filter((c) => !CLAVES_DOCUMENTOS_GRUPO.includes(c));
+  if (invalidas.length > 0) {
+    return {
+      error: `Modelos no reconocidos: ${invalidas.join(', ')}. Válidos: ${CLAVES_DOCUMENTOS_GRUPO.join(', ')}`,
+    };
+  }
+
+  // Se guarda en el orden fijo del paquete y sin repetidos
+  const claves = CLAVES_DOCUMENTOS_GRUPO.filter((c) => entrada.includes(c));
+  if (claves.length === 0) {
+    return { error: 'Selecciona al menos un documento para generar' };
+  }
+  return { claves };
+};
+
 export const crearDocumentoGrupo = async (req, res) => {
   let documento = null;
 
   try {
-    const datos = req.body || {};
+    const { documentos: seleccionEntrada, ...datos } = req.body || {};
 
     if (!datos.nombres || !datos.primerApellido) {
       return res.status(400).json({
@@ -98,15 +229,31 @@ export const crearDocumentoGrupo = async (req, res) => {
       });
     }
 
-    // 1. GUARDAR EL REGISTRO
-    logger.info('📝 Creando paquete de documentos en MongoDB');
-    documento = new DocumentoGrupo({ status: 'pendiente', ...datos });
-    await documento.save();
-    documento.timeline.push({ action: 'registro_creado', details: { id: documento._id } });
+    const seleccion = normalizarSeleccion(seleccionEntrada);
+    if (seleccion.error) {
+      return res.status(400).json({ success: false, message: seleccion.error });
+    }
 
-    // 2. GENERAR EL PDF (los tres modelos unidos)
+    // 1. GUARDAR EL REGISTRO
+    logger.info('📝 Creando paquete de documentos en MongoDB', { documentos: seleccion.claves });
+    documento = new DocumentoGrupo({
+      status: 'pendiente',
+      ...datos,
+      documentosSeleccionados: seleccion.claves,
+    });
+    await documento.save();
+    documento.timeline.push({
+      action: 'registro_creado',
+      details: { id: documento._id, documentos: seleccion.claves },
+    });
+
+    // 2. GENERAR EL PDF (los modelos elegidos, unidos)
     try {
-      const pdfBuffer = await generarGrupoPdf(construirValoresGrupoPdf(documento));
+      const pdfBuffer = await generarGrupoPdf(
+        construirValoresGrupoPdf(documento),
+        undefined,
+        clavesDelGrupo(documento)
+      );
       documento.status = 'campos_llenados';
       documento.timeline.push({ action: 'campos_llenados', details: { bytes: pdfBuffer.length } });
       await documento.save();
@@ -115,7 +262,7 @@ export const crearDocumentoGrupo = async (req, res) => {
       throw { stage: 'generar_pdf', message: error.message, details: error };
     }
 
-    // 3. ENLACE DE FIRMA (un único firmante para los tres documentos)
+    // 3. ENLACE DE FIRMA (un único firmante para todos los documentos del paquete)
     try {
       const firmante = {
         role: 'Trabajadora',
@@ -140,6 +287,8 @@ export const crearDocumentoGrupo = async (req, res) => {
       data: {
         documentoId: documento._id,
         status: documento.status,
+        documentos: clavesDelGrupo(documento),
+        nombresDocumentos: clavesDelGrupo(documento).map((c) => NOMBRES_DOCUMENTOS_GRUPO[c]),
         signingLinks: enlacesDeFirma(documento.firmantes),
       },
     });
@@ -205,7 +354,11 @@ export const descargarDocumentoGrupo = async (req, res) => {
     }
 
     const firma = (documento.firmantes || []).find((f) => f.firmado)?.firmaImagen;
-    const pdfBuffer = await generarGrupoPdf(construirValoresGrupoPdf(documento), firma);
+    const pdfBuffer = await generarGrupoPdf(
+      construirValoresGrupoPdf(documento),
+      firma,
+      clavesDelGrupo(documento)
+    );
 
     res.setHeader('Content-Type', 'application/pdf');
     // El PDF se rehace en cada descarga con las firmas que haya en ese momento.

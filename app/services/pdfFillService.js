@@ -252,9 +252,45 @@ const drawTextInCells = (page, font, campo, valor, ref) => {
   });
 };
 
+/**
+ * Reparte un texto carácter a carácter en casillas cuya posición no es
+ * uniforme (p. ej. el IBAN del SEPA, con huecos cada cuatro casillas).
+ * `campo.casillas` es la lista de la x de cada casilla; `width`/`height`
+ * son las de una casilla.
+ */
+const drawTextInSlots = (page, font, campo, valor, ref) => {
+  const texto = sanitizarTexto(valor);
+  if (!texto) return;
+
+  const { height: pageHeight, width: pageWidth } = page.getSize();
+  const escalaX = pageWidth / ref.width;
+  const escalaY = pageHeight / ref.height;
+  const size = campo.size;
+  const anchoCasilla = campo.width * escalaX;
+  const cajaTop = campo.y * escalaY;
+  const cajaAlto = campo.height * escalaY;
+  const y = pageHeight - cajaTop - cajaAlto + (cajaAlto - size) / 2 + size * 0.12;
+
+  [...texto].slice(0, campo.casillas.length).forEach((caracter, i) => {
+    const anchoCaracter = font.widthOfTextAtSize(caracter, size);
+    page.drawText(caracter, {
+      x: campo.casillas[i] * escalaX + (anchoCasilla - anchoCaracter) / 2,
+      y,
+      size,
+      font,
+      color: rgb(0, 0, 0),
+    });
+  });
+};
+
 const drawTextInBox = (page, font, campo, valor, ref = REF_FINIQUITO) => {
   const texto = sanitizarTexto(valor);
   if (!texto) return;
+
+  if (campo.casillas) {
+    drawTextInSlots(page, font, campo, valor, ref);
+    return;
+  }
 
   // Los campos con cuadrícula se reparten carácter a carácter
   if (campo.celdas) {
@@ -701,17 +737,98 @@ const DOCUMENTOS_GRUPO = [
       { page: 1, x: 95, y: 685, width: 121, height: 21 },
     ],
   },
+  {
+    clave: 'sepa',
+    nombre: 'SEPA (TC 1/15-3)',
+    asset: 'sepa-base.pdf',
+    // Coordenadas sacadas de los campos de formulario del modelo oficial
+    // (se quitaron del PDF base para dibujar encima como en los demás).
+    campos: [
+      // Tipo de solicitud y régimen (se marcan con una X)
+      { name: 'sol_alta', page: 0, x: 37, y: 139, width: 13, height: 11, size: 9, align: 'center' },
+      { name: 'sol_baja', page: 0, x: 37, y: 152, width: 13, height: 11, size: 9, align: 'center' },
+      { name: 'sol_cambio', page: 0, x: 37, y: 165, width: 13, height: 11, size: 9, align: 'center' },
+      { name: 'reg_autonomos', page: 0, x: 238, y: 139, width: 13, height: 11, size: 9, align: 'center' },
+      { name: 'reg_agrario', page: 0, x: 238, y: 152, width: 13, height: 11, size: 9, align: 'center' },
+      { name: 'reg_hogar', page: 0, x: 239, y: 165, width: 12, height: 11, size: 9, align: 'center' },
+      { name: 'reg_convenio', page: 0, x: 413, y: 139, width: 12, height: 11, size: 9, align: 'center' },
+      { name: 'reg_mar', page: 0, x: 413, y: 152, width: 12, height: 11, size: 9, align: 'center' },
+      { name: 'reg_deudas', page: 0, x: 412, y: 165, width: 13, height: 11, size: 9, align: 'center' },
+      // Sujeto obligado al pago
+      { name: 'sujeto', page: 0, x: 36, y: 220, width: 540, height: 13, size: 8, align: 'left' },
+      { name: 'numss', page: 0, x: 36, y: 258, width: 160, height: 12, size: 8, align: 'left' },
+      { name: 'resp_dni', page: 0, x: 279, y: 256, width: 13, height: 12, size: 9, align: 'center' },
+      { name: 'resp_ext', page: 0, x: 330, y: 256, width: 13, height: 12, size: 9, align: 'center' },
+      { name: 'resp_pas', page: 0, x: 376, y: 256, width: 13, height: 12, size: 9, align: 'center' },
+      { name: 'resp_cif', page: 0, x: 404, y: 256, width: 13, height: 12, size: 9, align: 'center' },
+      { name: 'resp_doc', page: 0, x: 433, y: 255, width: 112, height: 13, size: 8, align: 'left' },
+      // Datos para la domiciliación
+      { name: 'iban', page: 0, y: 316, width: 11, height: 12, size: 9, casillas: [33, 45, 57, 69, 85, 97, 109, 121, 138, 150, 162, 174, 190, 202, 214, 225, 242, 254, 266, 278, 294, 306, 318, 330] },
+      { name: 'titular', page: 0, x: 30, y: 344, width: 315, height: 13, size: 8, align: 'left' },
+      { name: 'domicilio', page: 0, x: 30, y: 371, width: 314, height: 12, size: 8, align: 'left' },
+      { name: 'dia', page: 0, x: 392, y: 384, width: 15, height: 10, size: 8, align: 'center' },
+      { name: 'mes', page: 0, x: 454, y: 384, width: 14, height: 11, size: 8, align: 'center' },
+      { name: 'anio', page: 0, x: 517, y: 383, width: 33, height: 12, size: 8, align: 'center' },
+      { name: 'localidad', page: 0, x: 30, y: 395, width: 152, height: 13, size: 8, align: 'left' },
+      { name: 'cp', page: 0, x: 186, y: 395, width: 42, height: 13, size: 8, align: 'left' },
+      { name: 'provincia', page: 0, x: 231, y: 395, width: 114, height: 13, size: 8, align: 'left' },
+      { name: 'tit_dni', page: 0, x: 62, y: 433, width: 11, height: 12, size: 9, align: 'center' },
+      { name: 'tit_ext', page: 0, x: 113, y: 433, width: 10, height: 12, size: 9, align: 'center' },
+      { name: 'tit_pas', page: 0, x: 160, y: 433, width: 11, height: 12, size: 9, align: 'center' },
+      { name: 'tit_cif', page: 0, x: 189, y: 433, width: 10, height: 12, size: 9, align: 'center' },
+      { name: 'tit_doc', page: 0, x: 217, y: 433, width: 110, height: 12, size: 8, align: 'left' },
+      // Resguardo (mitad inferior): los mismos datos otra vez
+      { name: 'r_sujeto', page: 0, x: 35, y: 602, width: 539, height: 13, size: 8, align: 'left' },
+      { name: 'r_numss', page: 0, x: 36, y: 641, width: 161, height: 12, size: 8, align: 'left' },
+      { name: 'r_resp_dni', page: 0, x: 275, y: 640, width: 11, height: 11, size: 9, align: 'center' },
+      { name: 'r_resp_ext', page: 0, x: 324, y: 640, width: 12, height: 11, size: 9, align: 'center' },
+      { name: 'r_resp_pas', page: 0, x: 371, y: 640, width: 12, height: 11, size: 9, align: 'center' },
+      { name: 'r_resp_cif', page: 0, x: 400, y: 640, width: 12, height: 11, size: 9, align: 'center' },
+      { name: 'r_resp_doc', page: 0, x: 428, y: 638, width: 113, height: 12, size: 8, align: 'left' },
+      { name: 'r_iban', page: 0, y: 692, width: 11, height: 11, size: 9, casillas: [36, 47, 59, 71, 87, 99, 111, 122, 140, 152, 164, 176, 191, 203, 215, 227, 244, 256, 268, 280, 297, 308, 320, 332] },
+      { name: 'r_titular', page: 0, x: 32, y: 718, width: 314, height: 13, size: 8, align: 'left' },
+      { name: 'r_domicilio', page: 0, x: 32, y: 741, width: 313, height: 12, size: 8, align: 'left' },
+      { name: 'r_localidad', page: 0, x: 31, y: 764, width: 152, height: 13, size: 8, align: 'left' },
+      { name: 'r_cp', page: 0, x: 188, y: 765, width: 41, height: 11, size: 8, align: 'left' },
+      { name: 'r_provincia', page: 0, x: 233, y: 765, width: 112, height: 12, size: 8, align: 'left' },
+      { name: 'r_tit_dni', page: 0, x: 63, y: 803, width: 11, height: 11, size: 9, align: 'center' },
+      { name: 'r_tit_ext', page: 0, x: 113, y: 803, width: 11, height: 11, size: 9, align: 'center' },
+      { name: 'r_tit_pas', page: 0, x: 160, y: 803, width: 11, height: 11, size: 9, align: 'center' },
+      { name: 'r_tit_cif', page: 0, x: 189, y: 803, width: 11, height: 11, size: 9, align: 'center' },
+      { name: 'r_tit_doc', page: 0, x: 217, y: 802, width: 110, height: 13, size: 8, align: 'left' },
+    ],
+    // Recuadro "Firma del titular de la cuenta"
+    firmas: [{ page: 0, x: 356, y: 420, width: 100, height: 45 }],
+    // El modelo trae impreso el fondo gris del botón "Limpiar formulario"
+    blancos: [{ page: 0, x: 250, y: 28, width: 125, height: 32 }],
+  },
 ];
 
+/** Claves válidas de los modelos del paquete, en el orden en que se unen. */
+export const CLAVES_DOCUMENTOS_GRUPO = DOCUMENTOS_GRUPO.map((d) => d.clave);
+
+/** Nombre legible de cada modelo, para mensajes y pantallas. */
+export const NOMBRES_DOCUMENTOS_GRUPO = Object.fromEntries(
+  DOCUMENTOS_GRUPO.map((d) => [d.clave, d.nombre])
+);
+
 /**
- * Genera el paquete de alta: rellena los tres modelos y los devuelve unidos en
- * un solo PDF, para poder revisarlo, firmarlo y descargarlo de una vez.
+ * Genera el paquete de alta: rellena los modelos elegidos y los devuelve unidos
+ * en un solo PDF, para poder revisarlo, firmarlo y descargarlo de una vez.
  *
  * @param {Record<string, Record<string, string>>} valoresPorDoc Mapa clave -> campos
  * @param {string} [firmaImagen] PNG en data URL de la firma
- * @returns {Promise<Buffer>} PDF con los tres documentos
+ * @param {string[]} [claves] Modelos a incluir (por defecto, los tres)
+ * @returns {Promise<Buffer>} PDF con los documentos elegidos
  */
-export const generarGrupoPdf = async (valoresPorDoc, firmaImagen) => {
+export const generarGrupoPdf = async (valoresPorDoc, firmaImagen, claves) => {
+  // Se respeta siempre el orden fijo del paquete, elija lo que elija el usuario
+  const seleccion = Array.isArray(claves) && claves.length > 0 ? claves : CLAVES_DOCUMENTOS_GRUPO;
+  const documentos = DOCUMENTOS_GRUPO.filter((d) => seleccion.includes(d.clave));
+  if (documentos.length === 0) {
+    throw new Error('No se ha seleccionado ningún documento válido para generar');
+  }
+
   const paquete = await PDFDocument.create();
   const font = await paquete.embedFont(StandardFonts.Helvetica);
   const imagenFirma = firmaImagen
@@ -723,7 +840,7 @@ export const generarGrupoPdf = async (valoresPorDoc, firmaImagen) => {
   let escritos = 0;
   let firmasEstampadas = 0;
 
-  for (const doc of DOCUMENTOS_GRUPO) {
+  for (const doc of documentos) {
     const bytes = await fs.readFile(path.join(ASSETS_DIR, doc.asset));
     const origen = await PDFDocument.load(bytes);
     const paginas = await paquete.copyPages(origen, origen.getPageIndices());
@@ -732,6 +849,19 @@ export const generarGrupoPdf = async (valoresPorDoc, firmaImagen) => {
     // Índice de la primera página de este documento dentro del paquete
     const offset = paquete.getPageCount() - paginas.length;
     const valores = valoresPorDoc[doc.clave] || {};
+
+    // Zonas del modelo que se tapan en blanco (coordenadas con origen arriba)
+    for (const zona of doc.blancos || []) {
+      const page = paquete.getPage(offset + zona.page);
+      const { height } = page.getSize();
+      page.drawRectangle({
+        x: zona.x,
+        y: height - zona.y - zona.height,
+        width: zona.width,
+        height: zona.height,
+        color: rgb(1, 1, 1),
+      });
+    }
 
     for (const campo of doc.campos) {
       const valor = valores[campo.name];
@@ -751,7 +881,7 @@ export const generarGrupoPdf = async (valoresPorDoc, firmaImagen) => {
 
   const pdfBytes = await paquete.save();
   logger.info('✓ Paquete de documentos generado localmente', {
-    documentos: DOCUMENTOS_GRUPO.length,
+    documentos: documentos.map((d) => d.clave),
     camposEscritos: escritos,
     firmasEstampadas,
     bytes: pdfBytes.length,
@@ -765,5 +895,7 @@ export default {
   FIRMAS_FINIQUITO,
   generarContratoPdf,
   generarGrupoPdf,
+  CLAVES_DOCUMENTOS_GRUPO,
+  NOMBRES_DOCUMENTOS_GRUPO,
   FIRMAS_CONTRATO,
 };
