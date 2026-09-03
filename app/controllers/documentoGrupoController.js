@@ -97,13 +97,17 @@ export const construirValoresGrupoPdf = (d) => {
   const titularTipo = d.sepaTitularTipoDocumento || tipo;
   const titularDoc = d.sepaTitularNumeroDocumento || documento;
   const fecha = descomponerFecha(d.sepaFecha || d.fechaFirma);
+  // El responsable del pago es, salvo que se indique otro, la persona del
+  // formulario: su NIF, marcando DNI o tarjeta de extranjero según la letra.
+  const respTipo = d.tipoDocumentoEmpleador || tipo;
+  const respDoc = d.numeroDocumentoEmpleador || documento;
   const sepaComun = {
     sujeto: d.razonSocial || '',
     // La casilla (3) admite nº de afiliación, CCC o expediente: manda el NAF
     // si se ha indicado y, si no, la cuenta de cotización como hasta ahora.
     numss: d.naf || d.cuentaCotizacion || '',
-    ...marcasTipoDocumento('resp', d.tipoDocumentoEmpleador),
-    resp_doc: d.numeroDocumentoEmpleador || '',
+    ...marcasTipoDocumento('resp', respTipo),
+    resp_doc: respDoc,
     iban,
     titular,
     // Datos del titular de la cuenta: son propios del SEPA y no se toman de
