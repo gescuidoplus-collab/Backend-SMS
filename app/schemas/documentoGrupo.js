@@ -29,6 +29,7 @@ const DocumentoGrupoSchema = new Schema(
     segundoApellido: String,
     nombres: String,
     nif: String,
+    naf: String, // número de afiliación; en el SEPA va como Nº de afiliación (3)
     sexo: String,
     numeroDocumento: String,
     tipoDocumento: String, // dni | nie | pasaporte
@@ -61,6 +62,12 @@ const DocumentoGrupoSchema = new Schema(
     sepaTipoSolicitud: String, // alta | baja | cambio
     sepaRegimen: String, // autonomos | agrario | hogar | convenio | mar | deudas
     titularCuenta: String, // si va vacío, la persona del formulario
+    // Datos para la domiciliación (titular de la cuenta). Van aparte: no se
+    // toman de la dirección general del formulario.
+    sepaDomicilio: String,
+    sepaLocalidad: String,
+    sepaCodPostal: String,
+    sepaProvincia: String,
     tipoDocumentoEmpleador: String, // dni | nie | pasaporte | cif (responsable del pago)
     numeroDocumentoEmpleador: String,
 
