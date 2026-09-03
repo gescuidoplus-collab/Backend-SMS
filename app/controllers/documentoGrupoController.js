@@ -91,7 +91,9 @@ export const construirValoresGrupoPdf = (d) => {
   const regimen = (d.sepaRegimen || '').toLowerCase();
   // En una baja el modelo pide no rellenar el IBAN
   const iban = solicitud === 'baja' ? '' : String(d.numeroCuenta || '').replace(/\s+/g, '').toUpperCase();
-  const titular = d.titularCuenta || nombre;
+  // El titular de la cuenta de adeudo se escribe en su propio campo: no se
+  // toma de la persona del formulario, que puede no ser quien paga.
+  const titular = d.titularCuenta || '';
   // Documento y fecha propios del SEPA; si no se indican, valen el NIF de la
   // persona y la fecha de firma, que es lo que se usaba antes.
   const titularTipo = d.sepaTitularTipoDocumento || tipo;
