@@ -68,6 +68,9 @@ const DocumentoGrupoSchema = new Schema(
     sepaLocalidad: String,
     sepaCodPostal: String,
     sepaProvincia: String,
+    sepaTitularTipoDocumento: String, // dni | nie | pasaporte | cif; vacío → el NIF
+    sepaTitularNumeroDocumento: String,
+    sepaFecha: String, // vacío → la fecha de firma
     tipoDocumentoEmpleador: String, // dni | nie | pasaporte | cif (responsable del pago)
     numeroDocumentoEmpleador: String,
 

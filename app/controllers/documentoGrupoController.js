@@ -92,7 +92,11 @@ export const construirValoresGrupoPdf = (d) => {
   // En una baja el modelo pide no rellenar el IBAN
   const iban = solicitud === 'baja' ? '' : String(d.numeroCuenta || '').replace(/\s+/g, '').toUpperCase();
   const titular = d.titularCuenta || nombre;
-  const fecha = descomponerFecha(d.fechaFirma);
+  // Documento y fecha propios del SEPA; si no se indican, valen el NIF de la
+  // persona y la fecha de firma, que es lo que se usaba antes.
+  const titularTipo = d.sepaTitularTipoDocumento || tipo;
+  const titularDoc = d.sepaTitularNumeroDocumento || documento;
+  const fecha = descomponerFecha(d.sepaFecha || d.fechaFirma);
   const sepaComun = {
     sujeto: d.razonSocial || '',
     // La casilla (3) admite nº de afiliación, CCC o expediente: manda el NAF
@@ -108,8 +112,8 @@ export const construirValoresGrupoPdf = (d) => {
     localidad: d.sepaLocalidad || '',
     cp: d.sepaCodPostal || '',
     provincia: d.sepaProvincia || '',
-    ...marcasTipoDocumento('tit', tipo),
-    tit_doc: documento,
+    ...marcasTipoDocumento('tit', titularTipo),
+    tit_doc: titularDoc,
   };
   const sepa = {
     sol_alta: solicitud === 'alta' ? 'X' : '',
