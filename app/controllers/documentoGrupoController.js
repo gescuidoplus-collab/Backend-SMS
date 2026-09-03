@@ -92,20 +92,28 @@ export const construirValoresGrupoPdf = (d) => {
   // En una baja el modelo pide no rellenar el IBAN
   const iban = solicitud === 'baja' ? '' : String(d.numeroCuenta || '').replace(/\s+/g, '').toUpperCase();
   const titular = d.titularCuenta || nombre;
-  const fecha = descomponerFecha(d.fechaFirma);
+  // Documento y fecha propios del SEPA; si no se indican, valen el NIF de la
+  // persona y la fecha de firma, que es lo que se usaba antes.
+  const titularTipo = d.sepaTitularTipoDocumento || tipo;
+  const titularDoc = d.sepaTitularNumeroDocumento || documento;
+  const fecha = descomponerFecha(d.sepaFecha || d.fechaFirma);
   const sepaComun = {
     sujeto: d.razonSocial || '',
-    numss: d.cuentaCotizacion || '',
+    // La casilla (3) admite nº de afiliación, CCC o expediente: manda el NAF
+    // si se ha indicado y, si no, la cuenta de cotización como hasta ahora.
+    numss: d.naf || d.cuentaCotizacion || '',
     ...marcasTipoDocumento('resp', d.tipoDocumentoEmpleador),
     resp_doc: d.numeroDocumentoEmpleador || '',
     iban,
     titular,
-    domicilio: domicilioCalle(d),
-    localidad: d.municipio || '',
-    cp: d.codPostal || '',
-    provincia: d.provincia || '',
-    ...marcasTipoDocumento('tit', tipo),
-    tit_doc: documento,
+    // Datos del titular de la cuenta: son propios del SEPA y no se toman de
+    // la dirección general del formulario.
+    domicilio: d.sepaDomicilio || '',
+    localidad: d.sepaLocalidad || '',
+    cp: d.sepaCodPostal || '',
+    provincia: d.sepaProvincia || '',
+    ...marcasTipoDocumento('tit', titularTipo),
+    tit_doc: titularDoc,
   };
   const sepa = {
     sol_alta: solicitud === 'alta' ? 'X' : '',
