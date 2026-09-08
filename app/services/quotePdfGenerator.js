@@ -1,4 +1,5 @@
 import puppeteer from "puppeteer";
+import { PDFDocument } from "pdf-lib";
 import { logger } from "../config/index.js";
 
 
@@ -53,15 +54,18 @@ export const generateQuotePDF = async (htmlContent) => {
       "--no-sandbox",
       "--disable-setuid-sandbox",
       "--disable-dev-shm-usage",
+      "--disable-gpu",
     ],
   });
   try {
     const page = await browser.newPage();
+
     await page.setContent(htmlContent, {
-      waitUntil: "load",
+      waitUntil: "networkidle0",
       timeout: 120000,
     });
-    const pdfBuffer = await page.pdf({
+
+    const rawPdfBuffer = await page.pdf({
       format: "A4",
       landscape: true,
       printBackground: true,
@@ -69,7 +73,26 @@ export const generateQuotePDF = async (htmlContent) => {
       preferCSSPageSize: true,
       timeout: 120000,
     });
-    return pdfBuffer;
+
+    logger.info({ rawSize: rawPdfBuffer.length }, "Raw PDF size from Puppeteer");
+
+    const pdfDoc = await PDFDocument.load(rawPdfBuffer);
+
+    const compressedPdfBytes = await pdfDoc.save({
+      useObjectStreams: true,
+      addDefaultPage: false,
+    });
+
+    const finalSize = Buffer.from(compressedPdfBytes).length;
+    const rawSize = rawPdfBuffer.length;
+    const reduction = (((rawSize - finalSize) / rawSize) * 100).toFixed(1);
+
+    logger.info(
+      { rawSize, finalSize, reduction: `${reduction}%` },
+      "PDF compression complete"
+    );
+
+    return Buffer.from(compressedPdfBytes);
   } finally {
     await browser.close();
   }
