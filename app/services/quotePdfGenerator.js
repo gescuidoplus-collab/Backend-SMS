@@ -1,7 +1,6 @@
 import puppeteer from "puppeteer";
-import { PDFDocument } from "pdf-lib";
+import PDFDocument from "pdfkit";
 import { logger } from "../config/index.js";
-
 
 export const prepareQuoteData = async (datos) => {
   const nombreContrato = datos.nameContrato || "No especificado";
@@ -38,8 +37,6 @@ export const prepareQuoteData = async (datos) => {
 };
 
 export const renderQuoteTemplate = async (app, templateName, data) => {
-  // app.render() necesita acceso a la instancia Express
-  // Firma: app.render(viewName, options, callback)
   return new Promise((resolve, reject) => {
     app.render(templateName, data, (err, html) => {
       if (err) reject(err);
@@ -57,43 +54,72 @@ export const generateQuotePDF = async (htmlContent) => {
       "--disable-gpu",
     ],
   });
+
   try {
     const page = await browser.newPage();
-
     await page.setContent(htmlContent, {
       waitUntil: "networkidle0",
       timeout: 120000,
     });
 
-    const rawPdfBuffer = await page.pdf({
-      format: "A4",
-      landscape: true,
-      printBackground: true,
-      margin: 0,
-      preferCSSPageSize: true,
-      timeout: 120000,
+    const startTime = Date.now();
+
+    const screenBuffer = await page.screenshot({
+      type: "png",
+      fullPage: true,
+      optimizeForSpeed: true,
     });
 
-    logger.info({ rawSize: rawPdfBuffer.length }, "Raw PDF size from Puppeteer");
+    const screenshots = [screenBuffer];
 
-    const pdfDoc = await PDFDocument.load(rawPdfBuffer);
-
-    const compressedPdfBytes = await pdfDoc.save({
-      useObjectStreams: true,
-      addDefaultPage: false,
-    });
-
-    const finalSize = Buffer.from(compressedPdfBytes).length;
-    const rawSize = rawPdfBuffer.length;
-    const reduction = (((rawSize - finalSize) / rawSize) * 100).toFixed(1);
-
+    const puppeteerTime = Date.now() - startTime;
     logger.info(
-      { rawSize, finalSize, reduction: `${reduction}%` },
-      "PDF compression complete"
+      { screenshots: screenshots.length, totalSize: screenBuffer.length, time: puppeteerTime },
+      "Screenshots generated from Puppeteer"
     );
 
-    return Buffer.from(compressedPdfBytes);
+    const pdfBuffer = createPdfFromScreenshots(screenshots);
+
+    const reduction = (((screenBuffer.length - pdfBuffer.length) / screenBuffer.length) * 100).toFixed(1);
+
+    logger.info(
+      {
+        screenshotSize: screenBuffer.length,
+        pdfSize: pdfBuffer.length,
+        reduction: `${reduction}%`,
+      },
+      "PDF created from screenshots"
+    );
+
+    return pdfBuffer;
   } finally {
     await browser.close();
   }
 };
+
+function createPdfFromScreenshots(screenshots) {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: "A4",
+        landscape: true,
+        compress: true,
+      });
+
+      const buffers = [];
+
+      doc.on("data", (chunk) => buffers.push(chunk));
+      doc.on("end", () => resolve(Buffer.concat(buffers)));
+      doc.on("error", reject);
+
+      for (const screenshot of screenshots) {
+        doc.image(screenshot, 0, 0, { fit: [842, 595] });
+        doc.addPage();
+      }
+
+      doc.end();
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
