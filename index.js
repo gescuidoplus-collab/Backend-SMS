@@ -8,6 +8,7 @@ import morgan from "morgan";
 import { engine } from "express-handlebars";
 import { fileURLToPath } from "url";
 import { generarCodigoFactura } from "./app/utils/generador-codigo.js";
+import sharp from "sharp";
 import fs from "fs";
 import {
   processMessageQueue,
@@ -42,27 +43,32 @@ app.use(
 if (envConfig.env === "development") {
   app.use(morgan("dev"));
 }
-
+const compressedImagesCache = new Map();
 app.engine('handlebars', engine({
     defaultLayout: false,
     partialsDir: [
         path.join(__dirname, 'app', 'views', 'pdf', 'partials'),  
     ],
     helpers: {
-        imagePath: function(imageName) {
-            // Convertir imagen a Base64
-            const imagePath = path.join(__dirname, 'public', 'images', 'pdf', imageName);
-            try {
-                const imageBuffer = fs.readFileSync(imagePath);
-                const ext = path.extname(imageName).substring(1);
-                const mimeType = ext === 'png' ? 'image/png' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/png';
-                return `data:${mimeType};base64,${imageBuffer.toString('base64')}`;
-            } catch (error) {
-                logger.error({ err: error, imageName }, `Error loading image ${imageName}`);
-                return '';
-            }
-        },
-    }
+    imagePath: function(imageName) {
+        const imagePath = path.join(__dirname, 'public', 'images', 'pdf', imageName);
+        try {
+            const imageBuffer = fs.readFileSync(imagePath);
+            const ext = path.extname(imageName).toLowerCase().substring(1);
+            
+            // AGREGA 'webp' AQUI:
+            let mimeType = 'image/png';
+            if (ext === 'jpg' || ext === 'jpeg') mimeType = 'image/jpeg';
+            else if (ext === 'webp') mimeType = 'image/webp'; // <--- ESTO FALTABA
+            else if (ext === 'svg') mimeType = 'image/svg+xml';
+
+            return `data:${mimeType};base64,${imageBuffer.toString('base64')}`;
+        } catch (error) {
+            logger.error({ err: error, imageName }, `Error loading image ${imageName}`);
+            return '';
+        }
+    },
+}
 }));
 
 app.set("view engine", 'handlebars');

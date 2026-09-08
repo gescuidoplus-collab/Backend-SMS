@@ -385,7 +385,7 @@ Esta sección explica de forma clara y sencilla el funcionamiento de la aplicaci
 
 A continuación, se presenta el diagrama visual del flujo principal de la aplicación:
 
-![Diagrama de Funcionamiento](./public/images/diagrama_funcionamiento.png)
+![Diagrama de Funcionamiento](./public/images/diagrama_funcionamiento.webp)
 
 ### 7.9) Gestión de Errores
 
